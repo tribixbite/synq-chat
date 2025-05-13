@@ -14,8 +14,34 @@ const WS_HOST = HOST.replace("http", "ws");
 
 const connectSrc = isCustomHost ? ["'self'", `${HOST}:${PORT}`, `${WS_HOST}:${PORT}`] : ["*"];
 
+// Subdomain handler plugin
+// This modifies the request path for llm subdomain requests to point to the llm subdirectory
+const subdomainPlugin = new Elysia().onBeforeHandle(({ request, set }) => {
+	const host = request.headers.get("host");
+
+	// Check if this is the llm subdomain
+	if (host?.startsWith("llm.")) {
+		// Get the original URL
+		const url = new URL(request.url);
+
+		// Create a new URL with modified path - prefixing with /llm/
+		// Handle the case where the path is just "/" by serving index.html
+		const newPath = url.pathname === "/" ? "/llm/index.html" : `/llm${url.pathname}`;
+
+		// Create a new URL with the modified path
+		const newUrl = new URL(newPath, url.origin);
+		newUrl.search = url.search;
+
+		// Redirect to the new URL which will be handled by the static file plugin
+		// No need to modify files on disk - just change the request URL
+		set.redirect = newUrl.pathname + newUrl.search;
+		return;
+	}
+});
+
 export const plugins = new Elysia()
 	.use(cors())
+	.use(subdomainPlugin) // Add our subdomain handling plugin
 	.use(
 		helmet({
 			contentSecurityPolicy: {

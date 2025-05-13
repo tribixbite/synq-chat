@@ -1,0 +1,5 @@
+{
+  "name": "nested test file",
+  "description": "This is a nested test file to verify that subdirectory access works correctly",
+  "path": "nested/nested-test.json"
+}

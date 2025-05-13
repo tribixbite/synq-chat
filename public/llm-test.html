@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LLM Files Test</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+        .success { color: green; }
+        .error { color: red; }
+        pre { 
+            background-color: #f5f5f5;
+            padding: 10px;
+            overflow: auto;
+            max-height: 300px;
+            border: 1px solid #ddd;
+        }
+        button { 
+            padding: 8px 16px;
+            margin: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>LLM Files Test Page</h1>
+    <p>This page tests loading files from the public/llm directory.</p>
+
+    <div>
+        <h2>Test Files</h2>
+        <button onclick="loadFile('/llm/simple-test.txt')">Load simple-test.txt</button>
+        <button onclick="loadFile('/llm/example.txt')">Load example.txt</button>
+        <button onclick="loadFile('/llm/test.json')">Load test.json</button>
+        <button onclick="loadFile('/llm/multisynq-react.txt')">Load multisynq-react.txt</button>
+        <button onclick="loadFile('/llm/nested/nested-test.json')">Load nested/nested-test.json</button>
+    </div>
+
+    <div>
+        <h2>Direct Links</h2>
+        <ul>
+            <li><a href="/llm/simple-test.txt" target="_blank">simple-test.txt</a></li>
+            <li><a href="/llm/example.txt" target="_blank">example.txt</a></li>
+            <li><a href="/llm/test.json" target="_blank">test.json</a></li>
+            <li><a href="/llm/multisynq-react.txt" target="_blank">multisynq-react.txt</a></li>
+            <li><a href="/llm/nested/nested-test.json" target="_blank">nested/nested-test.json</a></li>
+        </ul>
+    </div>
+
+    <div>
+        <h2>Result</h2>
+        <div id="status"></div>
+        <pre id="result"></pre>
+    </div>
+
+    <script>
+        function loadFile(url) {
+            const statusElem = document.getElementById('status');
+            const resultElem = document.getElementById('result');
+            
+            statusElem.innerHTML = `<p>Loading ${url}...</p>`;
+            resultElem.textContent = '';
+            
+            fetch(url)
+                .then(response => {
+                    if (!response.ok) {
+                        throw new Error(`HTTP status ${response.status}`);
+                    }
+                    statusElem.innerHTML = `<p class="success">Successfully loaded ${url}</p>`;
+                    statusElem.innerHTML += `<p>Content-Type: ${response.headers.get('content-type')}</p>`;
+                    return response.text();
+                })
+                .then(data => {
+                    resultElem.textContent = data;
+                })
+                .catch(error => {
+                    statusElem.innerHTML = `<p class="error">Error loading ${url}: ${error.message}</p>`;
+                });
+        }
+    </script>
+</body>
+</html> 

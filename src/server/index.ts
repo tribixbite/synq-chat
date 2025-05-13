@@ -18,8 +18,15 @@ const app = new Elysia()
 	.use(plugins)
 	.use(api);
 
+// Serve static files from public directory
 if (existsSync(Path.Public)) {
-	app.use(staticPlugin({ prefix: "/", assets: Path.Public, noCache: true }));
+	app.use(
+		staticPlugin({
+			prefix: "/",
+			assets: Path.Public,
+			noCache: true
+		})
+	);
 }
 
 const server = createServer(createHttpAdapter(app));

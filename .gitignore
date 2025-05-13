@@ -1,6 +1,7 @@
 node_modules/
-public/
+# public/
 .DS_Store
 .env
 /main*
 *.tsbuildinfo
+public/llm/test/*
