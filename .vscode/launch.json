@@ -1,0 +1,40 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "type": "bun",
+      "request": "launch",
+      "name": "bun",
+      "program": "${workspaceFolder}/src/server/index.ts",
+      "cwd": "${workspaceFolder}",
+      "watchMode": "hot",
+      "internalConsoleOptions": "neverOpen",
+      "presentation": {
+        "hidden": true
+      }
+    },
+    {
+      "type": "node",
+      "request": "launch",
+      "name": "vite",
+      "runtimeExecutable": "bunx",
+      "runtimeArgs": ["--bun", "vite"],
+      "cwd": "${workspaceFolder}",
+      "serverReadyAction": {
+        "pattern": "Local:.+(https?://\\S+)",
+        "uriFormat": "%s",
+        "action": "openExternally"
+      },
+      "presentation": {
+        "hidden": true
+      }
+    }
+  ],
+  "compounds": [
+    {
+      "name": "debug",
+      "configurations": ["bun", "vite"],
+      "stopAll": true
+    }
+  ]
+}
