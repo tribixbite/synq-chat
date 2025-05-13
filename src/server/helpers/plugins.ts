@@ -55,7 +55,7 @@ const subdomainPlugin = new Elysia().onBeforeHandle(async ({ request, set }) => 
 
 export const plugins = new Elysia()
 	.use(cors())
-	.use(subdomainPlugin) // Add our subdomain handling plugin
+	// .use(subdomainPlugin) // Add our subdomain handling plugin
 	.use(
 		helmet({
 			contentSecurityPolicy: {
