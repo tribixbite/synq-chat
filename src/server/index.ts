@@ -27,13 +27,6 @@ if (existsSync(Path.Public)) {
 			noCache: true
 		})
 	);
-	app.use(
-		staticPlugin({
-			prefix: "llm/",
-			assets: `${Path.Public}/llm/`,
-			noCache: true
-		})
-	);
 }
 
 const server = createServer(createHttpAdapter(app));

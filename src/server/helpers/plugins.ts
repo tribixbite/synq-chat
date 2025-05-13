@@ -27,7 +27,7 @@ const subdomainPlugin = new Elysia().onBeforeHandle(async ({ request, set }) => 
 		const pathname = url.pathname === "/" ? "/index.html" : url.pathname;
 
 		// Path doesn't include the /llm prefix since we're on the subdomain
-		const filePath = `public/llm${pathname}`;
+		const filePath = `llm${pathname}`;
 
 		try {
 			// Try to read and serve the file directly
