@@ -19,9 +19,15 @@ const llmFilesPlugin = (): Plugin => {
 		name: "llm-files-plugin",
 		configureServer(server) {
 			server.middlewares.use((req, res, next) => {
-				// Check if the request is for a file in the /llm directory
-				if (req.url?.startsWith("/llm/")) {
-					const filePath = req.url.substring("/llm/".length);
+				const host = req.headers.host || "";
+
+				// Handle requests from llm.localhost subdomain directly from llm directory
+				if (host.startsWith("llm.localhost")) {
+					// Use the pathname directly without the /llm prefix
+					const url = new URL(req.url || "/", `http://${host}`);
+					const filePath = url.pathname.startsWith("/")
+						? url.pathname.substring(1)
+						: url.pathname;
 					const fullPath = resolve("public/llm", filePath);
 
 					// Only intercept if the file exists
@@ -31,7 +37,9 @@ const llmFilesPlugin = (): Plugin => {
 
 						// Check if file exists
 						if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
-							console.log(`Serving LLM file: ${req.url} -> ${fullPath}`);
+							console.log(
+								`Serving LLM file via subdomain: ${req.url} -> ${fullPath}`
+							);
 
 							// Set appropriate content type based on file extension
 							const ext = path.extname(fullPath).toLowerCase();
@@ -81,7 +89,73 @@ const llmFilesPlugin = (): Plugin => {
 							return;
 						}
 					} catch (error) {
-						console.error(`Error serving LLM file: ${error}`);
+						console.error(`Error serving LLM file via subdomain: ${error}`);
+					}
+				}
+
+				// Handle the original /llm/ path for non-subdomain access
+				else if (req.url?.startsWith("/llm/")) {
+					const filePath = req.url.substring("/llm/".length);
+					const fullPath = resolve("public/llm", filePath);
+
+					// Only intercept if the file exists
+					try {
+						const fs = require("node:fs");
+						const path = require("node:path");
+
+						// Check if file exists
+						if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+							console.log(`Serving LLM file via path: ${req.url} -> ${fullPath}`);
+
+							// Set appropriate content type based on file extension
+							const ext = path.extname(fullPath).toLowerCase();
+							let contentType = "application/octet-stream"; // default
+
+							switch (ext) {
+								case ".txt":
+									contentType = "text/plain; charset=utf-8";
+									break;
+								case ".html":
+									contentType = "text/html; charset=utf-8";
+									break;
+								case ".css":
+									contentType = "text/css; charset=utf-8";
+									break;
+								case ".js":
+									contentType = "application/javascript; charset=utf-8";
+									break;
+								case ".json":
+									contentType = "application/json; charset=utf-8";
+									break;
+								case ".png":
+									contentType = "image/png";
+									break;
+								case ".jpg":
+								case ".jpeg":
+									contentType = "image/jpeg";
+									break;
+								case ".gif":
+									contentType = "image/gif";
+									break;
+								case ".svg":
+									contentType = "image/svg+xml";
+									break;
+								case ".pdf":
+									contentType = "application/pdf";
+									break;
+							}
+
+							res.setHeader("Content-Type", contentType);
+							res.setHeader("Access-Control-Allow-Origin", "*");
+
+							// Read and send the file
+							const fileContents = fs.readFileSync(fullPath);
+							res.statusCode = 200;
+							res.end(fileContents);
+							return;
+						}
+					} catch (error) {
+						console.error(`Error serving LLM file via path: ${error}`);
 					}
 				}
 				return next();
