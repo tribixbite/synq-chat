@@ -1,18 +1,18 @@
 import { treaty } from "@elysiajs/eden";
 import { useQuery } from "@tanstack/react-query";
 
-import { socket } from "@client/helpers/socket";
+// import { socket } from "@client/helpers/socket";
 import type { TApi } from "@server/helpers/api";
-import { SocketEvent } from "@shared/constants";
+// import { SocketEvent } from "@shared/constants";
 
 const client = treaty<TApi>(window.location.origin);
 
 export const useApi = () => {
-	const helloSocket = (message: string) =>
-		useQuery({
-			queryKey: ["hello-socket"],
-			queryFn: () => socket.emitAndReceive({ event: SocketEvent.Hello, data: [message] })
-		});
+	// const helloSocket = (message: string) =>
+	// 	useQuery({
+	// 		queryKey: ["hello-socket"],
+	// 		queryFn: () => socket.emitAndReceive({ event: SocketEvent.Hello, data: [message] })
+	// 	});
 
 	const helloHttp = (name?: string) =>
 		useQuery({
@@ -25,5 +25,5 @@ export const useApi = () => {
 			}
 		});
 
-	return { helloSocket, helloHttp };
+	return { helloHttp };
 };

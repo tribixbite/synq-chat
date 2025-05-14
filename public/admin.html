@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>File Manager Admin</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      margin: 0;
+      padding: 0;
+    }
+    .container {
+      max-width: 800px;
+      margin: 0 auto;
+      padding: 20px;
+    }
+    h1 {
+      margin-top: 0;
+    }
+    .error {
+      background-color: #ffebee;
+      color: #c62828;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    .success {
+      background-color: #e8f5e9;
+      color: #2e7d32;
+      padding: 10px;
+      margin-bottom: 20px;
+      border-radius: 4px;
+    }
+    .current-path {
+      margin-bottom: 20px;
+      padding: 10px;
+      background-color: #f5f5f5;
+      border-radius: 4px;
+    }
+    .file-list {
+      margin-bottom: 30px;
+    }
+    .file-list ul {
+      list-style: none;
+      padding: 0;
+    }
+    .file-list li {
+      padding: 8px;
+      border-bottom: 1px solid #eee;
+    }
+    .directory button {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: #2196f3;
+      font-weight: bold;
+      display: inline-block;
+      text-align: left;
+      width: 100%;
+    }
+    .upload-form {
+      margin-top: 20px;
+    }
+    .form-group {
+      margin-bottom: 15px;
+    }
+    label {
+      display: block;
+      margin-bottom: 5px;
+    }
+    input, textarea {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      box-sizing: border-box;
+    }
+    textarea {
+      min-height: 200px;
+    }
+    button {
+      padding: 10px;
+      background-color: #2196f3;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:disabled {
+      background-color: #bdbdbd;
+    }
+    .login-container {
+      max-width: 400px;
+      margin: 100px auto;
+      padding: 20px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+  <div class="container" id="app">
+    <div id="login-screen" class="login-container">
+      <h1>Admin Login</h1>
+      <div class="form-group">
+        <label for="password">Password:</label>
+        <input type="password" id="password">
+      </div>
+      <button id="login-button">Login</button>
+    </div>
+
+    <div id="admin-screen" style="display: none;">
+      <h1>File Manager Admin</h1>
+      
+      <div class="error" id="error-message" style="display: none;"></div>
+      <div class="success" id="success-message" style="display: none;"></div>
+      
+      <div class="current-path">
+        <strong>Current Directory:</strong> <span id="current-dir">/</span>
+        <button id="go-up" style="display: none;">Go Up</button>
+      </div>
+      
+      <div class="file-list">
+        <h2>Files</h2>
+        <div id="loading" style="display: none;">Loading...</div>
+        <ul id="file-list"></ul>
+      </div>
+      
+      <div class="upload-form">
+        <h2>Upload File</h2>
+        <form id="upload-form">
+          <div class="form-group">
+            <label for="file-name">File Name:</label>
+            <input type="text" id="file-name" required>
+          </div>
+          
+          <div class="form-group">
+            <label for="file-content">Content:</label>
+            <textarea id="file-content" rows="10"></textarea>
+          </div>
+          
+          <button type="submit" id="upload-button">Upload File</button>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // DOM elements
+    const loginScreen = document.getElementById('login-screen');
+    const adminScreen = document.getElementById('admin-screen');
+    const passwordInput = document.getElementById('password');
+    const loginButton = document.getElementById('login-button');
+    const errorMessage = document.getElementById('error-message');
+    const successMessage = document.getElementById('success-message');
+    const currentDirEl = document.getElementById('current-dir');
+    const goUpButton = document.getElementById('go-up');
+    const fileListEl = document.getElementById('file-list');
+    const loadingEl = document.getElementById('loading');
+    const uploadForm = document.getElementById('upload-form');
+    const fileNameInput = document.getElementById('file-name');
+    const fileContentInput = document.getElementById('file-content');
+    const uploadButton = document.getElementById('upload-button');
+
+    // App state
+    let currentDir = '';
+    let loading = false;
+
+    // Authentication
+    loginButton.addEventListener('click', () => {
+      const password = passwordInput.value;
+      
+      // Simple auth - in production you would use a proper authentication system
+      if (password === 'admin123') {
+        loginScreen.style.display = 'none';
+        adminScreen.style.display = 'block';
+        fetchFiles();
+      } else {
+        alert('Invalid password');
+      }
+    });
+
+    // Fetch files from the server
+    async function fetchFiles(dir = '') {
+      showLoading(true);
+      hideMessages();
+      
+      try {
+        const response = await fetch(`/api/admin/files?dir=${encodeURIComponent(dir)}`);
+        const data = await response.json();
+        
+        if (data.error) {
+          showError(data.error);
+          return;
+        }
+        
+        if (data.files) {
+          renderFiles(data.files);
+          currentDir = data.currentDir || '';
+          currentDirEl.textContent = currentDir || '/';
+          
+          // Show/hide go up button
+          if (currentDir) {
+            goUpButton.style.display = 'inline-block';
+          } else {
+            goUpButton.style.display = 'none';
+          }
+        }
+      } catch (err) {
+        showError(`Failed to fetch files: ${err.message || err}`);
+      } finally {
+        showLoading(false);
+      }
+    }
+
+    // Render file list
+    function renderFiles(files) {
+      fileListEl.innerHTML = '';
+      
+      if (files.length === 0) {
+        const li = document.createElement('li');
+        li.textContent = 'No files in this directory';
+        fileListEl.appendChild(li);
+        return;
+      }
+      
+      files.forEach(file => {
+        const li = document.createElement('li');
+        li.className = file.isDirectory ? 'directory' : 'file';
+        
+        if (file.isDirectory) {
+          const button = document.createElement('button');
+          button.innerHTML = `📁 ${file.name}`;
+          button.addEventListener('click', () => {
+            fetchFiles(file.path);
+          });
+          li.appendChild(button);
+        } else {
+          li.innerHTML = `📄 ${file.name}`;
+        }
+        
+        fileListEl.appendChild(li);
+      });
+    }
+
+    // Upload file
+    uploadForm.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      
+      const fileName = fileNameInput.value.trim();
+      const fileContent = fileContentInput.value;
+      
+      if (!fileName) {
+        showError('File name is required');
+        return;
+      }
+      
+      showLoading(true);
+      hideMessages();
+      
+      try {
+        const response = await fetch(`/api/admin/upload?dir=${encodeURIComponent(currentDir)}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            file: fileName,
+            content: fileContent,
+          }),
+        });
+        
+        const data = await response.json();
+        
+        if (data.error) {
+          showError(data.error);
+          return;
+        }
+        
+        if (data.success) {
+          showSuccess(`File ${data.path} uploaded successfully`);
+          fileNameInput.value = '';
+          fileContentInput.value = '';
+          fetchFiles(currentDir);
+        }
+      } catch (err) {
+        showError(`Failed to upload file: ${err.message || err}`);
+      } finally {
+        showLoading(false);
+      }
+    });
+
+    // Go up to parent directory
+    goUpButton.addEventListener('click', () => {
+      if (!currentDir) return;
+      
+      const parts = currentDir.split('/').filter(Boolean);
+      parts.pop();
+      const parentDir = parts.join('/');
+      fetchFiles(parentDir);
+    });
+
+    // Utility functions
+    function showLoading(isLoading) {
+      loading = isLoading;
+      loadingEl.style.display = isLoading ? 'block' : 'none';
+      uploadButton.disabled = isLoading;
+    }
+
+    function showError(message) {
+      errorMessage.textContent = message;
+      errorMessage.style.display = 'block';
+      successMessage.style.display = 'none';
+    }
+
+    function showSuccess(message) {
+      successMessage.textContent = message;
+      successMessage.style.display = 'block';
+      errorMessage.style.display = 'none';
+    }
+
+    function hideMessages() {
+      errorMessage.style.display = 'none';
+      successMessage.style.display = 'none';
+    }
+  </script>
+</body>
+</html> 

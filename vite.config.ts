@@ -182,7 +182,7 @@ export default defineConfig(({ mode }) => ({
 		},
 		fs: { deny: ["sw.*"] }
 	},
-	publicDir: resolve("public"),
+	// publicDir: resolve("public"),
 	build: {
 		outDir: resolve(outDir),
 		emptyOutDir: true,
@@ -211,7 +211,7 @@ export default defineConfig(({ mode }) => ({
 		}
 	},
 	plugins: [
-		llmFilesPlugin(), // Add our custom plugin
+		// llmFilesPlugin(), // Add our custom plugin
 		react(),
 		tsconfigPaths(),
 		...[
