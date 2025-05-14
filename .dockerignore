@@ -4,7 +4,6 @@
 **/.tsbuildinfo
 **/.vscode
 **/node_modules
-**/public
 .dockerignore
 Dockerfile
 fly.toml
