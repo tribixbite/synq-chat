@@ -3,7 +3,7 @@ import { swagger } from "@elysiajs/swagger";
 import { Elysia } from "elysia";
 import { helmet } from "elysia-helmet";
 
-import { Config, isCustomHost } from "@server/helpers/config";
+import { Config, isCustomHost } from "@shared/config";
 import { Contact, Route } from "@shared/constants";
 
 import { description, license, name, version } from "package.json";

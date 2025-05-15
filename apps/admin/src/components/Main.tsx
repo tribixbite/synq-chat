@@ -1,5 +1,5 @@
-import bunSvg from "@client/assets/bun.svg";
-import { useAppContext } from "@client/hooks/useAppContext";
+import bunSvg from "@/client/assets/bun.svg";
+import { useAppContext } from "@/client/hooks/useAppContext";
 
 import { useState } from "react";
 import { Admin } from "./Admin";
@@ -13,7 +13,7 @@ export const Main = () => {
 			<h1>hello from bun!</h1>
 			<img src={bunSvg} width={250} height={250} alt="hello from bun!" />
 			<p>Hot-reloads with persisted state on file save.</p>
-			<button type="button" onClick={() => setCount(c => c + 1)}>
+			<button type="button" onClick={() => setCount((c: number) => c + 1)}>
 				Count: {count}
 			</button>
 			<button type="button" className="link-btn" onClick={() => setCount(0)}>

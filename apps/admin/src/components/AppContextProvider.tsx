@@ -1,10 +1,11 @@
-import { useEffect } from "react";
+import { AppContext } from "@/client/contexts/app";
+import { useApi } from "@/client/hooks/useApi";
+import { usePersistedState } from "@/client/hooks/usePersistedState";
+import type { TAppContext } from "@shared/types";
+import type { PropsWithChildren } from "react";
+import { useEffect, useState } from "react";
 
-import { AppContext } from "@client/contexts/app";
-import { useApi } from "@client/hooks/useApi";
-import { usePersistedState } from "@client/hooks/usePersistedState";
-
-export const AppContextProvider = ({ children }: { children: React.ReactNode }) => {
+export const AppContextProvider = ({ children }: PropsWithChildren) => {
 	const [count, setCount] = usePersistedState(0, "count");
 
 	const { helloHttp } = useApi();

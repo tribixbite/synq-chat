@@ -73,7 +73,7 @@ const isCacheFirstRequest = (url: URL) => {
 	return true;
 };
 
-registerRoute(({ url }) => url.href.includes("/socket.io/"), new NetworkOnly());
+// registerRoute(({ url }) => url.href.includes("/socket.io/"), new NetworkOnly());
 
 registerRoute(({ url }) => isCacheFirstRequest(url), new CacheFirst({ cacheName }));
 

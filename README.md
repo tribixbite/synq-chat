@@ -1,60 +1,74 @@
-# fullstack-bun
+# Multisynq Monorepo
 
-Curated web app project template with emphasis on developer experience and type safety. [Bun](https://bun.sh)/[Elysia](https://elysiajs.com) backend, [React](https://react.dev) frontend, [Socket.IO](https://socket.io) and [TanStack Query](https://tanstack.com/query) bridging the gap.
+A multi-app monorepo featuring a central Bun/Elysia server and multiple Vite React applications: **Vibesynq** and **Admin**.
 
-Designed for building single-page web apps with real-time, bi-directional server/client interaction.
+## Structure
+
+- `/src/server` - Main Bun/Elysia server.
+- `/apps/vibesynq` - The Vibesynq React application (cyan themed).
+- `/apps/admin` - The Admin Panel React application (red/gray themed).
+- `/shared` - Shared components, types, constants, and configuration between apps and server.
+- `/public` - Root public static files (e.g., favicons).
 
 ## Features
 
-- All server/client interaction is fully type-safe. See [api.ts](https://github.com/cdleveille/fullstack-bun/blob/main/src/server/helpers/api.ts) and [useApi.ts](https://github.com/cdleveille/fullstack-bun/blob/main/src/client/hooks/useApi.ts) for simple examples.
-
-- [Scalar](https://guides.scalar.com) documentation for API routes is served on [/api/reference](https://fullstack-bun.fly.dev/api/reference). [OpenAPI Specification](https://swagger.io/specification) raw .json data is served on [/api/reference/json](https://fullstack-bun.fly.dev/api/reference/json).
-
-- The client meets [PWA](https://developer.mozilla.org/en-US/docs/Web/Progressive_web_apps) requirements for an installable, native app-like experience on a variety of platforms, and boasts a near-perfect [PageSpeed Insights](https://pagespeed.web.dev) score out of the box.
-
-- Includes a [Dockerfile](https://github.com/cdleveille/fullstack-bun/blob/main/Dockerfile), [fly.toml](https://github.com/cdleveille/fullstack-bun/blob/main/fly.toml), and [GitHub workflow](https://github.com/cdleveille/fullstack-bun/blob/main/.github/workflows/deploy.yml) for deploying to [fly.io](https://fly.io) on pushes to the `main` branch. The Dockerfile compiles the app into a standalone binary, which is then run in a [distroless](https://github.com/GoogleContainerTools/distroless) image.
+- **Multi-App Architecture**: Separate Vite builds for each frontend application.
+- **Unified Server**: Single Bun/Elysia backend serving all applications.
+- **Flexible Routing**: 
+    - Path-based: `/vibesynq/`, `/admin/`.
+    - Subdomain-based (requires host file setup for local dev): `vibesynq.localhost:3000`, `admin.localhost:3000`.
+- **Shared Code**: Leverage shared components and utilities for consistency and efficiency.
+- **Dockerized**: Ready for containerized deployment.
 
 ## Development
 
-Install [Bun](https://bun.sh).
-
-Optionally create a `.env` file in the root directory to override default environment variables. See [.env.example](https://github.com/cdleveille/fullstack-bun/blob/main/.env.example) for available options.
-
-Install dependencies and launch:
-
+To run the server and all applications concurrently:
 ```bash
-bun install
 bun run dev
 ```
 
-## Production
-
-Build client and compile server to standalone binary:
-
+To run a specific application with the server:
 ```bash
-bun run build
-bun run compile
+bun run dev:vibesynq
+bun run dev:admin
 ```
 
-Start server by executing the compiled `main` binary or by running:
+## Building for Production
 
+To build all applications and compile the server:
 ```bash
-bun run start
+# 1. Build frontend apps (outputs to apps/vibesynq/public and apps/admin/public)
+bun run build:vibesynq
+bun run build:admin
+
+# 2. Compile the server (creates ./main executable)
+bun run compile 
 ```
 
-Alternatively, build and run in a Docker container:
-
+To start the production build locally:
 ```bash
-docker build -t fullstack-bun .
-docker run -p 3000:3000 fullstack-bun
+bun run start # Runs the ./main executable
 ```
 
-## Stack
+## Docker Deployment
 
-- [Bun](https://bun.sh) - server runtime, package manager, script runner
-- [Elysia](https://elysiajs.com) - web framework
-- [React](https://react.dev) - user interface
-- [TanStack Query](https://tanstack.com/query) - async state management
-- [Socket.IO](https://socket.io) - real-time server/client communication
-- [TypeScript](https://www.typescriptlang.org), [Biome](https://biomejs.dev), [Lefthook](https://lefthook.dev) - code quality/style
-- [Vite](https://vite.dev) - dev server, bundler
+Build the Docker image:
+```bash
+docker build -t multisynq-monorepo .
+```
+
+Run the Docker container:
+```bash
+docker run -p 3000:3000 multisynq-monorepo
+```
+
+## Accessing the Apps (Locally)
+
+- **Vibesynq App**:
+  - Path: `http://localhost:3000/vibesynq/`
+  - Subdomain: `http://vibesynq.localhost:3000` (after adding `127.0.0.1 vibesynq.localhost admin.localhost` to your hosts file)
+- **Admin Panel**:
+  - Path: `http://localhost:3000/admin/`
+  - Subdomain: `http://admin.localhost:3000` (after hosts file update)
+
+Default root access `http://localhost:3000/` redirects to the Vibesynq app.

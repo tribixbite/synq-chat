@@ -4,9 +4,8 @@ import { defineConfig } from "vite";
 import type { Plugin } from "vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 import tsconfigPaths from "vite-tsconfig-paths";
-
-import { Config } from "@server/helpers/config";
-import { Env, Path, Route } from "@shared/constants";
+import { Config } from "./src/shared/config";
+import { Env, Path, Route } from "./src/shared/constants";
 
 const root = Path.ClientSrc;
 const outDir = Path.Public;

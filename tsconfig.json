@@ -18,10 +18,16 @@
     "jsx": "react-jsx",
     "strict": true,
     "baseUrl": ".",
-    "incremental": false,
+    "incremental": true,
     "paths": {
-      "@*": ["src/*"]
+      "@src/*": ["src/*"],
+      "@vibesynq/*": ["apps/vibesynq/src/*"],
+      "@admin/*": ["apps/admin/src/*"],
+      "@shared/*": ["src/shared/*"],
+      "@server/*": ["src/server/*"],
+      "@helpers/*": ["src/server/helpers/*"]
     }
   },
-  "exclude": ["node_modules", "public"]
+  "exclude": ["node_modules", "**/public", "dist", "main"],
+  "include": ["src", "apps", "shared", "src/server/index.ts"]
 }

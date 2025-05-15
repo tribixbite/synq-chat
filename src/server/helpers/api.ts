@@ -3,9 +3,6 @@ import { mkdir, readdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { Elysia, t } from "elysia";
 
-import { Config } from "@server/helpers/config";
-import { io } from "@server/helpers/socket";
-import { SocketEvent } from "@shared/constants";
 import { Route } from "@shared/constants";
 
 export type TApi = typeof api;
@@ -134,9 +131,9 @@ export const api = new Elysia({ prefix: Route.Api })
 			)
 	);
 
-io.on(SocketEvent.Connect, socket => {
-	socket.on(SocketEvent.Hello, message => {
-		console.log(message);
-		socket.emit(SocketEvent.Hello, { message: "hello from bun!" });
-	});
-});
+// io.on(SocketEvent.Connect, socket => {
+// 	socket.on(SocketEvent.Hello, message => {
+// 		console.log(message);
+// 		socket.emit(SocketEvent.Hello, { message: "hello from bun!" });
+// 	});
+// });

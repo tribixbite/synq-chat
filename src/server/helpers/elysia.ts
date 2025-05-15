@@ -1,7 +1,7 @@
 import type { IncomingMessage, ServerResponse } from "node:http";
 import { type Elysia, type ErrorHandler, type Handler, ValidationError } from "elysia";
 
-import { ErrorMessage } from "@shared/constants";
+import { ErrorMessage } from "../../shared/constants";
 
 export const onError: ErrorHandler = ({ error, set }) => {
 	if (error instanceof ValidationError) {

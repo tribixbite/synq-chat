@@ -11,12 +11,16 @@
     "lint": "biome lint .",
     "format": "biome format --write .",
     "check": "biome check .",
-    "tsc": "tsc -p tsconfig.json",
-    "build": "bunx --bun vite build && bun run src/server/helpers/workbox.ts",
-    "compile": "bun build --compile --minify --sourcemap --bytecode --target bun --outfile main src/server/index.ts ",
+    "tsc": "tsc -p tsconfig.json --noEmit",
+    "build": "bun run build:vibesynq && bun run build:admin",
+    "build:vibesynq": "cd apps/vibesynq && bunx --bun vite build",
+    "build:admin": "cd apps/admin && bunx --bun vite build",
+    "compile": "bun build --compile --minify --sourcemap --target bun --outfile main src/server/index.ts",
     "deploy": "flyctl deploy",
-    "dev": "concurrently --prefix \"[{name}]\" --names \"server,client\" -c \"bgBlue.bold,bgGreen.bold\" \"bun run --hot src/server/index.ts\" \"bunx --bun vite\"",
-    "start": "bun run src/server/index.ts"
+    "dev": "concurrently --prefix \"[{name}]\" --names \"SERVER,VIBESYNQ,ADMIN\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"bun run --hot src/server/index.ts\" \"bun run dev:vibesynq\" \"bun run dev:admin\"",
+    "dev:vibesynq": "concurrently --prefix \"[{name}]\" --names \"SERVER,VIBESYNQ\" -c \"bgBlue.bold,bgGreen.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/vibesynq && bunx --bun vite\"",
+    "dev:admin": "concurrently --prefix \"[{name}]\" --names \"SERVER,ADMIN\" -c \"bgBlue.bold,bgMagenta.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/admin && bunx --bun vite\"",
+    "start": "bun run ./main"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",
@@ -31,7 +35,6 @@
     "react": "^19.1.0",
     "react-dom": "^19.1.0",
     "react-error-boundary": "^6.0.0",
-    "socket.io-client": "^4.8.1",
     "typescript": "^5.8.3",
     "vite": "^6.3.5",
     "vite-plugin-static-copy": "^3.0.0",
@@ -45,8 +48,7 @@
     "@elysiajs/static": "^1.3.0",
     "@elysiajs/swagger": "^1.3.0",
     "elysia": "^1.3.1",
-    "elysia-helmet": "^2.0.0",
-    "socket.io": "^4.8.1"
+    "elysia-helmet": "^2.0.0"
   },
   "trustedDependencies": ["@biomejs/biome"]
 }
