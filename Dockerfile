@@ -16,7 +16,6 @@ COPY --link bun.lockb package.json tsconfig.json ./
 # Copy application code
 # Copy only necessary files for build to leverage Docker cache
 COPY --link src ./src
-COPY --link shared ./shared
 COPY --link apps ./apps
 
 # Install dependencies

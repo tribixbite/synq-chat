@@ -22,9 +22,11 @@
     "paths": {
       "@/*": ["./src/*"],
       "@/client/*": ["./src/client/*"],
-      "@shared/*": ["../../src/shared/*"]
-    }
+      "@shared/*": ["../../src/shared/*"],
+      "@server/*": ["../../src/server/*"]
+    },
+    "types": []
   },
-  "include": ["src"],
+  "include": ["src", "src/**/*.json"],
   "exclude": ["node_modules", "dist"]
 }
