@@ -1,15 +1,14 @@
 import { resolve } from "node:path";
+// apps/admin/vite.config.ts
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
 import { type Target, viteStaticCopy } from "vite-plugin-static-copy";
 import tsconfigPaths from "vite-tsconfig-paths";
-
 import { Env, Route } from "../../src/shared/constants";
 
 const root = resolve(__dirname, "src/client");
 const outDir = resolve(__dirname, "public");
-
-const toCopy: Target[] = []; // Explicitly typed
+const toCopy: Target[] = [];
 
 export default defineConfig(({ mode }) => ({
 	root,
@@ -51,7 +50,9 @@ export default defineConfig(({ mode }) => ({
 	},
 	plugins: [
 		react(),
-		tsconfigPaths(),
+		tsconfigPaths({
+			projects: [resolve(__dirname, "tsconfig.json")]
+		}),
 		...(mode === Env.Production && toCopy.length > 0
 			? [
 					viteStaticCopy({
@@ -59,5 +60,15 @@ export default defineConfig(({ mode }) => ({
 					})
 				]
 			: [])
-	]
+	],
+	resolve: {
+		alias: {
+			// "@": resolve(__dirname, "./src"),
+			// "@client": resolve(__dirname, "./src/client"),
+			// "@hooks": resolve(__dirname, "./src/client/hooks"),
+			// "@contexts": resolve(__dirname, "./src/client/contexts"),
+			// "@shared": resolve(__dirname, "../../src/shared"),
+			// "@server": resolve(__dirname, "../../src/server")
+		}
+	}
 }));

@@ -1,7 +1,7 @@
 {
   "name": "fullstack-bun",
   "version": "1.0.0",
-  "description": "Curated web app project template with emphasis on developer experience and type safety. Bun/Elysia backend, React frontend, Socket.IO and TanStack Query bridging the gap.",
+  "description": "Synq Multi-App Platform - A monorepo web platform powered by Bun, ElysiaJS, React, and Svelte",
   "author": "Chris Leveille <cdleveille@gmail.com>",
   "license": "MIT",
   "type": "module",
@@ -17,10 +17,18 @@
     "build:admin": "cd apps/admin && bunx --bun vite build",
     "compile": "bun build --compile --minify --sourcemap --target bun --outfile main src/server/index.ts",
     "deploy": "flyctl deploy",
+
+    "setup:llm": "mkdir -p public/llm",
+    "add:llm-file": "echo 'This is a test file served from the LLM subdomain.' > public/llm/file.txt",
+
     "dev": "concurrently --prefix \"[{name}]\" --names \"SERVER,VIBESYNQ,ADMIN\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"bun run --hot src/server/index.ts\" \"bun run dev:vibesynq\" \"bun run dev:admin\"",
     "dev:vibesynq": "concurrently --prefix \"[{name}]\" --names \"SERVER,VIBESYNQ\" -c \"bgBlue.bold,bgGreen.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/vibesynq && bunx --bun vite\"",
     "dev:admin": "concurrently --prefix \"[{name}]\" --names \"SERVER,ADMIN\" -c \"bgBlue.bold,bgMagenta.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/admin && bunx --bun vite\"",
-    "start": "bun run ./main"
+    "dev:llm": "bun run setup:llm && bun run add:llm-file && bun run --hot src/server/index.ts",
+
+    "start": "bun run ./main",
+    "docker:build": "docker build -t synq-platform .",
+    "docker:run": "docker run -p 3000:3000 synq-platform"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

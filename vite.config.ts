@@ -1,16 +1,8 @@
+// vite.config.ts (Root - Base Configuration)
 import { resolve } from "node:path";
-import react from "@vitejs/plugin-react-swc";
-import { defineConfig } from "vite";
-import type { Plugin } from "vite";
-import { viteStaticCopy } from "vite-plugin-static-copy";
+import { type Plugin, type PluginOption, defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { Config } from "./src/shared/config";
-import { Env, Path, Route } from "./src/shared/constants";
-
-const root = Path.ClientSrc;
-const outDir = Path.Public;
-
-const toCopy = ["icons/", "favicon.ico"];
+import { Env, Route } from "./src/shared/constants";
 
 // Custom plugin to properly serve files from public/llm
 const llmFilesPlugin = (): Plugin => {
@@ -163,65 +155,74 @@ const llmFilesPlugin = (): Plugin => {
 	};
 };
 
-export default defineConfig(({ mode }) => ({
-	root: resolve(root),
+const buildCommonConfig = (mode: string, appName: string, appRoot: string, outDir: string) => ({
+	root: resolve(appRoot),
+	base: `/${appName}/`,
 	define: {
-		"import.meta.env.MODE": JSON.stringify(mode),
-		"import.meta.env.PORT": JSON.stringify(Config.PORT)
+		"import.meta.env.MODE": JSON.stringify(mode)
 	},
 	server: {
-		open: true,
 		hmr: true,
 		strictPort: false,
+		fs: { deny: ["sw.*"] },
 		proxy: {
 			[Route.Api]: {
-				target: `http://localhost:${Config.PORT}`,
+				target: "http://localhost:3000",
 				changeOrigin: true
-			}
-		},
-		fs: { deny: ["sw.*"] }
-	},
-	// publicDir: resolve("public"),
-	build: {
-		outDir: resolve(outDir),
-		emptyOutDir: true,
-		sourcemap: false,
-		minify: true,
-		rollupOptions: {
-			input: {
-				main: resolve(root, "index.html"),
-				sw: resolve(root, "sw.ts")
-			},
-			output: {
-				manualChunks: path => {
-					if (path.includes("node_modules")) return "vendor";
-					return null;
-				},
-				chunkFileNames: "assets/[name]~[hash].js",
-				entryFileNames: entry => {
-					if (entry.name === "sw") return "sw.js";
-					return "assets/[name]~[hash].js";
-				},
-				assetFileNames: asset => {
-					if (asset.names.includes("manifest.json")) return "manifest.json";
-					return "assets/[name]~[hash][extname]";
-				}
 			}
 		}
 	},
-	plugins: [
-		// llmFilesPlugin(), // Add our custom plugin
-		react(),
-		tsconfigPaths(),
-		...[
-			mode === Env.Production
-				? viteStaticCopy({
-						targets: toCopy.map(path => ({
-							src: resolve(root, path),
-							dest: "./"
-						}))
-					})
-				: []
-		]
-	]
+	publicDir: resolve(appRoot, "public_static"),
+	build: {
+		outDir,
+		emptyOutDir: true,
+		sourcemap: mode !== Env.Production,
+		minify: mode === Env.Production,
+		rollupOptions: {
+			input: {
+				main: resolve(appRoot, "index.html")
+			},
+			output: {
+				manualChunks: (path: string) => {
+					if (path.includes("node_modules")) return "vendor";
+					return null;
+				},
+				chunkFileNames: "assets/[name]-[hash].js",
+				entryFileNames: "assets/[name]-[hash].js",
+				assetFileNames: "assets/[name]-[hash][extname]"
+			}
+		}
+	}
+});
+
+// This is a base configuration that can be imported and extended by app-specific configs
+export const createBaseConfig = (options: {
+	mode: string;
+	appName: string;
+	appRoot: string;
+	outDir: string;
+	plugins?: PluginOption[];
+}) => {
+	const { mode, appName, appRoot, outDir, plugins = [] } = options;
+	return defineConfig({
+		...buildCommonConfig(mode, appName, appRoot, outDir),
+		plugins: [tsconfigPaths(), ...plugins]
+	});
+};
+
+// This config is only used for running Vite commands from the root of the monorepo,
+// primarily for development convenience. App-specific configs should be used for builds.
+export default defineConfig(({ mode }) => ({
+	plugins: [tsconfigPaths()],
+	optimizeDeps: {
+		force: true
+	},
+	build: {
+		// Disable build from root as it should be done through app-specific configs
+		emptyOutDir: false,
+		lib: {
+			entry: resolve(__dirname, "src/shared/index.ts"),
+			formats: ["es"]
+		}
+	}
 }));

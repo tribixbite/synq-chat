@@ -6,7 +6,8 @@ import { helmet } from "elysia-helmet";
 import { Config, isCustomHost } from "@shared/config";
 import { Contact, Route } from "@shared/constants";
 
-import { description, license, name, version } from "package.json";
+import pkg from "../../../package.json";
+const { description, license, name, version } = pkg;
 
 const { HOST, PORT } = Config;
 

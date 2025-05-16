@@ -1,7 +1,7 @@
 import { treaty } from "@elysiajs/eden";
 import { useQuery } from "@tanstack/react-query";
 
-// import { socket } from "@/client/helpers/socket";
+// import { socket } from "@client/helpers/socket";
 import type { App as ServerAppType } from "@server/index";
 // import { SocketEvent } from "@shared/constants";
 

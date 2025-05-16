@@ -1,7 +1,7 @@
-import bunSvg from "@/client/assets/bun.svg";
-import { useAppContext } from "@/client/hooks/useAppContext";
+import bunSvg from "@client/assets/bun.svg";
 
 import { useState } from "react";
+import { useAppContext } from "../client/hooks/useAppContext";
 import { Admin } from "./Admin";
 
 export const Main = () => {

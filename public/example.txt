@@ -1,0 +1,2 @@
+This is an example text file for testing the llm.synq.chat domain.
+This file should be accessible at llm.synq.chat/example.txt directly. 

@@ -17,6 +17,7 @@ COPY --link bun.lockb package.json tsconfig.json ./
 # Copy only necessary files for build to leverage Docker cache
 COPY --link src ./src
 COPY --link apps ./apps
+COPY --link public ./public
 
 # Install dependencies
 RUN bun install --frozen-lockfile --ignore-scripts
@@ -49,6 +50,9 @@ COPY --from=build /app/public /app/public
 # Copy built frontend apps (their public directories)
 COPY --from=build /app/apps/vibesynq/public /app/apps/vibesynq/public
 COPY --from=build /app/apps/admin/public /app/apps/admin/public
+
+# Set production environment
+ENV NODE_ENV=production
 
 # Expose port and define entrypoint
 EXPOSE 3000

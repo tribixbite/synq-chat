@@ -1,32 +1,31 @@
-// admin app tsconfig
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
     "target": "ESNext",
+    "module": "ESNext",
     "useDefineForClassFields": true,
     "lib": ["DOM", "DOM.Iterable", "ESNext"],
     "checkJs": false,
-    "allowJs": false,
-    "skipLibCheck": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "strict": true,
-    "forceConsistentCasingInFileNames": true,
-    "module": "ESNext",
     "moduleResolution": "bundler",
+    "allowJs": false,
     "resolveJsonModule": true,
     "isolatedModules": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
     "noEmit": true,
     "jsx": "react-jsx",
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
-      "@/client/*": ["./src/client/*"],
+      "@client/*": ["./src/client/*"],
+      "@contexts/*": ["./src/client/contexts/*"],
       "@shared/*": ["../../src/shared/*"],
-      "@server/*": ["../../src/server/*"]
+      "@server/*": ["../../src/server/*"],
+      "@helpers/*": ["../../src/server/helpers/*"],
+      "@hooks/*": ["./src/client/hooks/*"]
     },
-    "types": []
+    "types": ["vite/client", "@types/bun"]
   },
-  "include": ["src", "src/**/*.json"],
+  "include": ["src", "src/**/*.json", "../../src/shared/helpers"],
   "exclude": ["node_modules", "dist"]
 }

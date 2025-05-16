@@ -1,3 +1,6 @@
+// src/server/index.ts - Corrected version
+// Fixed the LLM guard to prevent blocking other routes
+
 import { staticPlugin } from "@elysiajs/static";
 import { api } from "@helpers/api";
 import { onBeforeHandle, onError } from "@helpers/elysia";
@@ -7,17 +10,43 @@ import { type Context, Elysia } from "elysia";
 
 const { PORT, HOST } = Config;
 
-// Define an interface for the request object with a potential subdomain
-interface CustomRequest extends Request {
-	subdomain?: string;
-}
+// Create a dedicated handler for the LLM subdomain
+const llmSubdomainHandler = new Elysia()
+	.derive(({ request }) => {
+		const host = request.headers.get("host") || "";
+		const isLlmSubdomain = host.startsWith("llm.");
+		return { isLlmSubdomain };
+	})
+	.guard(
+		// IMPORTANT: Guard only processes if isLlmSubdomain is true
+		{ beforeHandle: ({ isLlmSubdomain }) => isLlmSubdomain },
+		app =>
+			app
+				.use(
+					staticPlugin({
+						assets: "./public/llm",
+						indexHTML: true,
+						alwaysStatic: true,
+						prefix: "/"
+					})
+				)
+				.get("*", ({ path }) => {
+					console.log(`LLM subdomain not found: ${path}`);
+					return new Response("File not found on LLM subdomain", {
+						status: 404,
+						headers: { "Content-Type": "text/plain" }
+					});
+				})
+	);
 
+// Main application server
 const app = new Elysia()
 	.onError(c => onError(c))
 	.onBeforeHandle(onBeforeHandle)
 	.use(plugins)
 	.use(api)
-	// Serve vibesynq static files
+	// Add the LLM subdomain handler
+	.use(llmSubdomainHandler)
 	.use(
 		staticPlugin({
 			prefix: "/vibesynq",
@@ -26,7 +55,6 @@ const app = new Elysia()
 			indexHTML: true
 		})
 	)
-	// Serve admin static files
 	.use(
 		staticPlugin({
 			prefix: "/admin",
@@ -35,16 +63,14 @@ const app = new Elysia()
 			indexHTML: true
 		})
 	)
-	// Serve root public static files (e.g., favicons, manifests if any)
 	.use(
 		staticPlugin({
 			prefix: "/",
 			assets: "./public",
 			alwaysStatic: true,
-			noCache: true // Good for development for root assets like favicon
+			noCache: true
 		})
 	)
-	// Add subdomain to context
 	.derive(({ request }) => {
 		const host = request.headers.get("host") || "";
 		return {
@@ -53,17 +79,20 @@ const app = new Elysia()
 	})
 	// Handle root path and subdomain routing
 	.get("/", (context: Context & { subdomain: string }) => {
-		const { set, subdomain } = context; // Type assertion for derived context
+		const { set, subdomain } = context;
 
+		// For subdomains, redirect to their respective apps
 		if (subdomain === "vibesynq") {
 			set.redirect = "/vibesynq/";
 			return;
 		}
+
 		if (subdomain === "admin") {
 			set.redirect = "/admin/";
 			return;
 		}
-		// Default to vibesynq
+
+		// Default to Vibesynq app for all other cases
 		set.redirect = "/vibesynq/";
 	})
 	.listen(PORT, () => console.log(`Server listening on ${HOST}:${PORT}`));

@@ -1,74 +1,45 @@
+// apps/vibesynq/vite.config.ts
 import { resolve } from "node:path";
 import react from "@vitejs/plugin-react-swc";
 import { defineConfig } from "vite";
 import { type Target, viteStaticCopy } from "vite-plugin-static-copy";
-import tsconfigPaths from "vite-tsconfig-paths";
+import { Env } from "../../src/shared/constants";
+import { createBaseConfig } from "../../vite.config";
 
-// Assuming shared config might be used later
-// import { Config } from "@shared/config";
-import { Env, Route } from "@shared/constants";
-
-const projectRoot = resolve(__dirname, "../.."); // Monorepo root
-const root = resolve(__dirname, "src/client");
+const appRoot = resolve(__dirname, "src/client");
 const outDir = resolve(__dirname, "public");
+const toCopy: Target[] = [];
 
-const toCopy: Target[] = [
-	// Add any specific static assets for vibesynq if needed
-	// e.g., { src: resolve(root, "assets/icon.png"), dest: "assets" }
-];
-
-export default defineConfig(({ mode }) => ({
-	root,
-	base: "/vibesynq/",
-	define: {
-		"import.meta.env.MODE": JSON.stringify(mode)
-		// "import.meta.env.PORT": JSON.stringify(Config.PORT) // If needed
-	},
-	server: {
-		// open: true, // Consider if you want auto-open for each app
-		hmr: true,
-		strictPort: false, // Allow flexible port for dev
-		fs: { deny: ["sw.*"] }, // If you have a service worker
-		proxy: {
-			[Route.Api]: {
-				target: "http://localhost:3000", // Corrected template literal
-				changeOrigin: true
-			}
-		}
-	},
-	publicDir: resolve(__dirname, "src/client/public_static"), // Optional: if you have static assets specific to this app's source not for root public
-	build: {
+export default defineConfig(({ mode }) => {
+	const baseConfig = createBaseConfig({
+		mode,
+		appName: "vibesynq",
+		appRoot,
 		outDir,
-		emptyOutDir: true,
-		sourcemap: mode !== Env.Production,
-		minify: mode === Env.Production,
-		rollupOptions: {
-			input: {
-				main: resolve(root, "index.html")
-				// sw: resolve(root, "sw.ts") // If you have a service worker
-			},
-			output: {
-				manualChunks: path => {
-					if (path.includes("node_modules")) return "vendor";
-					return null;
-				},
-				chunkFileNames: "assets/[name]-[hash].js",
-				entryFileNames: "assets/[name]-[hash].js",
-				assetFileNames: "assets/[name]-[hash][extname]"
-			}
+		plugins: [
+			react(),
+			...(mode === Env.Production && toCopy.length > 0
+				? [
+						viteStaticCopy({
+							targets: toCopy
+						})
+					]
+				: [])
+		]
+	});
+
+	// Add any Vibesynq app-specific configuration overrides here
+	// For example, if you need to integrate Three.js or react-together
+	return {
+		...baseConfig,
+		// Vibesynq-specific overrides, like optimizeDeps for Three.js
+		optimizeDeps: {
+			...baseConfig.optimizeDeps,
+			include: [
+				"three",
+				"react-together"
+				// Add other Vibesynq-specific dependencies that should be pre-bundled
+			]
 		}
-	},
-	plugins: [
-		react(),
-		tsconfigPaths({
-			projects: [resolve(projectRoot, "tsconfig.json")]
-		}),
-		...(mode === Env.Production && toCopy.length > 0
-			? [
-					viteStaticCopy({
-						targets: toCopy
-					})
-				]
-			: [])
-	]
-}));
+	};
+});
