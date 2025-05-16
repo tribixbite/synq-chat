@@ -10,7 +10,7 @@ RUN apt-get update -qq && \
 	apt-get install -y build-essential pkg-config python-is-python3
 
 # Copy package manager files
-COPY --link bun.lockb package.json tsconfig.json ./
+COPY --link vite.config.ts bun.lock package.json tsconfig.json ./
 # COPY --link bun.lockb ./
 
 # Copy application code

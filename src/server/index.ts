@@ -24,10 +24,10 @@ const llmSubdomainHandler = new Elysia()
 			app
 				.use(
 					staticPlugin({
-						assets: "./public/llm",
+						// assets: "./public/llm",
 						indexHTML: true,
-						alwaysStatic: true,
-						prefix: "/"
+						alwaysStatic: true
+						// prefix: "/"
 					})
 				)
 				.get("*", ({ path }) => {
@@ -46,7 +46,7 @@ const app = new Elysia()
 	.use(plugins)
 	.use(api)
 	// Add the LLM subdomain handler
-	.use(llmSubdomainHandler)
+	// .use(llmSubdomainHandler)
 	.use(
 		staticPlugin({
 			prefix: "/vibesynq",
@@ -65,8 +65,8 @@ const app = new Elysia()
 	)
 	.use(
 		staticPlugin({
-			prefix: "/",
-			assets: "./public",
+			// prefix: "/",
+			// assets: "./public",
 			alwaysStatic: true,
 			noCache: true
 		})
