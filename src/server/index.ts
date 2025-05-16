@@ -66,7 +66,7 @@ const app = new Elysia()
 	.use(
 		staticPlugin({
 			// prefix: "/",
-			// assets: "./public",
+			assets: "./public",
 			alwaysStatic: true,
 			noCache: true
 		})
