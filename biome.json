@@ -32,7 +32,7 @@
       "trailingCommas": "none"
     }
   },
-  "organizeImports": { "enabled": true },
+  "organizeImports": { "enabled": false },
   "overrides": [
     {
       "include": ["*.json", "*.yml", "*.yaml", "*.toml"],

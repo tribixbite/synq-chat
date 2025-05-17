@@ -1,24 +1,21 @@
 import { staticPlugin } from "@elysiajs/static";
+import { PROVIDERS } from "@src/utils/providers";
 import { Elysia, t } from "elysia";
-import { PROVIDERS } from "../utils/providers"; // Assuming providers.ts is in src/utils
 
-// Define a basic structure for what Config might provide, replace with your actual config
-const Config = {
-	APP_PORT: process.env.APP_PORT || 3000
-	// Add other necessary config values like API keys if they come from a centralized config
-};
-
-export const vibesynq = new Elysia({ prefix: "/vibesynq" })
-	// Serve static files for the main vibesynq app
-	.use(
-		staticPlugin({
-			prefix: "/", // Serves at /vibesynq/
-			assets: "./apps/vibesynq/public",
-			indexHTML: true,
-			alwaysStatic: true
-		})
+// Plugin for the Vibesynq app
+export const vibesynqPlugin = new Elysia()
+	// Vibesynq static files
+	.group("/vibesynq", app =>
+		app.use(
+			staticPlugin({
+				assets: "./apps/vibesynq/public",
+				alwaysStatic: true,
+				indexHTML: true,
+				prefix: "/"
+			})
+		)
 	)
-	// API endpoint for asking AI
+	// Vibesynq AI endpoint
 	.post(
 		"/api/ask-ai",
 		async ({ body, set }) => {
@@ -67,6 +64,7 @@ export const vibesynq = new Elysia({ prefix: "/vibesynq" })
 								"Missing required fields for provider, set API KEY, BASE URL, and MODEL."
 						};
 					}
+
 					const response = await fetch(`${ApiUrl}/chat/completions`, {
 						method: "POST",
 						headers: {
@@ -109,6 +107,7 @@ export const vibesynq = new Elysia({ prefix: "/vibesynq" })
 								controller.close();
 								return;
 							}
+
 							const reader = response.body.getReader();
 							const decoder = new TextDecoder();
 
@@ -176,13 +175,16 @@ export const vibesynq = new Elysia({ prefix: "/vibesynq" })
 						"Cache-Control": "no-cache",
 						Connection: "keep-alive"
 					};
+
 					return stream;
 				} catch (error: unknown) {
 					console.error("Ask AI error:", (error as Error).message);
+
 					if ((error as Error).message.includes("exceeded")) {
 						set.status = 402;
 						return { ok: false, message: (error as Error).message };
 					}
+
 					set.status = 500;
 					return {
 						ok: false,
@@ -219,31 +221,3 @@ export const vibesynq = new Elysia({ prefix: "/vibesynq" })
 			headers: { "Content-Type": "text/html" }
 		});
 	});
-
-export const llmApp = new Elysia().guard(
-	{
-		beforeHandle: ({ request, set }) => {
-			const host = request.headers.get("host") || "";
-			if (!host.startsWith("llm.")) {
-				set.status = 404; // Or some other status to indicate it's not for this app
-				return "LLM app guard: Host does not match"; // This response will be sent
-			}
-		}
-	},
-	app =>
-		app
-			.use(
-				staticPlugin({
-					assets: "./apps/vibesynq/public/llm",
-					indexHTML: true,
-					alwaysStatic: true,
-					prefix: "/" // Serve at the root of the llm subdomain
-				})
-			)
-			.get("*", () => {
-				// Static plugin should serve index.html for SPA routes under llm subdomain
-				return new Response("LLM App SPA Fallback. Check static plugin config.", {
-					headers: { "Content-Type": "text/html" }
-				});
-			})
-);

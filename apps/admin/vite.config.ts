@@ -61,14 +61,5 @@ export default defineConfig(({ mode }) => ({
 				]
 			: [])
 	],
-	resolve: {
-		alias: {
-			// "@": resolve(__dirname, "./src"),
-			// "@client": resolve(__dirname, "./src/client"),
-			// "@hooks": resolve(__dirname, "./src/client/hooks"),
-			// "@contexts": resolve(__dirname, "./src/client/contexts"),
-			// "@shared": resolve(__dirname, "../../src/shared"),
-			// "@server": resolve(__dirname, "../../src/server")
-		}
-	}
+	resolve: {}
 }));

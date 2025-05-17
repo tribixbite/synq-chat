@@ -5,9 +5,9 @@ import React from "react";
 const App = () => {
 	return (
 		<div className="app">
-			<h1>Welcome to Vibeynq</h1>
-			<p>This is the Vibeynq application.</p>
-			{/* <Footer appName="Vibeynq" /> */}
+			<h1>Welcome to Vibesynq</h1>
+			<p>This is the Vibesynq application.</p>
+			{/* <Footer appName="Vibesynq" /> */}
 		</div>
 	);
 };

@@ -57,7 +57,6 @@ const MultiplayerBeach = () => {
 		);
 
 	// Initialize the beach scene
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		// Load Three.js script dynamically
 		const threeScript = document.createElement("script");
