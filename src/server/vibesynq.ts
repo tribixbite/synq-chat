@@ -13,7 +13,7 @@ export const vibesynq = new Elysia({ prefix: "/vibesynq" })
 	.use(
 		staticPlugin({
 			prefix: "/", // Serves at /vibesynq/
-			assets: "./apps/vibesynq/dist",
+			assets: "./apps/vibesynq/public",
 			indexHTML: true,
 			alwaysStatic: true
 		})

@@ -25,7 +25,7 @@
     "dev:llm": "bun run setup:llm && bun run add:llm-file && bun run --hot src/server/index.ts",
     "start": "bun run ./main",
     "docker:build": "docker build -t synq-chat .",
-    "docker:run": "docker run -p 3000:3000 synq-chat"
+    "docker:run": "docker run --rm --ipc=shareable -p 3000:3000 synq-chat"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

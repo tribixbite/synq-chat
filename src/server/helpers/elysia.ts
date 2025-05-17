@@ -1,5 +1,5 @@
-import type { IncomingMessage, ServerResponse } from "node:http";
 import { type Elysia, type ErrorHandler, type Handler, ValidationError } from "elysia";
+import type { IncomingMessage, ServerResponse } from "node:http";
 
 import { ErrorMessage } from "../../shared/constants";
 
@@ -14,6 +14,8 @@ export const onError: ErrorHandler = ({ error, set }) => {
 };
 
 export const onBeforeHandle: Handler = c => {
+	// log all details about the request
+	console.log(c.request);
 	// Needed to prevent service worker error
 	c.set.headers.vary = "Origin";
 };

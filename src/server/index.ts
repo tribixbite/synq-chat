@@ -12,22 +12,31 @@ const { PORT, HOST } = Config;
 
 // Create a dedicated handler for the LLM subdomain
 const llmSubdomainHandler = new Elysia()
-	.derive(({ request }) => {
-		const host = request.headers.get("host") || "";
-		const isLlmSubdomain = host.startsWith("llm.");
-		return { isLlmSubdomain };
-	})
+	// .derive(({ request }) => {
+	// 	const host = request.headers.get("host") || "";
+	// 	const isLlmSubdomain = host.startsWith("llm.");
+	// 	return { isLlmSubdomain };
+	// })
 	.guard(
+		{
+			beforeHandle: ({ request }) => {
+				const host = request.headers.get("host") || "";
+				const isLlmSubdomain = host.startsWith("llm.");
+				console.log(
+					`[llmSubdomainHandler] Host: ${host} => ${isLlmSubdomain ? "MATCH" : "SKIP"}`
+				);
+				return isLlmSubdomain;
+			}
+		},
 		// IMPORTANT: Guard only processes if isLlmSubdomain is true
-		{ beforeHandle: ({ isLlmSubdomain }) => isLlmSubdomain },
 		app =>
 			app
 				.use(
 					staticPlugin({
-						// assets: "./public/llm",
+						assets: "./public/llm",
 						indexHTML: true,
-						alwaysStatic: true
-						// prefix: "/"
+						alwaysStatic: true,
+						prefix: "/"
 					})
 				)
 				.get("*", ({ path }) => {
@@ -46,23 +55,23 @@ const app = new Elysia()
 	.use(plugins)
 	.use(api)
 	// Add the LLM subdomain handler
-	// .use(llmSubdomainHandler)
-	.use(
-		staticPlugin({
-			prefix: "/vibesynq",
-			assets: "./apps/vibesynq/public",
-			alwaysStatic: true,
-			indexHTML: true
-		})
-	)
-	.use(
-		staticPlugin({
-			prefix: "/admin",
-			assets: "./apps/admin/public",
-			alwaysStatic: true,
-			indexHTML: true
-		})
-	)
+	.use(llmSubdomainHandler)
+	// .use(
+	// 	staticPlugin({
+	// 		prefix: "/vibesynq",
+	// 		assets: "./apps/vibesynq/public",
+	// 		alwaysStatic: true,
+	// 		indexHTML: true
+	// 	})
+	// )
+	// .use(
+	// 	staticPlugin({
+	// 		prefix: "/admin",
+	// 		assets: "./apps/admin/public",
+	// 		alwaysStatic: true,
+	// 		indexHTML: true
+	// 	})
+	// )
 	.use(
 		staticPlugin({
 			// prefix: "/",
@@ -71,30 +80,44 @@ const app = new Elysia()
 			noCache: true
 		})
 	)
-	.derive(({ request }) => {
+	.get("/", ({ request, set }: Context) => {
 		const host = request.headers.get("host") || "";
-		return {
-			subdomain: host.split(".")[0]
-		};
-	})
-	// Handle root path and subdomain routing
-	.get("/", (context: Context & { subdomain: string }) => {
-		const { set, subdomain } = context;
-
-		// For subdomains, redirect to their respective apps
-		if (subdomain === "vibesynq") {
-			set.redirect = "/vibesynq/";
-			return;
-		}
-
-		if (subdomain === "admin") {
+		if (host.startsWith("admin.")) {
 			set.redirect = "/admin/";
 			return;
 		}
-
-		// Default to Vibesynq app for all other cases
-		set.redirect = "/vibesynq/";
+		if (host.startsWith("vibesynq.")) {
+			set.redirect = "/vibesynq/";
+			return;
+		}
+		set.redirect = "/vibesynq/"; // Default
 	})
 	.listen(PORT, () => console.log(`Server listening on ${HOST}:${PORT}`));
+
+// .derive(({ request }) => {
+// 	const host = request.headers.get("host") || "";
+// 	return {
+// 		subdomain: host.split(".")[0]
+// 	};
+// })
+// // Handle root path and subdomain routing
+// .get("/", (context: Context & { subdomain: string }) => {
+// 	const { set, subdomain } = context;
+
+// 	// For subdomains, redirect to their respective apps
+// 	if (subdomain === "vibesynq") {
+// 		set.redirect = "/vibesynq/";
+// 		return;
+// 	}
+
+// 	if (subdomain === "admin") {
+// 		set.redirect = "/admin/";
+// 		return;
+// 	}
+
+// 	// Default to Vibesynq app for all other cases
+// 	set.redirect = "/vibesynq/";
+// })
+// .listen(PORT, () => console.log(`Server listening on ${HOST}:${PORT}`));
 
 export type App = typeof app;

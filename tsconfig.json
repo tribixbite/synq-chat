@@ -1,6 +1,6 @@
 {
   "compilerOptions": {
-    "lib": ["esnext", "dom", "DOM.Iterable", "ESNext"],
+    "lib": ["esnext", "dom", "DOM.Iterable"],
     "target": "esnext",
     "module": "ESNext",
     "types": ["@types/bun", "vite/client"],
@@ -29,5 +29,5 @@
     }
   },
   "exclude": ["node_modules", "**/public", "dist", "main"],
-  "include": ["src", "apps", "shared", "src/server/index.ts"]
+  "include": ["src", "apps"]
 }
