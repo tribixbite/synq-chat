@@ -1,12 +1,13 @@
 // apps/vibesynq/vite.config.ts
-import { resolve } from "node:path";
+import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react-swc";
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import { type Target, viteStaticCopy } from "vite-plugin-static-copy";
 import { Env } from "../../src/shared/constants";
 import { createBaseConfig } from "../../vite.config";
 
-const appRoot = resolve(__dirname, "src/client");
+const appRoot = resolve(__dirname, "src");
 const outDir = resolve(__dirname, "public");
 const toCopy: Target[] = [];
 
@@ -18,6 +19,7 @@ export default defineConfig(({ mode }) => {
 		outDir,
 		plugins: [
 			react(),
+			tailwindcss(),
 			...(mode === Env.Production && toCopy.length > 0
 				? [
 						viteStaticCopy({

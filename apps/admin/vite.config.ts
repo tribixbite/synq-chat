@@ -6,13 +6,15 @@ import { type Target, viteStaticCopy } from "vite-plugin-static-copy";
 import tsconfigPaths from "vite-tsconfig-paths";
 import { Env, Route } from "../../src/shared/constants";
 
+const base = "/admin/";
+
 const root = resolve(__dirname, "src/client");
 const outDir = resolve(__dirname, "public");
 const toCopy: Target[] = [];
 
 export default defineConfig(({ mode }) => ({
 	root,
-	base: "/admin/",
+	base,
 	define: {
 		"import.meta.env.MODE": JSON.stringify(mode)
 	},
@@ -22,7 +24,7 @@ export default defineConfig(({ mode }) => ({
 		fs: { deny: ["sw.*"] },
 		proxy: {
 			[Route.Api]: {
-				target: "http://localhost:3000",
+				target: `http://localhost:3000${base}`,
 				changeOrigin: true
 			}
 		}
@@ -35,7 +37,8 @@ export default defineConfig(({ mode }) => ({
 		minify: mode === Env.Production,
 		rollupOptions: {
 			input: {
-				main: resolve(root, "index.html")
+				main: resolve(root, "index.html"),
+				sw: resolve(root, "sw.ts")
 			},
 			output: {
 				manualChunks: path => {

@@ -213,11 +213,45 @@ export const vibesynqPlugin = new Elysia()
 			})
 		}
 	)
-	.get("*", ({ params }: { params: { "*": string | undefined } }) => {
-		console.log(`Vibesynq catch-all for: ${params?.["*"]}`);
-		// This should ideally serve index.html from ./apps/vibesynq/dist/
-		// The staticPlugin with prefix: "/" and indexHTML: true within this Elysia instance should handle it.
-		return new Response("Vibesynq SPA Fallback. Check static plugin config.", {
-			headers: { "Content-Type": "text/html" }
+	// New route for login
+	.get("/api/login", ({ set }) => {
+		// In a real app, this would redirect to an OAuth provider
+		// For now, returning a placeholder redirect URL
+		// set.redirect = "https://huggingface.co/oauth/authorize?...."; // Example
+		return { redirectUrl: "#" }; // Placeholder
+	})
+	// New route for loading a space (remix)
+	.get("/api/remix/:owner/:name", async ({ params, set }) => {
+		const { owner, name } = params;
+		console.log(`Attempting to load space: ${owner}/${name}`);
+		// Placeholder logic: In a real app, you'd fetch space data from a DB or service
+		// For now, let's simulate finding a space or not
+		if (owner === "testuser" && name === "testspace") {
+			return {
+				html: "<!DOCTYPE html><html><body><h1>Loaded Test Space</h1></body></html>",
+				isOwner: true, // or false, depending on auth
+				path: `${owner}/${name}`
+			};
+		}
+		set.status = 404;
+		return { message: "Space not found" };
+	})
+	.get("*", async ({ params }: { params: { "*": string | undefined } }) => {
+		// console.log(`Vibesynq catch-all for: ${params?.["*"]}`);
+		// Serve the main index.html for SPA routing for any unhandled GET requests on this plugin.
+		// The staticPlugin within the "/vibesynq" group should handle serving index.html for paths under /vibesynq/.
+		// This top-level catch-all ensures that even paths like vibesynq.domain.com/some/route not starting with /vibesynq/
+		// (if the guard allows such requests to reach here) will attempt to serve the SPA.
+		const spaIndexHtmlPath = "./apps/vibesynq/public/index.html";
+		const file = Bun.file(spaIndexHtmlPath);
+		if (await file.exists()) {
+			return new Response(file, {
+				headers: { "Content-Type": "text/html; charset=utf-8" }
+			});
+		}
+		// Fallback if index.html is somehow not found, though this shouldn't happen in a correct build.
+		return new Response("Vibesynq application not found.", {
+			status: 404,
+			headers: { "Content-Type": "text/plain" }
 		});
 	});
