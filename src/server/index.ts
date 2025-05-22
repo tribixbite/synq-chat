@@ -60,6 +60,7 @@ export const app = new Elysia()
 	.onError(c => onError(c))
 	.onBeforeHandle(onBeforeHandle)
 	.get("/multisynq-react.txt", () => Bun.file("./public/multisynq-react.txt"))
+	.get("/multisynq-threejs.txt", () => Bun.file("./public/multisynq-js.txt"))
 	.get("/multisynq-js.txt", () => Bun.file("./public/multisynq-js.txt"))
 	.use(rootPlugins)
 	.use(api)
@@ -109,12 +110,11 @@ export const app = new Elysia()
 		})
 	)
 	.get("/", (context: Context & DerivedProps) => {
-		const { set, subdomain } = context;
+		const { redirect, subdomain } = context;
 
 		if (subdomain === "admin") {
 			const adminPath = "/admin/";
-			// @ts-expect-error Linter incorrectly infers 'set.redirect' type or 'set' as possibly undefined
-			return set.redirect(adminPath);
+			return redirect(adminPath);
 		}
 		if (subdomain === "llm") {
 			// llmPlugin handles its own root (e.g. index.html via its staticPlugin).
@@ -126,8 +126,7 @@ export const app = new Elysia()
 		const currentSub =
 			subdomain === "vibesynq" ? "vibesynq" : subdomain === null ? "vibesynq" : subdomain;
 		const redirectPath = `/${currentSub || "vibesynq"}/`;
-		// @ts-expect-error Linter incorrectly infers 'set.redirect' type or 'set' as possibly undefined
-		return set.redirect(redirectPath);
+		return redirect(redirectPath);
 	})
 	.listen(PORT, () => {
 		// Using template literal for console.log as preferred by linter
