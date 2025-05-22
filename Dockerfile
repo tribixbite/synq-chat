@@ -19,7 +19,8 @@ COPY --link apps ./apps
 COPY --link public ./public
 
 # Install dependencies
-RUN bun install --frozen-lockfile --ignore-scripts
+RUN bun install --ignore-scripts 
+# --frozen-lockfile
 
 # Lint and type-check (optional in Docker build, but good for CI consistency)
 # RUN bun run biome ci .
