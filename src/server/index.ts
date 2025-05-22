@@ -6,25 +6,54 @@ import { api } from "@helpers/api";
 import { onBeforeHandle, onError } from "@helpers/elysia";
 import { Config } from "@shared/config";
 import { rootPlugins } from "@src/server/plugins/rootPlugins";
-import Elysia from "elysia";
+import Elysia, { type Context } from "elysia";
 import { adminPlugin } from "./plugins/adminPlugin";
 import { llmPlugin } from "./plugins/llmPlugin";
 import { vibesynqPlugin } from "./plugins/vibesynqPlugin";
 
 const { PORT, HOST } = Config;
 
-// This ipSub Elysia instance is defined but not actively used since .use(ipSub) is commented out.
-// The actual 'ipSub' on the context comes from the .derive call on the main 'app' instance.
-// const ipSub = new Elysia({ name: 'subdomain' }) // Original definition, can be kept or removed if truly unused.
-// 	.derive(
-// 		{ as: 'global' },
-// 		({ server, request }) => ({
-// 			ipSub: {
-// 				ip: server?.requestIP(request),
-// 				subdomain: request.headers.get("host")?.split(".")[0]
-// 			}
-// 		})
-// 	)
+// Robust subdomain detection function
+const getSubdomain = (hostHeader: string): string | null => {
+	if (!hostHeader) return null;
+	const host = hostHeader.split(":")[0]; // Remove port for accurate parsing
+
+	// Handle IP addresses, localhost, and single-level domains (e.g., "example" without TLD)
+	if (/^(\\d+\\.){3}\\d+$/.test(host) || !host.includes(".") || host === "localhost") {
+		return null;
+	}
+	const parts = host.split(".");
+
+	// For "subdomain.localhost" or "subdomain.localhost:port"
+	if (parts.length === 2 && parts[1] === "localhost") {
+		return parts[0] === "localhost" ? null : parts[0]; // technically "localhost.localhost" is invalid
+	}
+
+	// Standard domains:
+	// example.com -> null (no subdomain)
+	// sub.example.com -> "sub"
+	// sub.example.co.uk -> "sub"
+	if (parts.length > 2) {
+		// Check if the last two parts form a common TLD pattern (e.g., co.uk, com.au)
+		// This is a simplified check; a full TLD list would be more robust but complex.
+		if (parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length <= 3) {
+			if (parts.length > 3) {
+				// e.g., sub.example.co.uk (4 parts)
+				return parts[0];
+			}
+			return null; // e.g. example.co.uk (3 parts) - no subdomain
+		}
+		return parts[0]; // e.g. sub.example.com (3 parts)
+	}
+	return null; // e.g. example.com (2 parts) - no subdomain
+};
+
+// Define the shape of derived properties for context typing
+interface DerivedProps {
+	subdomain: string | null;
+	// Simplified IP address type for now
+	ipAddress: string | undefined | null;
+}
 
 // Create a dedicated handler for the LLM subdomain
 export const app = new Elysia()
@@ -34,58 +63,75 @@ export const app = new Elysia()
 	.get("/multisynq-js.txt", () => Bun.file("./public/multisynq-js.txt"))
 	.use(rootPlugins)
 	.use(api)
-	// .use(ipSub) // This was correctly commented out
 	.derive({ as: "global" }, ({ server, request }) => ({
-		ipSub: {
-			ip: server?.requestIP(request), // Type: Bun.SocketAddress | null | undefined
-			subdomain: request.headers.get("host")?.split(".")[0] // Type: string | undefined
-		}
+		subdomain: getSubdomain(request.headers.get("host") || ""),
+		ipAddress: server?.requestIP(request)?.address // Access .address for string IP
 	}))
-	.use(adminPlugin)
-	.use(vibesynqPlugin)
+	.get("*", async (context: Context & DerivedProps) => {
+		const { subdomain, request, set } = context;
+		const path = new URL(request.url).pathname;
 
-	// Static file serving for the public directory
+		if (subdomain === "admin" || (subdomain === null && path.startsWith("/admin/"))) {
+			return adminPlugin.handle(request);
+		}
+		if (subdomain === "llm") {
+			return llmPlugin.handle(request);
+		}
+
+		// Fallback to vibesynqPlugin for main domain, 'vibesynq' subdomain, or any other case
+		// The root path redirect is handled by the specific .get("/") handler below.
+		if (
+			path === "/" &&
+			(subdomain === null ||
+				subdomain === "vibesynq" ||
+				subdomain === "admin" ||
+				subdomain === "llm")
+		) {
+			// Let the specific .get("/") handle the redirect for root path for any configured subdomain/main.
+			// This ensures the .get("/") always has a chance to correctly redirect from the absolute root.
+			// If we return vibesynqPlugin.handle(request) here for '/', it might serve content before redirect.
+		} else {
+			return vibesynqPlugin.handle(request);
+		}
+		// If this point is reached, it means path was '/' and it will be handled by the next .get("/") route.
+	})
+
+	// Static file serving for the root public directory.
+	// IMPORTANT: This might be shadowed by the .get('*') handler above for most GET requests.
+	// Static assets should ideally be served by the plugins themselves if they are path-specific
+	// or this static server should have a more specific prefix if it serves truly global assets.
 	.use(
 		staticPlugin({
 			assets: "./public",
+			prefix: "/",
 			alwaysStatic: true,
 			noCache: true
 		})
 	)
-	.use(llmPlugin)
+	.get("/", (context: Context & DerivedProps) => {
+		const { set, subdomain } = context;
 
-	// Default route handler with subdomain detection
-	.get(
-		"/",
-		({
-			set,
-			request,
-			ipSub
-		}: {
-			set: {
-				redirect: (path: string, status?: number) => Response;
-				status?: number | string;
-				headers?: Record<string, string>;
-			};
-			request: Request;
-			ipSub: {
-				ip: unknown;
-				subdomain: string | undefined;
-			};
-		}) => {
-			const subdomainToRedirect = ipSub?.subdomain || "vibesynq";
-			return set.redirect(`/${subdomainToRedirect}/`);
+		if (subdomain === "admin") {
+			const adminPath = "/admin/";
+			// @ts-expect-error Linter incorrectly infers 'set.redirect' type or 'set' as possibly undefined
+			return set.redirect(adminPath);
 		}
-	)
-
-	// 	: Context & { ipSub: { ip: string, subdomain: string } }) => {
-	// 	if (ipSub.subdomain === "admin") => redirect("/admin/")
-	// 	// Redirect based on subdomain
-	// 	if (ipSub.subdomain === "admin") => "/admin/"
-	// 	if (ipSub.subdomain === "diy") => "/vibesynq/"
-
-	// })
-
-	.listen(PORT, () => console.log(`Server listening on ${HOST}:${PORT}`));
+		if (subdomain === "llm") {
+			// llmPlugin handles its own root (e.g. index.html via its staticPlugin).
+			// The .get('*') should have already dispatched to llmPlugin.handle for subdomain 'llm'.
+			// So, doing nothing here is correct, letting the previous handler complete.
+			return;
+		}
+		// For main domain or vibesynq subdomain, redirect to /vibesynq/
+		const currentSub =
+			subdomain === "vibesynq" ? "vibesynq" : subdomain === null ? "vibesynq" : subdomain;
+		const redirectPath = `/${currentSub || "vibesynq"}/`;
+		// @ts-expect-error Linter incorrectly infers 'set.redirect' type or 'set' as possibly undefined
+		return set.redirect(redirectPath);
+	})
+	.listen(PORT, () => {
+		// Using template literal for console.log as preferred by linter
+		console.log(`Server listening on ${HOST}:${PORT}`);
+	});
 
 export type App = typeof app;

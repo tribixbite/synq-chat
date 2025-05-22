@@ -6,6 +6,13 @@ import { join } from "node:path";
 
 // Plugin for the Admin app
 export const adminPlugin = new Elysia()
+	// Guard to ensure this plugin only runs for the admin subdomain
+	// .guard({
+	// 	beforeHandle: ({ subdomain }: Context & { subdomain?: string }) => {
+	// 		// console.log("Admin Plugin Guard: Inherited Subdomain:", subdomain);
+	// 		return subdomain === "admin";
+	// 	}
+	// })
 	// Admin static files
 	.group("/admin", app =>
 		app.use(

@@ -172,7 +172,7 @@ const buildCommonConfig = (mode: string, appName: string, appRoot: string, outDi
 			}
 		}
 	},
-	publicDir: resolve(appRoot, "public_static"),
+	publicDir: resolve(appRoot, "public"),
 	build: {
 		outDir,
 		emptyOutDir: true,
