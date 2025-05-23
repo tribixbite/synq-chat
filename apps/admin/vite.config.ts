@@ -9,7 +9,7 @@ import { Env, Route } from "../../src/shared/constants";
 const base = "/admin/";
 
 const root = resolve(__dirname, "src/client");
-const outDir = resolve(__dirname, "public");
+const outDir = "public"; // resolve(__dirname, "public");
 const toCopy: Target[] = [];
 
 export default defineConfig(({ mode }) => ({
@@ -29,7 +29,7 @@ export default defineConfig(({ mode }) => ({
 			}
 		}
 	},
-	publicDir: resolve(__dirname, "src/client/public_static"),
+	// publicDir: resolve(__dirname, "public"),
 	build: {
 		outDir,
 		emptyOutDir: true,
@@ -54,7 +54,7 @@ export default defineConfig(({ mode }) => ({
 	plugins: [
 		react(),
 		tsconfigPaths({
-			projects: [resolve(__dirname, "tsconfig.json")]
+			projects: [resolve(__dirname, "../../tsconfig.json")]
 		}),
 		...(mode === Env.Production && toCopy.length > 0
 			? [

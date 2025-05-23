@@ -1,13 +1,13 @@
-import "./main.css";
+import "./styles.css";
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
 
 import { assertGetElementById, registerServiceWorker } from "@shared/helpers/browser";
-import { AppContextProvider } from "./components/AppContextProvider";
-import { ErrorBoundary } from "./components/ErrorBoundary";
-import { Main } from "./components/Main";
+import { AppContextProvider } from "../components/AppContextProvider";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+import { Main } from "../components/Main";
 
 const rootElement = assertGetElementById("root");
 

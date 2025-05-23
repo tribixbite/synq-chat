@@ -20,12 +20,12 @@
     "baseUrl": ".",
     "incremental": true,
     "paths": {
-      "@/*": ["./src/*"],
+      "@/*": ["./*"],
       "@src/*": ["src/*"],
       "@plugins": ["src/server/plugins/*"],
       "@vibesynq/*": ["apps/vibesynq/src/*"],
       "@admin/*": ["apps/admin/src/*"],
-      "@shared/*": ["src/shared/*"],
+      "@shared/*": ["./src/shared/*"],
       "@server/*": ["src/server/*"],
       "@helpers/*": ["src/server/helpers/*"]
     }

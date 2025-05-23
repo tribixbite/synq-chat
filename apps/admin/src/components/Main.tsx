@@ -1,4 +1,4 @@
-import bunSvg from "@client/assets/bun.svg";
+import bunSvg from "../assets/bun.svg";
 
 import { useState } from "react";
 import { useAppContext } from "../client/hooks/useAppContext";

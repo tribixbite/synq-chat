@@ -1,8 +1,8 @@
 // vite.config.ts (Root - Base Configuration)
+import { Env, Route } from "@shared/constants";
 import { resolve } from "node:path";
 import { type Plugin, type PluginOption, defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { Env, Route } from "./src/shared/constants";
 
 // Custom plugin to properly serve files from public/llm
 const llmFilesPlugin = (): Plugin => {

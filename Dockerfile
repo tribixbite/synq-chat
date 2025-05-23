@@ -19,7 +19,7 @@ COPY --link apps ./apps
 COPY --link public ./public
 
 # Install dependencies
-RUN bun install --ignore-scripts 
+RUN bun install --ignore-scripts --legacy-peer-deps
 # --frozen-lockfile
 
 # Lint and type-check (optional in Docker build, but good for CI consistency)

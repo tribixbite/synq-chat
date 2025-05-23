@@ -1,0 +1,1708 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DANTE'S INFERNO - Warrior's Descent</title>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Metal+Mania&display=swap');
+        
+        body {
+            margin: 0;
+            overflow: hidden;
+            font-family: 'Metal Mania', cursive;
+            background: #000;
+            cursor: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="32" height="32"><text y="20" font-size="20">⚔️</text></svg>'), auto;
+        }
+        
+        #loading {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            flex-direction: column;
+        }
+        
+        #loading h1 {
+            font-family: 'Metal Mania', cursive;
+            color: #ff0000;
+            font-size: 6em;
+            margin-bottom: 20px;
+            text-shadow: 0 0 50px rgba(255, 0, 0, 1), 0 0 100px rgba(255, 0, 0, 0.5);
+            animation: burn 2s ease-in-out infinite;
+            letter-spacing: 10px;
+        }
+        
+        @keyframes burn {
+            0%, 100% { 
+                text-shadow: 0 0 30px #ff0000, 0 0 60px #ff6600, 0 0 90px #ffaa00;
+                transform: scale(1);
+            }
+            50% { 
+                text-shadow: 0 0 40px #ff0000, 0 0 80px #ff6600, 0 0 120px #ffaa00;
+                transform: scale(1.05);
+            }
+        }
+        
+        #info {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: #ffaa66;
+            text-shadow: 3px 3px 6px #000;
+            background: linear-gradient(135deg, rgba(0,0,0,0.95), rgba(100,0,0,0.6));
+            padding: 20px;
+            border-radius: 0;
+            border: 3px solid #880000;
+            max-width: 400px;
+            z-index: 100;
+            font-size: 1.2em;
+        }
+        
+        #info h2 {
+            margin: 0 0 10px 0;
+            font-size: 2em;
+            color: #ff6666;
+            text-transform: uppercase;
+            letter-spacing: 3px;
+        }
+        
+        .latin-text {
+            font-style: italic;
+            color: #ff8844;
+            margin: 10px 0;
+        }
+        
+        #circle-indicator {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: #ffaa66;
+            text-shadow: 3px 3px 6px #000;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border: 3px solid #880000;
+            z-index: 100;
+            text-align: center;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            text-align: center;
+            color: #ffaa66;
+            background: rgba(0,0,0,0.9);
+            padding: 15px;
+            border: 3px solid #880000;
+            z-index: 100;
+            font-size: 1em;
+        }
+        
+        .mobile-controls {
+            position: fixed;
+            bottom: 20px;
+            width: 100%;
+            display: none;
+            justify-content: space-between;
+            padding: 0 20px;
+            box-sizing: border-box;
+            z-index: 10;
+        }
+        
+        .mobile-controls button {
+            background: rgba(0,0,0,0.9);
+            color: #ff0000;
+            border: 2px solid #ff0000;
+            padding: 15px 20px;
+            font-size: 16px;
+            border-radius: 0;
+            touch-action: manipulation;
+            user-select: none;
+            font-family: 'Metal Mania', cursive;
+            text-shadow: 0 0 5px #ff0000;
+        }
+        
+        @media (max-width: 768px) {
+            .mobile-controls {
+                display: flex;
+            }
+            #controls {
+                display: none;
+            }
+        }
+        
+        #croquet_dock {
+            display: none;
+        }
+        
+        .realm-indicator {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 5em;
+            color: #ff6666;
+            text-shadow: 0 0 100px #ff0000;
+            opacity: 0;
+            transition: opacity 3s;
+            pointer-events: none;
+            text-align: center;
+            letter-spacing: 5px;
+        }
+        
+        .vignette {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            background: radial-gradient(ellipse at center, transparent 0%, transparent 10%, rgba(0,0,0,1) 90%);
+            z-index: 99;
+        }
+        
+        .fire-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            opacity: 0.3;
+            mix-blend-mode: screen;
+            background: 
+                radial-gradient(ellipse at 20% 80%, #ff6600 0%, transparent 50%),
+                radial-gradient(ellipse at 80% 20%, #ff0000 0%, transparent 50%),
+                radial-gradient(ellipse at 40% 40%, #ffaa00 0%, transparent 50%);
+            animation: fireFlicker 3s ease-in-out infinite;
+            z-index: 98;
+        }
+        
+        @keyframes fireFlicker {
+            0%, 100% { opacity: 0.2; }
+            50% { opacity: 0.4; }
+        }
+    </style>
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    
+    <script type="importmap">
+        {
+            "imports": {
+                "@multisynq/client": "https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.2/bundled/multisynq-client.esm.js"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="loading">
+        <h1>DANTE'S INFERNO</h1>
+        <p style="color: #ff6666; font-size: 2em; letter-spacing: 5px;">VENGEANCE AWAITS</p>
+    </div>
+    
+    <div class="vignette"></div>
+    <div class="fire-overlay"></div>
+    
+    <div id="info">
+        <h2>DANTE'S INFERNO</h2>
+        <p id="realm-name">I will reclaim what is mine...</p>
+        <p class="latin-text">"Through the fire and flames"</p>
+        <p style="font-size: 0.8em; opacity: 0.8;">Souls slain: <span id="player-count">0</span></p>
+        <div style="margin-top: 10px;">
+            <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                <span style="width: 60px;">HEALTH:</span>
+                <div style="flex: 1; height: 10px; background: #330000; border: 1px solid #660000;">
+                    <div id="health-bar" style="width: 100%; height: 100%; background: linear-gradient(90deg, #ff0000, #990000);"></div>
+                </div>
+            </div>
+            <div style="display: flex; align-items: center;">
+                <span style="width: 60px;">RAGE:</span>
+                <div style="flex: 1; height: 10px; background: #333300; border: 1px solid #666600;">
+                    <div id="rage-bar" style="width: 0%; height: 100%; background: linear-gradient(90deg, #ffaa00, #ff6600);"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div id="circle-indicator">
+        <h3 id="circle-name">Limbo</h3>
+        <p id="circle-sin" style="font-size: 0.9em; color: #ff8844;">The Unbaptized</p>
+    </div>
+    
+    <div id="controls">
+        <p style="margin: 0;">WASD: Move • Mouse: Aim • LMB: Attack • Space: Jump • Shift: Dodge</p>
+    </div>
+    
+    <div class="mobile-controls">
+        <div>
+            <button id="btn-left">←</button>
+            <button id="btn-right">→</button>
+        </div>
+        <div>
+            <button id="btn-fwd">↑</button>
+            <button id="btn-bwd">↓</button>
+        </div>
+    </div>
+    
+    <div class="realm-indicator" id="realm-indicator"></div>
+
+    <script type="module">
+        import * as Multisynq from "@multisynq/client";
+
+        // Constants
+        const C = Multisynq.Constants;
+        C.playerSpeed = 0.06;
+        C.turnSpeed = 0.025;
+        C.verticalSpeed = 0.05;
+        
+        // The Nine Circles
+        C.circles = [
+            { name: "Limbo", sin: "The Unbaptized", depth: -50 },
+            { name: "Lust", sin: "The Lustful", depth: -100 },
+            { name: "Gluttony", sin: "The Gluttonous", depth: -150 },
+            { name: "Greed", sin: "The Avaricious", depth: -200 },
+            { name: "Wrath", sin: "The Wrathful", depth: -250 },
+            { name: "Heresy", sin: "The Heretics", depth: -300 },
+            { name: "Violence", sin: "The Violent", depth: -350 },
+            { name: "Fraud", sin: "The Fraudulent", depth: -400 },
+            { name: "Treachery", sin: "The Treacherous", depth: -450 }
+        ];
+        
+        C.infernoBottom = -500;
+        C.infernoTop = 0;
+        
+        // Brutal punishments for each circle
+        C.punishments = [
+            "eternally lost in darkness",
+            "torn apart by violent storms",
+            "drowning in putrid filth", 
+            "crushed by endless weight",
+            "torn apart in endless rage",
+            "burning in eternal flames",
+            "boiling in rivers of blood",
+            "transformed into monsters",
+            "frozen and shattered in ice"
+        ];
+
+        // Simulation Model
+        class InfernoSimulation extends Multisynq.Model {
+            init() {
+                this.players = new Map();
+                this.damnedSouls = this.createDamnedSouls();
+                this.demons = this.createDemons();
+                this.punishments = this.createPunishments();
+                
+                // Animation state
+                this.animationTime = 0;
+                this.fireIntensity = [];
+                this.windForces = [];
+                
+                // Initialize fire and wind for each circle
+                for (let i = 0; i < 9; i++) {
+                    this.fireIntensity.push(Math.random());
+                    this.windForces.push({
+                        x: (Math.random() - 0.5) * 2,
+                        z: (Math.random() - 0.5) * 2
+                    });
+                }
+                
+                this.subscribe(this.sessionId, "view-join", this.onViewJoin);
+                this.subscribe(this.sessionId, "view-exit", this.onViewExit);
+                
+                this.step(50);
+            }
+            
+            onViewJoin({viewId, viewData}) {
+                const player = Player.create({viewId, ...viewData});
+                this.players.set(viewId, player);
+                this.publish("sim", "player-added", player);
+                this.publish("sim", "player-count-changed", this.players.size);
+            }
+            
+            onViewExit({viewId}) {
+                const player = this.players.get(viewId);
+                this.players.delete(viewId);
+                if (player) {
+                    player.destroy();
+                    this.publish("sim", "player-removed", player);
+                    this.publish("sim", "player-count-changed", this.players.size);
+                }
+            }
+            
+            step(ms) {
+                const deltaTime = ms / 1000;
+                this.animationTime += deltaTime;
+                
+                // Update players
+                for (const player of this.players.values()) {
+                    player.move(deltaTime);
+                }
+                
+                // Update damned souls
+                this.updateDamnedSouls(deltaTime);
+                
+                // Update demons
+                this.updateDemons(deltaTime);
+                
+                // Update environmental effects
+                this.updateEnvironment(deltaTime);
+                
+                this.future(50).step(ms);
+            }
+            
+            createDamnedSouls() {
+                const souls = [];
+                
+                // Create crowds of souls for each circle
+                for (let circle = 0; circle < 9; circle++) {
+                    const circleDepth = C.circles[circle].depth;
+                    const soulCount = 20 + circle * 5; // More souls in deeper circles
+                    
+                    for (let i = 0; i < soulCount; i++) {
+                        const angle = (i / soulCount) * Math.PI * 2;
+                        const radius = 20 + Math.random() * 40;
+                        
+                        souls.push({
+                            circle: circle,
+                            punishment: C.punishments[circle],
+                            pos: {
+                                x: Math.cos(angle) * radius + (Math.random() - 0.5) * 20,
+                                y: circleDepth + (Math.random() - 0.5) * 10,
+                                z: Math.sin(angle) * radius + (Math.random() - 0.5) * 20
+                            },
+                            angle: angle,
+                            radius: radius,
+                            tormentPhase: Math.random() * Math.PI * 2,
+                            groupId: Math.floor(i / 5) // Group souls together
+                        });
+                    }
+                }
+                
+                return souls;
+            }
+            
+            createDemons() {
+                const demons = [];
+                
+                // Boss demons for each circle
+                const bosses = [
+                    { name: "Charon", type: "ferryman", size: 2 },
+                    { name: "Minos", type: "judge", size: 2.5 },
+                    { name: "Cerberus", type: "hellhound", size: 3 },
+                    { name: "Plutus", type: "greed", size: 2 },
+                    { name: "Phlegyas", type: "wrathful", size: 2 },
+                    { name: "Medusa", type: "gorgon", size: 2.5 },
+                    { name: "Minotaur", type: "beast", size: 3 },
+                    { name: "Geryon", type: "fraud", size: 3.5 },
+                    { name: "Lucifer", type: "satan", size: 5 }
+                ];
+                
+                for (let circle = 0; circle < 9; circle++) {
+                    const circleDepth = C.circles[circle].depth;
+                    
+                    // Boss demon
+                    demons.push({
+                        type: bosses[circle].type,
+                        name: bosses[circle].name,
+                        circle: circle,
+                        pos: {
+                            x: 0,
+                            y: circleDepth + 15,
+                            z: 0
+                        },
+                        patrolAngle: 0,
+                        size: bosses[circle].size,
+                        isBoss: true,
+                        health: 100 * (circle + 1),
+                        attackRange: 15 + circle * 2
+                    });
+                    
+                    // Minion demons
+                    const minionCount = 3 + circle;
+                    for (let i = 0; i < minionCount; i++) {
+                        demons.push({
+                            type: "minion",
+                            circle: circle,
+                            pos: {
+                                x: Math.cos(i * Math.PI * 2 / minionCount) * 40,
+                                y: circleDepth,
+                                z: Math.sin(i * Math.PI * 2 / minionCount) * 40
+                            },
+                            patrolAngle: i * Math.PI * 2 / minionCount,
+                            size: 0.8 + circle * 0.1,
+                            speed: 0.5 + circle * 0.1,
+                            aggressive: true
+                        });
+                    }
+                }
+                
+                return demons;
+            }
+            
+            createPunishments() {
+                // Environmental punishments for each circle
+                return {
+                    windstorms: [], // Circle 2
+                    mudPools: [], // Circle 3
+                    boulders: [], // Circle 4
+                    styxRiver: { level: -250, waves: [] }, // Circle 5
+                    flamingTombs: [], // Circle 6
+                    bloodRiver: { level: -350, bubbles: [] }, // Circle 7
+                    thornTrees: [], // Circle 8
+                    iceLake: { level: -450, cracks: [] } // Circle 9
+                };
+            }
+            
+            updateDamnedSouls(deltaTime) {
+                for (const soul of this.damnedSouls) {
+                    soul.tormentPhase += deltaTime;
+                    
+                    switch (soul.circle) {
+                        case 0: // Limbo - wandering
+                            soul.angle += deltaTime * 0.1;
+                            soul.pos.x = Math.cos(soul.angle) * soul.radius;
+                            soul.pos.z = Math.sin(soul.angle) * soul.radius;
+                            break;
+                            
+                        case 1: // Lust - blown by winds
+                            const wind = this.windForces[1];
+                            soul.pos.x += wind.x * deltaTime * 10;
+                            soul.pos.z += wind.z * deltaTime * 10;
+                            // Keep in bounds
+                            if (Math.abs(soul.pos.x) > 60) {
+                                soul.pos.x = -soul.pos.x * 0.9;
+                                this.windForces[1].x = -this.windForces[1].x;
+                            }
+                            if (Math.abs(soul.pos.z) > 60) {
+                                soul.pos.z = -soul.pos.z * 0.9;
+                                this.windForces[1].z = -this.windForces[1].z;
+                            }
+                            break;
+                            
+                        case 2: // Gluttony - writhing in mud
+                            soul.pos.y = C.circles[2].depth + Math.sin(soul.tormentPhase) * 2;
+                            break;
+                            
+                        case 3: // Greed - pushing boulders
+                            soul.angle += deltaTime * 0.05;
+                            soul.pos.x = Math.cos(soul.angle) * soul.radius;
+                            soul.pos.z = Math.sin(soul.angle) * soul.radius;
+                            soul.pos.y = C.circles[3].depth + Math.abs(Math.sin(soul.tormentPhase * 2)) * 5;
+                            break;
+                            
+                        case 4: // Wrath - fighting in Styx
+                            soul.pos.x += Math.sin(soul.tormentPhase * 3) * deltaTime * 5;
+                            soul.pos.z += Math.cos(soul.tormentPhase * 3) * deltaTime * 5;
+                            soul.pos.y = C.circles[4].depth + Math.sin(soul.tormentPhase * 5) * 3;
+                            break;
+                            
+                        case 5: // Heresy - trapped in tombs
+                            // Stationary in flaming tombs
+                            break;
+                            
+                        case 6: // Violence - in boiling blood
+                            soul.pos.y = C.circles[6].depth + Math.sin(soul.tormentPhase * 2) * 1;
+                            break;
+                            
+                        case 7: // Fraud - various transformations
+                            soul.angle += deltaTime * 0.2;
+                            soul.radius = 30 + Math.sin(soul.tormentPhase) * 10;
+                            soul.pos.x = Math.cos(soul.angle) * soul.radius;
+                            soul.pos.z = Math.sin(soul.angle) * soul.radius;
+                            break;
+                            
+                        case 8: // Treachery - frozen in ice
+                            // Completely immobile
+                            soul.pos.y = C.circles[8].depth - 5; // Half buried in ice
+                            break;
+                    }
+                }
+            }
+            
+            updateDemons(deltaTime) {
+                for (const demon of this.demons) {
+                    
+                    if (demon.isBoss) {
+                        // Boss demons hover menacingly
+                        demon.patrolAngle += deltaTime * 0.2;
+                        demon.pos.y = C.circles[demon.circle].depth + 15 + Math.sin(demon.patrolAngle * 2) * 5;
+                        
+                        // Scan for players
+                        for (const player of this.players.values()) {
+                            const dist = Math.sqrt(
+                                Math.pow(player.pos.x - demon.pos.x, 2) +
+                                Math.pow(player.pos.z - demon.pos.z, 2)
+                            );
+                            
+                            if (dist < demon.attackRange && Math.abs(player.pos.y - demon.pos.y) < 30) {
+                                // Boss attacks!
+                                this.publish("combat", "boss-attack", {
+                                    bossName: demon.name,
+                                    playerId: player.viewId
+                                });
+                            }
+                        }
+                    } else {
+                        // Minion demons actively hunt
+                        let target = null;
+                        let minDist = Infinity;
+                        
+                        // Find nearest player
+                        for (const player of this.players.values()) {
+                            if (Math.abs(player.pos.y - demon.pos.y) < 50) {
+                                const dist = Math.sqrt(
+                                    Math.pow(player.pos.x - demon.pos.x, 2) +
+                                    Math.pow(player.pos.z - demon.pos.z, 2)
+                                );
+                                if (dist < minDist) {
+                                    minDist = dist;
+                                    target = player;
+                                }
+                            }
+                        }
+                        
+                        if (target && minDist < 60) {
+                            // Chase the player!
+                            const dx = target.pos.x - demon.pos.x;
+                            const dz = target.pos.z - demon.pos.z;
+                            const angle = Math.atan2(dx, dz);
+                            
+                            demon.patrolAngle = angle;
+                            
+                            // Move faster when chasing
+                            const speed = demon.speed || 0.5;
+                            demon.pos.x += Math.sin(angle) * speed * deltaTime * 60 * 1.5;
+                            demon.pos.z += Math.cos(angle) * speed * deltaTime * 60 * 1.5;
+                            
+                            // Leap at player when close
+                            if (minDist < 5) {
+                                demon.pos.y = demon.pos.y + Math.sin(this.animationTime * 10) * 2;
+                            }
+                        } else {
+                            // Regular patrol
+                            demon.patrolAngle += deltaTime * 0.3;
+                            const patrolRadius = 40 + Math.sin(demon.patrolAngle) * 10;
+                            demon.pos.x += Math.cos(demon.patrolAngle) * deltaTime * 20;
+                            demon.pos.z += Math.sin(demon.patrolAngle) * deltaTime * 20;
+                            
+                            // Keep in bounds
+                            const dist = Math.sqrt(demon.pos.x ** 2 + demon.pos.z ** 2);
+                            if (dist > 60) {
+                                demon.pos.x = (demon.pos.x / dist) * 60;
+                                demon.pos.z = (demon.pos.z / dist) * 60;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            updateEnvironment(deltaTime) {
+                // Update fire intensity
+                for (let i = 0; i < 9; i++) {
+                    this.fireIntensity[i] = 0.5 + Math.sin(this.animationTime * (1 + i * 0.2)) * 0.5;
+                }
+                
+                // Update wind forces for circle 2
+                this.windForces[1].x += (Math.random() - 0.5) * deltaTime * 2;
+                this.windForces[1].z += (Math.random() - 0.5) * deltaTime * 2;
+                
+                // Clamp wind
+                const maxWind = 3;
+                const windMag = Math.sqrt(this.windForces[1].x ** 2 + this.windForces[1].z ** 2);
+                if (windMag > maxWind) {
+                    this.windForces[1].x = (this.windForces[1].x / windMag) * maxWind;
+                    this.windForces[1].z = (this.windForces[1].z / windMag) * maxWind;
+                }
+            }
+        }
+        InfernoSimulation.register("InfernoSimulation");
+
+        class Player extends Multisynq.Model {
+            init({viewId, name}) {
+                this.viewId = viewId;
+                this.name = name || "Lost Soul";
+                
+                // Start at the gates
+                this.pos = {
+                    x: (Math.random() - 0.5) * 20,
+                    y: -10,
+                    z: (Math.random() - 0.5) * 20
+                };
+                
+                this.rotation = {
+                    x: 0,
+                    y: Math.random() * Math.PI * 2,
+                    z: 0
+                };
+                
+                this.velocity = { x: 0, y: 0, z: 0 };
+                
+                this.controls = {
+                    forward: false,
+                    backward: false,
+                    left: false,
+                    right: false,
+                    up: false,
+                    down: false
+                };
+                
+                this.subscribe(this.id, "control", this.onControl);
+                this.subscribe(this.id, "rotate", this.onRotate);
+            }
+            
+            onControl({ control, value }) {
+                this.controls[control] = value;
+            }
+            
+            onRotate({ x, y }) {
+                this.rotation.x = x;
+                this.rotation.y = y;
+            }
+            
+            move(deltaTime) {
+                const moveSpeed = C.playerSpeed * 60 * deltaTime;
+                
+                if (this.controls.forward) {
+                    this.velocity.x = Math.sin(this.rotation.y) * moveSpeed;
+                    this.velocity.z = Math.cos(this.rotation.y) * moveSpeed;
+                } else if (this.controls.backward) {
+                    this.velocity.x = -Math.sin(this.rotation.y) * moveSpeed * 0.7;
+                    this.velocity.z = -Math.cos(this.rotation.y) * moveSpeed * 0.7;
+                } else {
+                    this.velocity.x *= 0.9;
+                    this.velocity.z *= 0.9;
+                }
+                
+                if (this.controls.left) {
+                    this.rotation.y -= C.turnSpeed * 60 * deltaTime;
+                }
+                if (this.controls.right) {
+                    this.rotation.y += C.turnSpeed * 60 * deltaTime;
+                }
+                
+                // Vertical movement
+                if (this.controls.up) {
+                    this.velocity.y = C.verticalSpeed * 60 * deltaTime;
+                } else if (this.controls.down) {
+                    this.velocity.y = -C.verticalSpeed * 60 * deltaTime;
+                } else {
+                    this.velocity.y *= 0.9;
+                }
+                
+                // Apply velocity
+                this.pos.x += this.velocity.x;
+                this.pos.y += this.velocity.y;
+                this.pos.z += this.velocity.z;
+                
+                // Boundaries
+                this.pos.y = Math.max(C.infernoBottom, Math.min(C.infernoTop, this.pos.y));
+                
+                const maxDist = 70;
+                const dist = Math.sqrt(this.pos.x * this.pos.x + this.pos.z * this.pos.z);
+                if (dist > maxDist) {
+                    this.pos.x = (this.pos.x / dist) * maxDist;
+                    this.pos.z = (this.pos.z / dist) * maxDist;
+                }
+            }
+            
+            getCurrentCircle() {
+                for (let i = 8; i >= 0; i--) {
+                    if (this.pos.y <= C.circles[i].depth + 25) {
+                        return i;
+                    }
+                }
+                return -1; // Above hell
+            }
+        }
+        Player.register("Player");
+
+        // Medieval Hellscape View
+        class InfernoView extends Multisynq.View {
+            constructor(sim) {
+                super(sim);
+                this.sim = sim;
+                this.playerObjects = new Map();
+                this.myPlayer = sim.players.get(this.viewId);
+                
+                // Camera
+                this.cameraRotX = 0;
+                this.cameraRotY = 0;
+                this.mouseControlled = false;
+                
+                this.currentCircle = -1;
+                
+                // Setup
+                for (const player of this.sim.players.values()) {
+                    this.onPlayerAdded(player);
+                }
+                
+                this.subscribe("sim", "player-added", this.onPlayerAdded);
+                this.subscribe("sim", "player-removed", this.onPlayerRemoved);
+                this.subscribe("sim", "player-count-changed", this.onPlayerCountChanged);
+                
+                this.setupP5();
+                
+                // Hide loading
+                setTimeout(() => {
+                    document.getElementById('loading').style.display = 'none';
+                }, 2000);
+            }
+            
+            setupP5() {
+                const self = this;
+                
+                new p5((p) => {
+                    p.setup = function() {
+                        p.createCanvas(p.windowWidth, p.windowHeight, p.WEBGL);
+                        p.perspective(p.PI / 2.5, p.width / p.height, 0.1, 2000);
+                        
+                        // Performance mode
+                        p.setAttributes('antialias', false);
+                        
+                        // Mouse control
+                        p.canvas.addEventListener('click', () => {
+                            p.requestPointerLock();
+                        });
+                        
+                        document.addEventListener('pointerlockchange', () => {
+                            self.mouseControlled = document.pointerLockElement === p.canvas;
+                        });
+                    };
+                    
+                    p.draw = function() {
+                        // Hellfire lighting
+                        p.background(20, 0, 0);
+                        p.ambientLight(60, 20, 10);
+                        
+                        // Dynamic fire light based on depth
+                        if (self.myPlayer) {
+                            const player = self.sim.players.get(self.viewId);
+                            if (player) {
+                                const depth = Math.abs(player.pos.y) / Math.abs(C.infernoBottom);
+                                p.pointLight(255, 100 - depth * 50, 0, 
+                                    player.pos.x, player.pos.y + 10, player.pos.z);
+                                
+                                // Fire glow from below
+                                p.pointLight(255, 50, 0, 0, C.infernoBottom, 0);
+                            }
+                        }
+                        
+                        // Update camera with combat shake
+                        if (self.myPlayer) {
+                            const player = self.sim.players.get(self.viewId);
+                            if (player) {
+                                // Check demon proximity for camera shake
+                                let nearestDemonDist = Infinity;
+                                for (const demon of self.sim.demons) {
+                                    const dist = Math.sqrt(
+                                        Math.pow(player.pos.x - demon.pos.x, 2) +
+                                        Math.pow(player.pos.y - demon.pos.y, 2) +
+                                        Math.pow(player.pos.z - demon.pos.z, 2)
+                                    );
+                                    nearestDemonDist = Math.min(nearestDemonDist, dist);
+                                }
+                                
+                                // Combat camera
+                                const camDist = 35;
+                                const camHeight = 20;
+                                
+                                // Shake when demons are near
+                                const shakeIntensity = nearestDemonDist < 20 ? (20 - nearestDemonDist) / 20 : 0;
+                                const shakeX = (Math.random() - 0.5) * shakeIntensity * 3;
+                                const shakeY = (Math.random() - 0.5) * shakeIntensity * 3;
+                                
+                                const camX = player.pos.x - Math.sin(player.rotation.y) * camDist + shakeX;
+                                const camY = player.pos.y + camHeight + shakeY;
+                                const camZ = player.pos.z - Math.cos(player.rotation.y) * camDist;
+                                
+                                // Dynamic look target
+                                const lookX = player.pos.x + Math.sin(player.rotation.y) * 20;
+                                const lookY = player.pos.y;
+                                const lookZ = player.pos.z + Math.cos(player.rotation.y) * 20;
+                                
+                                p.camera(camX, camY, camZ, lookX, lookY, lookZ, 0, 1, 0);
+                            }
+                        }
+                        
+                        // Draw the nine circles
+                        self.drawNineCircles(p);
+                        self.drawArchitecture(p);
+                        self.drawDamnedSouls(p);
+                        self.drawDemons(p);
+                        self.drawPunishments(p);
+                        self.drawPlayers(p);
+                        
+                        // Update UI
+                        self.updateCircleInfo();
+                    };
+                    
+                    p.windowResized = function() {
+                        p.resizeCanvas(p.windowWidth, p.windowHeight);
+                    };
+                    
+                    p.mouseMoved = function(event) {
+                        if (self.mouseControlled) {
+                            const sensitivity = 0.005;
+                            self.cameraRotY += event.movementX * sensitivity;
+                            self.cameraRotX = p.constrain(
+                                self.cameraRotX - event.movementY * sensitivity,
+                                -p.PI / 3,
+                                p.PI / 3
+                            );
+                            
+                            if (self.myPlayer) {
+                                self.publish(self.myPlayer.id, "rotate", {
+                                    x: self.cameraRotX,
+                                    y: self.cameraRotY
+                                });
+                            }
+                        }
+                    };
+                    
+                    self.p5Instance = p;
+                });
+            }
+            
+            drawNineCircles(p) {
+                // Draw all circles as terraced layers
+                for (let i = 0; i < 9; i++) {
+                    const circle = C.circles[i];
+                    const radius = 80 - i * 5;
+                    const nextRadius = i < 8 ? 80 - (i + 1) * 5 : 40;
+                    
+                    p.push();
+                    p.translate(0, circle.depth, 0);
+                    
+                    // Circle platform
+                    p.fill(80 - i * 8, 20 - i * 2, 10);
+                    p.stroke(200, 50, 0, 100);
+                    p.strokeWeight(1);
+                    
+                    // Main platform
+                    p.push();
+                    p.rotateX(p.PI / 2);
+                    p.circle(0, 0, radius * 2);
+                    p.pop();
+                    
+                    // Walls to next level
+                    if (i < 8) {
+                        const wallHeight = C.circles[i].depth - C.circles[i + 1].depth;
+                        p.noStroke();
+                        p.fill(60 - i * 6, 15 - i, 5);
+                        
+                        // Create terraced walls
+                        for (let a = 0; a < p.TWO_PI; a += p.PI / 8) {
+                            p.push();
+                            p.rotateY(a);
+                            p.translate(radius - 2, -wallHeight / 2, 0);
+                            p.box(4, wallHeight, 10);
+                            p.pop();
+                        }
+                    }
+                    
+                    // Fire effects for certain circles
+                    if (i >= 5) { // Circles 6-9 have more fire
+                        const fireIntensity = this.sim.fireIntensity[i];
+                        p.push();
+                        p.fill(255, 100 * fireIntensity, 0, 100);
+                        p.emissiveMaterial(255, 50, 0);
+                        p.noStroke();
+                        
+                        for (let f = 0; f < 8; f++) {
+                            p.push();
+                            p.rotateY((p.TWO_PI / 8) * f);
+                            p.translate(radius * 0.7, 5, 0);
+                            p.cone(3, 10 + fireIntensity * 10);
+                            p.pop();
+                        }
+                        p.pop();
+                    }
+                    
+                    p.pop();
+                }
+                
+                // Central pit to Satan
+                p.push();
+                p.translate(0, C.infernoBottom, 0);
+                p.fill(0);
+                p.rotateX(p.PI / 2);
+                p.circle(0, 0, 80);
+                p.pop();
+            }
+            
+            drawArchitecture(p) {
+                // Gates of Hell at entrance
+                p.push();
+                p.translate(0, -20, -60);
+                
+                // Massive gates
+                p.fill(40, 20, 10);
+                p.noStroke();
+                
+                // Pillars
+                for (let side = -1; side <= 1; side += 2) {
+                    p.push();
+                    p.translate(side * 30, 0, 0);
+                    p.box(15, 80, 15);
+                    p.pop();
+                }
+                
+                // Arch
+                p.push();
+                p.translate(0, 40, 0);
+                p.box(75, 10, 15);
+                p.pop();
+                
+                // Gate doors
+                for (let side = -1; side <= 1; side += 2) {
+                    p.push();
+                    p.translate(side * 15, 0, 0);
+                    p.rotateY(side * 0.3);
+                    p.fill(30, 15, 5);
+                    p.box(30, 60, 5);
+                    p.pop();
+                }
+                
+                p.pop();
+                
+                // Towers and bridges for each circle
+                for (let i = 0; i < 9; i++) {
+                    const circle = C.circles[i];
+                    const radius = 80 - i * 5;
+                    
+                    // Watch towers
+                    for (let t = 0; t < 4; t++) {
+                        p.push();
+                        p.rotateY((p.TWO_PI / 4) * t + i * 0.2);
+                        p.translate(radius - 10, circle.depth, 0);
+                        
+                        p.fill(50 - i * 5, 25 - i * 2, 15 - i);
+                        p.noStroke();
+                        
+                        // Tower base
+                        p.box(10, 30, 10);
+                        
+                        // Tower top
+                        p.push();
+                        p.translate(0, 15, 0);
+                        p.cone(8, 15);
+                        p.pop();
+                        
+                        p.pop();
+                    }
+                }
+            }
+            
+            drawDamnedSouls(p) {
+                // Group souls by circle for performance
+                const soulsByCircle = {};
+                for (const soul of this.sim.damnedSouls) {
+                    if (!soulsByCircle[soul.circle]) {
+                        soulsByCircle[soul.circle] = [];
+                    }
+                    soulsByCircle[soul.circle].push(soul);
+                }
+                
+                // Draw souls for each circle
+                for (let circle = 0; circle < 9; circle++) {
+                    const souls = soulsByCircle[circle] || [];
+                    
+                    // Different representations per circle
+                    switch (circle) {
+                        case 0: // Limbo - noble pagans
+                            p.fill(80, 70, 60);
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                // Wandering aimlessly
+                                p.rotateY(soul.angle);
+                                p.box(2, 4, 1);
+                                // Reaching arms
+                                p.stroke(80, 70, 60);
+                                p.line(-1, 0, 0, -2, 2, 0);
+                                p.line(1, 0, 0, 2, 2, 0);
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 1: // Lust - blown by winds
+                            p.fill(150, 100, 100);
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                p.rotateZ(this.sim.animationTime);
+                                p.box(1.5, 4, 1);
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 2: // Gluttony - in mud
+                            p.fill(80, 60, 40);
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                p.sphere(2.5);
+                                // Half buried
+                                p.translate(0, -2, 0);
+                                p.fill(60, 40, 20);
+                                p.rotateX(p.PI / 2);
+                                p.circle(0, 0, 5);
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 3: // Greed - pushing boulders
+                            p.fill(120, 100, 80);
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                
+                                // Soul
+                                p.sphere(2);
+                                
+                                // Boulder
+                                p.translate(3, 0, 0);
+                                p.fill(60, 50, 40);
+                                p.sphere(4);
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 4: // Wrath - fighting in Styx
+                            p.fill(140, 60, 60);
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                
+                                // Fighting pose
+                                p.rotateY(soul.tormentPhase);
+                                p.box(2, 3, 1.5);
+                                
+                                // Arms
+                                p.push();
+                                p.translate(2, 0, 0);
+                                p.box(2, 1, 1);
+                                p.pop();
+                                
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 5: // Heresy - in flaming tombs
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                
+                                // Tomb
+                                p.fill(40, 20, 10);
+                                p.box(6, 3, 10);
+                                
+                                // Soul inside
+                                p.fill(160, 140, 120);
+                                p.translate(0, 1, 0);
+                                p.box(1.5, 1, 4);
+                                
+                                // Flames
+                                p.fill(255, 100, 0, 150);
+                                p.emissiveMaterial(255, 50, 0);
+                                p.noStroke();
+                                p.translate(0, 3, 0);
+                                p.cone(2, 5);
+                                
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 6: // Violence - in boiling blood
+                            p.fill(180, 60, 60);
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                
+                                // Half submerged
+                                p.translate(0, -1, 0);
+                                p.sphere(2);
+                                
+                                // Blood pool
+                                p.fill(120, 0, 0, 100);
+                                p.rotateX(p.PI / 2);
+                                p.circle(0, 0, 6);
+                                
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 7: // Fraud - transformed
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                
+                                // Snake-like form
+                                p.fill(100, 120, 60);
+                                p.rotateY(soul.angle);
+                                for (let s = 0; s < 5; s++) {
+                                    p.translate(1, 0, 0);
+                                    p.sphere(1.5 - s * 0.2);
+                                }
+                                
+                                p.pop();
+                            }
+                            break;
+                            
+                        case 8: // Treachery - frozen in ice
+                            for (const soul of souls) {
+                                p.push();
+                                p.translate(soul.pos.x, soul.pos.y, soul.pos.z);
+                                
+                                // Ice block
+                                p.fill(150, 150, 200, 100);
+                                p.box(4, 8, 4);
+                                
+                                // Soul inside
+                                p.fill(100, 80, 80);
+                                p.sphere(1.5);
+                                
+                                p.pop();
+                            }
+                            break;
+                    }
+                }
+            }
+            
+            drawDemons(p) {
+                for (const demon of this.sim.demons) {
+                    p.push();
+                    p.translate(demon.pos.x, demon.pos.y, demon.pos.z);
+                    p.rotateY(demon.patrolAngle);
+                    
+                    const scale = demon.size;
+                    
+                    if (demon.isBoss) {
+                        // Boss demons - more detailed
+                        switch (demon.type) {
+                            case "ferryman": // Charon
+                                p.fill(40, 30, 20);
+                                // Hooded figure
+                                p.push();
+                                p.scale(scale);
+                                p.box(4, 10, 3);
+                                // Hood
+                                p.push();
+                                p.translate(0, 5, 0);
+                                p.fill(20, 10, 10);
+                                p.sphere(3);
+                                p.pop();
+                                // Scythe
+                                p.push();
+                                p.translate(5, 0, 0);
+                                p.fill(60, 60, 60);
+                                p.box(1, 15, 1);
+                                p.translate(0, -7, 0);
+                                p.rotateZ(p.PI/2);
+                                p.box(8, 1, 3);
+                                p.pop();
+                                p.pop();
+                                break;
+                                
+                            case "hellhound": // Cerberus
+                                p.fill(60, 20, 20);
+                                p.push();
+                                p.scale(scale);
+                                // Body
+                                p.box(10, 6, 6);
+                                // Three heads
+                                for (let h = -1; h <= 1; h++) {
+                                    p.push();
+                                    p.translate(h * 4, 2, -5);
+                                    p.sphere(3);
+                                    // Jaws
+                                    p.fill(180, 50, 50);
+                                    p.translate(0, -1, -2);
+                                    p.box(2, 1, 3);
+                                    p.pop();
+                                }
+                                p.pop();
+                                break;
+                                
+                            case "satan": // Lucifer
+                                // Massive winged demon
+                                p.fill(20, 0, 0);
+                                p.push();
+                                p.scale(scale);
+                                // Muscular body
+                                p.box(6, 12, 4);
+                                // Head with massive horns
+                                p.push();
+                                p.translate(0, 7, 0);
+                                p.sphere(3);
+                                // Giant horns
+                                for (let h = -1; h <= 1; h += 2) {
+                                    p.push();
+                                    p.translate(h * 3, 2, 0);
+                                    p.rotateZ(h * 0.5);
+                                    p.cone(2, 8);
+                                    p.pop();
+                                }
+                                p.pop();
+                                // Bat wings
+                                for (let w = -1; w <= 1; w += 2) {
+                                    p.push();
+                                    p.translate(w * 8, 2, 2);
+                                    p.rotateY(w * 0.8);
+                                    p.fill(40, 0, 0, 200);
+                                    p.triangle(0, 0, 0, -10, -5, 0, 10, 8, 0);
+                                    p.pop();
+                                }
+                                p.pop();
+                                break;
+                                
+                            default: // Generic boss
+                                p.fill(80, 20, 20);
+                                p.push();
+                                p.scale(scale);
+                                p.sphere(5);
+                                // Spikes
+                                for (let s = 0; s < 8; s++) {
+                                    p.push();
+                                    p.rotateY((p.TWO_PI / 8) * s);
+                                    p.translate(5, 0, 0);
+                                    p.cone(1, 3);
+                                    p.pop();
+                                }
+                                p.pop();
+                                break;
+                        }
+                        
+                        // Boss name tag
+                        p.push();
+                        p.translate(0, 10 * scale, 0);
+                        p.rotateY(-demon.patrolAngle);
+                        p.fill(255, 0, 0);
+                        p.textAlign(p.CENTER, p.CENTER);
+                        p.textSize(16);
+                        p.textStyle(p.BOLD);
+                        p.text(demon.name.toUpperCase(), 0, 0);
+                        p.pop();
+                        
+                    } else {
+                        // Regular demons - aggressive minions
+                        p.fill(120, 30, 30);
+                        p.push();
+                        p.scale(scale);
+                        
+                        // Hunched body
+                        p.box(3, 5, 2);
+                        
+                        // Clawed arms
+                        for (let a = -1; a <= 1; a += 2) {
+                            p.push();
+                            p.translate(a * 2, 0, 0);
+                            p.rotateZ(a * 0.3);
+                            p.box(1, 4, 1);
+                            // Claws
+                            p.translate(0, -2, 0);
+                            p.fill(200, 200, 200);
+                            for (let c = 0; c < 3; c++) {
+                                p.push();
+                                p.translate(a * 0.3, -0.5, c * 0.3 - 0.3);
+                                p.box(0.2, 1, 0.2);
+                                p.pop();
+                            }
+                            p.pop();
+                        }
+                        
+                        // Horned head
+                        p.push();
+                        p.translate(0, 3, 0);
+                        p.fill(100, 20, 20);
+                        p.sphere(1.5);
+                        // Small horns
+                        p.fill(80, 60, 40);
+                        for (let h = -1; h <= 1; h += 2) {
+                            p.push();
+                            p.translate(h * 0.8, 0.8, 0);
+                            p.cone(0.4, 1.5);
+                            p.pop();
+                        }
+                        p.pop();
+                        
+                        p.pop();
+                    }
+                    
+                    // Glowing eyes for all demons
+                    p.emissiveMaterial(255, 0, 0);
+                    p.noStroke();
+                    const eyeHeight = demon.isBoss ? 5 * scale : 3 * scale;
+                    p.push();
+                    p.translate(-scale, eyeHeight, -scale * 2);
+                    p.sphere(0.3 * scale);
+                    p.pop();
+                    p.push();
+                    p.translate(scale, eyeHeight, -scale * 2);
+                    p.sphere(0.3 * scale);
+                    p.pop();
+                    
+                    p.pop();
+                }
+            }
+            
+            drawPunishments(p) {
+                // Environmental punishments
+                
+                // Circle 2 - Wind effects
+                if (this.myPlayer && this.myPlayer.getCurrentCircle() >= 1) {
+                    p.push();
+                    p.translate(0, C.circles[1].depth, 0);
+                    p.noFill();
+                    p.stroke(200, 200, 200, 50);
+                    p.strokeWeight(1);
+                    
+                    // Wind lines
+                    const wind = this.sim.windForces[1];
+                    for (let w = 0; w < 10; w++) {
+                        p.push();
+                        p.translate(
+                            (Math.random() - 0.5) * 100,
+                            (Math.random() - 0.5) * 20,
+                            (Math.random() - 0.5) * 100
+                        );
+                        p.line(0, 0, 0, wind.x * 20, 0, wind.z * 20);
+                        p.pop();
+                    }
+                    p.pop();
+                }
+                
+                // Circle 5 - River Styx
+                if (this.myPlayer && this.myPlayer.getCurrentCircle() >= 4) {
+                    p.push();
+                    p.translate(0, C.circles[4].depth - 5, 0);
+                    p.fill(80, 0, 0, 100);
+                    p.noStroke();
+                    p.rotateX(p.PI / 2);
+                    p.circle(0, 0, 140);
+                    p.pop();
+                }
+                
+                // Circle 9 - Ice lake
+                if (this.myPlayer && this.myPlayer.getCurrentCircle() >= 8) {
+                    p.push();
+                    p.translate(0, C.circles[8].depth - 10, 0);
+                    p.fill(100, 100, 150, 150);
+                    p.noStroke();
+                    p.rotateX(p.PI / 2);
+                    p.circle(0, 0, 120);
+                    
+                    // Ice cracks
+                    p.stroke(50, 50, 100);
+                    p.strokeWeight(2);
+                    p.noFill();
+                    for (let c = 0; c < 8; c++) {
+                        p.push();
+                        p.rotate((p.TWO_PI / 8) * c);
+                        p.line(0, 0, 60, 0);
+                        p.pop();
+                    }
+                    
+                    p.pop();
+                }
+            }
+            
+            drawPlayers(p) {
+                for (const [viewId, playerMesh] of this.playerObjects) {
+                    const player = this.sim.players.get(viewId);
+                    if (player) {
+                        p.push();
+                        p.translate(player.pos.x, player.pos.y, player.pos.z);
+                        p.rotateY(player.rotation.y);
+                        
+                        const isMe = viewId === this.viewId;
+                        
+                        // Warrior Dante style
+                        if (isMe) {
+                            // You are Dante - the warrior
+                            
+                            // Muscular torso with cross scar
+                            p.fill(180, 150, 130); // Skin tone
+                            p.noStroke();
+                            p.box(5, 8, 3);
+                            
+                            // Cross scar on chest
+                            p.stroke(150, 50, 50);
+                            p.strokeWeight(2);
+                            p.line(0, 2, -1.6, 0, -2, -1.6);
+                            p.line(-2, 0, -1.6, 2, 0, -1.6);
+                            p.noStroke();
+                            
+                            // Red cloth/armor pieces
+                            p.fill(150, 30, 30);
+                            p.push();
+                            p.translate(0, -2, 0);
+                            p.box(6, 3, 3.5);
+                            p.pop();
+                            
+                            // Chainmail parts
+                            p.fill(100, 100, 100);
+                            p.push();
+                            p.translate(-3, 2, 0);
+                            p.box(2, 6, 2);
+                            p.pop();
+                            p.push();
+                            p.translate(3, 2, 0);
+                            p.box(2, 6, 2);
+                            p.pop();
+                            
+                            // Head with chainmail hood
+                            p.push();
+                            p.translate(0, 7, 0);
+                            p.fill(180, 150, 130);
+                            p.sphere(2);
+                            // Chainmail coif
+                            p.fill(80, 80, 80);
+                            p.push();
+                            p.translate(0, 1, 0);
+                            p.scale(1.2, 1.3, 1.2);
+                            p.sphere(2);
+                            p.pop();
+                            p.pop();
+                            
+                            // Cross weapon (Death's Scythe)
+                            p.push();
+                            p.translate(4, 3, 0);
+                            p.rotateZ(-0.3);
+                            p.fill(60, 60, 60);
+                            // Handle
+                            p.box(1, 12, 1);
+                            // Cross guard
+                            p.push();
+                            p.translate(0, -5, 0);
+                            p.box(6, 1, 1);
+                            p.pop();
+                            // Blade
+                            p.push();
+                            p.translate(0, -8, 0);
+                            p.fill(150, 150, 150);
+                            p.box(0.5, 4, 3);
+                            p.pop();
+                            p.pop();
+                            
+                        } else {
+                            // Other players - damned souls
+                            p.fill(100, 80, 70);
+                            p.noStroke();
+                            
+                            // Tormented body
+                            p.box(4, 8, 3);
+                            
+                            // Wounds/marks
+                            p.stroke(80, 30, 30);
+                            p.strokeWeight(1);
+                            for (let w = 0; w < 3; w++) {
+                                p.line(
+                                    (Math.random() - 0.5) * 3, 
+                                    (Math.random() - 0.5) * 6, 
+                                    -1.6,
+                                    (Math.random() - 0.5) * 3, 
+                                    (Math.random() - 0.5) * 6, 
+                                    -1.6
+                                );
+                            }
+                            p.noStroke();
+                            
+                            // Head
+                            p.push();
+                            p.translate(0, 7, 0);
+                            p.fill(120, 100, 80);
+                            p.sphere(2);
+                            p.pop();
+                        }
+                        
+                        // Name
+                        p.push();
+                        p.translate(0, 10, 0);
+                        p.rotateY(-player.rotation.y);
+                        p.fill(255, 200, 100);
+                        p.textAlign(p.CENTER, p.CENTER);
+                        p.textSize(12);
+                        p.text(player.name, 0, 0);
+                        p.pop();
+                        
+                        p.pop();
+                    }
+                }
+            }
+            
+            updateCircleInfo() {
+                if (!this.myPlayer) return;
+                
+                const player = this.sim.players.get(this.viewId);
+                if (!player) return;
+                
+                const circle = player.getCurrentCircle();
+                
+                if (circle !== this.currentCircle) {
+                    this.currentCircle = circle;
+                    
+                    if (circle >= 0 && circle < 9) {
+                        const circleData = C.circles[circle];
+                        document.getElementById('circle-name').textContent = `Circle ${circle + 1}: ${circleData.name}`;
+                        document.getElementById('circle-sin').textContent = circleData.sin;
+                        
+                        // Show dramatic entrance text
+                        const indicator = document.getElementById('realm-indicator');
+                        indicator.textContent = `${circleData.name.toUpperCase()} - ${circleData.sin.toUpperCase()}`;
+                        indicator.style.opacity = '1';
+                        setTimeout(() => {
+                            indicator.style.opacity = '0';
+                        }, 3000);
+                        
+                        // Battle cry
+                        const battleCries = [
+                            "FOR BEATRICE!",
+                            "I WILL NOT YIELD!",
+                            "DEATH COMES FOR ALL!",
+                            "VENGEANCE IS MINE!",
+                            "BURN IN HELL!",
+                            "FACE YOUR JUDGMENT!",
+                            "NO MERCY!",
+                            "FEEL MY WRATH!",
+                            "YOUR SOULS ARE MINE!"
+                        ];
+                        setTimeout(() => {
+                            indicator.textContent = battleCries[circle];
+                            indicator.style.opacity = '0.8';
+                            indicator.style.color = '#ffaa00';
+                            setTimeout(() => {
+                                indicator.style.opacity = '0';
+                                indicator.style.color = '#ff6666';
+                            }, 2000);
+                        }, 2000);
+                    } else {
+                        document.getElementById('circle-name').textContent = 'The Dark Wood';
+                        document.getElementById('circle-sin').textContent = 'Before the Gates';
+                    }
+                }
+            }
+            
+            onPlayerAdded(player) {
+                this.playerObjects.set(player.viewId, {});
+            }
+            
+            onPlayerRemoved(player) {
+                this.playerObjects.delete(player.viewId);
+            }
+            
+            onPlayerCountChanged(count) {
+                // This now shows souls slain instead of player count
+                // In a full implementation, this would track actual kills
+                document.getElementById('player-count').textContent = Math.floor(Math.random() * 666);
+            }
+            
+            detach() {
+                if (this.p5Instance) {
+                    this.p5Instance.remove();
+                }
+                super.detach();
+            }
+        }
+
+        // Controls
+        const myControls = {
+            forward: false,
+            backward: false,
+            left: false,
+            right: false,
+            up: false,
+            down: false,
+
+            set(control, value) {
+                if (this[control] === value) return;
+                this[control] = value;
+                const { view } = ThisSession;
+                if (view && view.myPlayer) {
+                    view.publish(view.myPlayer.id, "control", { control, value });
+                }
+            }
+        };
+
+        function setupControls() {
+            const keys = {
+                w: "forward", arrowup: "forward",
+                s: "backward", arrowdown: "backward",
+                a: "left", arrowleft: "left",
+                d: "right", arrowright: "right",
+                ' ': "up",
+                shift: "down"
+            };
+            
+            window.addEventListener("keydown", (e) => {
+                const dir = keys[e.key.toLowerCase()];
+                if (dir) {
+                    e.preventDefault();
+                    myControls.set(dir, true);
+                }
+            });
+            
+            window.addEventListener("keyup", (e) => {
+                const dir = keys[e.key.toLowerCase()];
+                if (dir) {
+                    e.preventDefault();
+                    myControls.set(dir, false);
+                }
+            });
+
+            // Mobile controls
+            const btnFwd = document.getElementById("btn-fwd");
+            const btnBwd = document.getElementById("btn-bwd");
+            const btnLeft = document.getElementById("btn-left");
+            const btnRight = document.getElementById("btn-right");
+
+            const touchHandler = (control, value) => (e) => {
+                e.preventDefault();
+                myControls.set(control, value);
+            };
+
+            if (btnFwd) {
+                btnFwd.addEventListener("touchstart", touchHandler("forward", true), { passive: false });
+                btnFwd.addEventListener("touchend", touchHandler("forward", false));
+            }
+            if (btnBwd) {
+                btnBwd.addEventListener("touchstart", touchHandler("backward", true), { passive: false });
+                btnBwd.addEventListener("touchend", touchHandler("backward", false));
+            }
+            if (btnLeft) {
+                btnLeft.addEventListener("touchstart", touchHandler("left", true), { passive: false });
+                btnLeft.addEventListener("touchend", touchHandler("left", false));
+            }
+            if (btnRight) {
+                btnRight.addEventListener("touchstart", touchHandler("right", true), { passive: false });
+                btnRight.addEventListener("touchend", touchHandler("right", false));
+            }
+        }
+
+        // Initialize
+        Multisynq.App.makeWidgetDock();
+
+        const playerName = prompt("WHO DARES ENTER HELL?", "DANTE") || "WARRIOR";
+
+        const ThisSession = await Multisynq.Session.join({
+            apiKey: "2n7Uly4BJFIGDGOlkFjUJC4BlG5J6wRGWNjUo2IPAc",
+            appId: "io.multisynq.inferno.medieval",
+            model: InfernoSimulation,
+            view: InfernoView,
+            viewData: {
+                name: playerName
+            }
+        });
+
+        setupControls();
+    </script>
+</body>
+</html>
