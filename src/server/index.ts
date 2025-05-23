@@ -68,39 +68,11 @@ export const app = new Elysia()
 		subdomain: getSubdomain(request.headers.get("host") || ""),
 		ipAddress: server?.requestIP(request)?.address // Access .address for string IP
 	}))
-	.get("*", async (context: Context & DerivedProps) => {
-		const { subdomain, request, set } = context;
-		const path = new URL(request.url).pathname;
-
-		if (subdomain === "admin" || (subdomain === null && path.startsWith("/admin/"))) {
-			return adminPlugin.handle(request);
-		}
-		if (subdomain === "llm") {
-			return llmPlugin.handle(request);
-		}
-
-		// Fallback to vibesynqPlugin for main domain, 'vibesynq' subdomain, or any other case
-		// The root path redirect is handled by the specific .get("/") handler below.
-		if (
-			path === "/" &&
-			(subdomain === null ||
-				subdomain === "vibesynq" ||
-				subdomain === "admin" ||
-				subdomain === "llm")
-		) {
-			// Let the specific .get("/") handle the redirect for root path for any configured subdomain/main.
-			// This ensures the .get("/") always has a chance to correctly redirect from the absolute root.
-			// If we return vibesynqPlugin.handle(request) here for '/', it might serve content before redirect.
-		} else {
-			return vibesynqPlugin.handle(request);
-		}
-		// If this point is reached, it means path was '/' and it will be handled by the next .get("/") route.
-	})
-
+	// Mount the plugins properly
+	.use(adminPlugin)
+	.use(vibesynqPlugin)
+	.use(llmPlugin)
 	// Static file serving for the root public directory.
-	// IMPORTANT: This might be shadowed by the .get('*') handler above for most GET requests.
-	// Static assets should ideally be served by the plugins themselves if they are path-specific
-	// or this static server should have a more specific prefix if it serves truly global assets.
 	.use(
 		staticPlugin({
 			assets: "./public",
