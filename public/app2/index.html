@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>App2 - Example Application</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+</head>
+<body class="bg-purple-50 min-h-screen flex items-center justify-center">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+        <div class="p-8">
+            <h1 class="text-2xl font-bold text-gray-900 mb-4">Welcome to App2</h1>
+            <p class="text-gray-600 mb-6">This is another example application served from public/app2/</p>
+            <div class="space-y-4">
+                <button id="btn-counter" class="w-full bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded">
+                    Click Counter: <span id="count">0</span>
+                </button>
+                <button id="btn-reset" class="w-full bg-gray-500 hover:bg-gray-700 text-white font-bold py-2 px-4 rounded">
+                    Reset
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let count = 0;
+        const countSpan = document.getElementById('count');
+        
+        document.getElementById('btn-counter').addEventListener('click', () => {
+            count++;
+            countSpan.textContent = count;
+        });
+        
+        document.getElementById('btn-reset').addEventListener('click', () => {
+            count = 0;
+            countSpan.textContent = count;
+        });
+    </script>
+</body>
+</html> 

@@ -11,7 +11,7 @@ RUN apt-get update -qq && \
 
 # Copy package files and config
 COPY --link package.json bun.lockb tsconfig.json ./
-COPY --link vite.config.ts bun.lock./
+COPY --link vite.config.ts bun.lock ./
 
 # Copy source code and app code
 COPY --link src ./src
@@ -44,12 +44,14 @@ WORKDIR /app
 # Copy compiled backend
 COPY --from=build /app/main /app/main
 
-# Copy static assets from the root public folder
+# Copy all static assets from public directory
+# This includes our app directories: public/admin, public/vibesynq, public/app1, public/app2
 COPY --from=build /app/public /app/public
 
-# Copy built frontend apps
-COPY --from=build /app/apps/vibesynq/public /app/apps/vibesynq/public
-COPY --from=build /app/apps/admin/public /app/apps/admin/public
+# Copy built frontend apps to their expected locations
+# These will be served from public/admin and public/vibesynq 
+COPY --from=build /app/apps/vibesynq/public /app/public/vibesynq
+COPY --from=build /app/apps/admin/public /app/public/admin
 
 # Set production environment
 ENV NODE_ENV=production

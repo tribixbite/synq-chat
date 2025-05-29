@@ -12,24 +12,41 @@ const llmFilesPlugin = (): Plugin => {
 			server.middlewares.use((req, res, next) => {
 				const host = req.headers.host || "";
 
-				// Handle requests from llm.localhost subdomain directly from llm directory
+				// Handle requests from llm.localhost subdomain
 				if (host.startsWith("llm.localhost")) {
 					// Use the pathname directly without the /llm prefix
 					const url = new URL(req.url || "/", `http://${host}`);
 					const filePath = url.pathname.startsWith("/")
 						? url.pathname.substring(1)
 						: url.pathname;
-					const fullPath = resolve("public/llm", filePath);
+
+					// Try LLM-specific directory first
+					const llmPath = resolve("public/llm", filePath);
+					// Fallback to root public directory for shared files
+					const publicPath = resolve("public", filePath);
 
 					// Only intercept if the file exists
 					try {
 						const fs = require("node:fs");
 						const path = require("node:path");
 
-						// Check if file exists
-						if (fs.existsSync(fullPath) && fs.statSync(fullPath).isFile()) {
+						let fullPath = null;
+						let location = "";
+
+						// Check LLM directory first
+						if (fs.existsSync(llmPath) && fs.statSync(llmPath).isFile()) {
+							fullPath = llmPath;
+							location = "LLM-specific";
+						}
+						// Fallback to root public directory
+						else if (fs.existsSync(publicPath) && fs.statSync(publicPath).isFile()) {
+							fullPath = publicPath;
+							location = "root public";
+						}
+
+						if (fullPath) {
 							console.log(
-								`Serving LLM file via subdomain: ${req.url} -> ${fullPath}`
+								`Serving ${location} file via LLM subdomain: ${req.url} -> ${fullPath}`
 							);
 
 							// Set appropriate content type based on file extension

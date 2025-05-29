@@ -4,6 +4,8 @@ export type TConfig = {
 	PORT: number;
 	HOST: string;
 	IS_PROD: boolean;
+	DEFAULT_APP: string;
+	APPS_DIR: string;
 };
 
 export type TAppContext = {

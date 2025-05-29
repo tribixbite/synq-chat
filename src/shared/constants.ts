@@ -3,7 +3,9 @@ import type { TConfig } from "@shared/types";
 export const DefaultConfig: TConfig = {
 	PORT: 3000,
 	HOST: "http://localhost",
-	IS_PROD: false
+	IS_PROD: false,
+	DEFAULT_APP: "",
+	APPS_DIR: ""
 };
 
 export const Contact = {

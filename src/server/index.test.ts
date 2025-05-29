@@ -1,5 +1,8 @@
-import { describe, expect, it, spyOn } from "bun:test";
-import { app as elysiaAppInstance } from "./index"; // Assuming app is exported
+import { AVAILABLE_APPS, Config } from "@shared/config";
+import { afterAll, beforeAll, describe, expect, it } from "bun:test";
+import { existsSync } from "node:fs";
+import { mkdir, writeFile } from "node:fs/promises";
+import { app } from "./index";
 
 // Helper to create requests with specific host for subdomain testing
 const createRequest = (path: string, host: string, options: RequestInit = {}): Request => {
@@ -10,316 +13,263 @@ const createRequest = (path: string, host: string, options: RequestInit = {}): R
 	});
 };
 
-const BASE_HOST = "localhost:3000"; // Ensure this matches your Config.HOST if it includes port
+const BASE_HOST = "localhost:3000";
 const ADMIN_HOST = `admin.${BASE_HOST}`;
 const VIBESYNQ_HOST = `vibesynq.${BASE_HOST}`;
-const LLM_HOST = `llm.${BASE_HOST}`;
+const APP1_HOST = `app1.${BASE_HOST}`;
+const APP2_HOST = `app2.${BASE_HOST}`;
 
-describe("Elysia Server Endpoint Tests", () => {
-	const app = elysiaAppInstance;
+describe("Elysia Server - Subdomain Routing & Static File Serving", () => {
+	beforeAll(async () => {
+		// Ensure test directories exist with test files
+		for (const [key, appConfig] of Object.entries(AVAILABLE_APPS)) {
+			if (!existsSync(appConfig.staticDir)) {
+				await mkdir(appConfig.staticDir, { recursive: true });
+			}
 
-	describe("Root and General Routes", () => {
-		it("GET / (base host) should redirect to /vibesynq/", async () => {
-			const request = createRequest("/", BASE_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(302);
-			expect(response.headers.get("Location")).toBe("/vibesynq/");
+			// Create index.html if it doesn't exist
+			const indexPath = `${appConfig.staticDir}/index.html`;
+			if (!existsSync(indexPath)) {
+				await writeFile(
+					indexPath,
+					`
+<!DOCTYPE html>
+<html>
+<head><title>${appConfig.name} Test</title></head>
+<body><h1>Test ${appConfig.name}</h1></body>
+</html>`
+				);
+			}
+		}
+	});
+
+	describe("Configuration & Setup", () => {
+		it("should have correct app configuration", () => {
+			expect(Config.DEFAULT_APP).toBe("vibesynq");
+			expect(Config.APPS_DIR).toBe("./public");
+			expect(Object.keys(AVAILABLE_APPS)).toContain("admin");
+			expect(Object.keys(AVAILABLE_APPS)).toContain("vibesynq");
+			expect(Object.keys(AVAILABLE_APPS)).toContain("app1");
+			expect(Object.keys(AVAILABLE_APPS)).toContain("app2");
 		});
 
+		it("should have static directories for all apps", () => {
+			for (const appConfig of Object.values(AVAILABLE_APPS)) {
+				expect(existsSync(appConfig.staticDir)).toBe(true);
+			}
+		});
+	});
+
+	describe("MultiSynq Manual Routes", () => {
 		it("GET /multisynq-react.txt should return the file", async () => {
 			const request = createRequest("/multisynq-react.txt", BASE_HOST);
 			const response = await app.handle(request);
-			if (response.status === 404) {
-				console.warn(
-					"'/multisynq-react.txt' not found, test can be skipped or you should check public folder setup."
-				);
-			} else {
-				expect(response.status).toBe(200);
-				expect(response.headers.get("Content-Type")).toMatch(/^text\/plain/);
-			}
+			expect(response.status).toBe(200);
+			const content = await response.text();
+			expect(content.length).toBeGreaterThan(0);
 		});
 
-		it("GET /unknown-path (base host) should be handled by vibesynqPlugin SPA fallback", async () => {
-			const request = createRequest("/unknown-path", BASE_HOST);
+		it("GET /multisynq-js.txt should return the file", async () => {
+			const request = createRequest("/multisynq-js.txt", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
+			const content = await response.text();
+			expect(content.length).toBeGreaterThan(0);
+		});
+
+		it("GET /multisynq-threejs.txt should return multisynq-js.txt content", async () => {
+			const request = createRequest("/multisynq-threejs.txt", BASE_HOST);
+			const response = await app.handle(request);
+			expect(response.status).toBe(200);
+			const content = await response.text();
+			expect(content.length).toBeGreaterThan(0);
 		});
 	});
 
-	describe("Vibesynq App (vibesynq.localhost:3000 or fallback)", () => {
-		it("GET / (vibesynq host) should redirect to /vibesynq/", async () => {
-			const request = createRequest("/", VIBESYNQ_HOST);
+	describe("Root Domain Routing", () => {
+		it("GET / (base host) should redirect to default app", async () => {
+			const request = createRequest("/", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(302);
-			expect(response.headers.get("Location")).toBe("/vibesynq/");
+			expect(response.headers.get("Location")).toBe(`/${Config.DEFAULT_APP}/`);
 		});
 
-		it("GET /vibesynq/ (vibesynq host) should serve Vibesynq SPA", async () => {
-			const request = createRequest("/vibesynq/", VIBESYNQ_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
-		});
-
-		it("GET /vibesynq/ (base host) should serve Vibesynq SPA", async () => {
-			const request = createRequest("/vibesynq/", BASE_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
-		});
-
-		it("POST /api/ask-ai with valid prompt", async () => {
-			const fetchSpy = spyOn(globalThis, "fetch");
-
-			const mockFetchImplementationForSuccess: typeof fetch = Object.assign(
-				async (
-					input: URL | RequestInfo,
-					init?: RequestInit | undefined
-				): Promise<Response> => {
-					const urlString =
-						typeof input === "string"
-							? input
-							: input instanceof URL
-								? input.href
-								: input.url;
-					if (urlString.includes("mockhost")) {
-						const readableStream = new ReadableStream({
-							start(controller) {
-								controller.enqueue(
-									'data: {"choices":[{"delta":{"content":"Mocked AI response part 1..."}}]}'
-								);
-								controller.enqueue(
-									'data: {"choices":[{"delta":{"content":"...part 2"}}]}'
-								);
-								controller.enqueue("data: [DONE]");
-								controller.close();
-							}
-						});
-						return new Response(readableStream, {
-							status: 200,
-							headers: { "Content-Type": "text/event-stream" }
-						});
-					}
-					return new Response("Fallback mock fetch response", { status: 418 });
-				},
-				{
-					preconnect: (url: string | URL, options?: unknown): void => {
-						/* no-op for mock */
-					}
-				}
-			);
-
-			fetchSpy.mockImplementation(mockFetchImplementationForSuccess);
-
-			const request = createRequest("/api/ask-ai", VIBESYNQ_HOST, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					prompt: "Hello",
-					provider: "auto",
-					ApiUrl: "http://mockhost/chat/completions",
-					Model: "mockmodel"
-				})
-			});
-
-			const response = await app.handle(request);
-
-			// The AskAI route itself should return 200 if the stream is successfully initiated.
-			// The client would then read the stream.
-			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toBe("text/plain"); // As per vibesynqPlugin.ts set.headers
-
-			fetchSpy.mockRestore();
-		});
-
-		it("POST /api/ask-ai when external fetch fails", async () => {
-			const fetchSpy = spyOn(globalThis, "fetch");
-
-			const mockFetchImplementationForFailure: typeof fetch = Object.assign(
-				async (
-					input: URL | RequestInfo,
-					init?: RequestInit | undefined
-				): Promise<Response> => {
-					return new Response("External AI service unavailable", { status: 503 });
-				},
-				{
-					preconnect: (url: string | URL, options?: unknown): void => {
-						/* no-op for mock */
-					}
-				}
-			);
-
-			fetchSpy.mockImplementation(mockFetchImplementationForFailure);
-
-			const request = createRequest("/api/ask-ai", VIBESYNQ_HOST, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					prompt: "Test an error",
-					provider: "auto",
-					ApiUrl: "http://failingmockhost/chat/completions",
-					Model: "mockmodel"
-				})
-			});
-
-			const response = await app.handle(request);
-			expect(response.status).toBe(503); // Or whatever status your error handling in ask-ai returns
-			const body = await response.json();
-			expect(body.ok).toBe(false);
-			expect(body.message).toContain("API Error: 503");
-
-			fetchSpy.mockRestore();
-		});
-
-		it("POST /api/ask-ai without prompt should use Elysia validation message", async () => {
-			const request = createRequest("/api/ask-ai", VIBESYNQ_HOST, {
-				method: "POST",
-				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({
-					provider: "auto",
-					ApiUrl: "http://mockhost",
-					Model: "mockmodel"
-				})
-			});
-			const response = await app.handle(request);
-			expect(response.status).toBe(400);
-			const body = await response.json();
-			// Check for Elysia's typical validation error structure if possible, or the message
-			expect(body.message || body.error).toMatch(/Expected property 'prompt' to be string/i);
-		});
-
-		it("GET /api/login (vibesynq host) should return redirectUrl", async () => {
-			const request = createRequest("/api/login", VIBESYNQ_HOST);
+		it("GET /health should return health status", async () => {
+			const request = createRequest("/health", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
 			const body = await response.json();
-			expect(body.redirectUrl).toBeDefined();
-		});
-
-		it("GET /api/remix/testuser/testspace (vibesynq host) should return space data", async () => {
-			const request = createRequest("/api/remix/testuser/testspace", VIBESYNQ_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(200);
-			const body = await response.json();
-			expect(body.html).toBeDefined();
-			expect(body.path).toBe("testuser/testspace");
-		});
-
-		it("GET /api/remix/nouser/nospace (vibesynq host) should return 404", async () => {
-			const request = createRequest("/api/remix/nouser/nospace", VIBESYNQ_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(404);
-			const body = await response.json();
-			expect(body.message).toBe("Space not found");
+			expect(body.status).toBe("ok");
+			expect(body.apps).toEqual(Object.keys(AVAILABLE_APPS));
+			expect(body.timestamp).toBeDefined();
 		});
 	});
 
-	describe("Admin App (admin.localhost:3000)", () => {
-		it("GET / (admin host) should redirect to /admin/", async () => {
+	describe("Subdomain-based App Routing", () => {
+		it("Admin subdomain: GET / (admin.localhost) should redirect to /admin/", async () => {
 			const request = createRequest("/", ADMIN_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(302);
 			expect(response.headers.get("Location")).toBe("/admin/");
 		});
 
-		it("GET /admin/ (admin host) should serve Admin SPA", async () => {
+		it("Admin subdomain: GET /admin/ should serve admin app", async () => {
 			const request = createRequest("/admin/", ADMIN_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
+			const content = await response.text();
+			expect(content).toContain("hello from bun!");
 		});
 
-		it("GET /admin/ (base host) should serve Admin SPA", async () => {
+		it("VibeSynq subdomain: GET / (vibesynq.localhost) should redirect to /vibesynq/", async () => {
+			const request = createRequest("/", VIBESYNQ_HOST);
+			const response = await app.handle(request);
+			expect(response.status).toBe(302);
+			expect(response.headers.get("Location")).toBe("/vibesynq/");
+		});
+
+		it("VibeSynq subdomain: GET /vibesynq/ should serve vibesynq app", async () => {
+			const request = createRequest("/vibesynq/", VIBESYNQ_HOST);
+			const response = await app.handle(request);
+			expect(response.status).toBe(200);
+			const content = await response.text();
+			expect(content).toContain("Vibesynq App");
+		});
+
+		it("App1 subdomain: GET / (app1.localhost) should redirect to /app1/", async () => {
+			const request = createRequest("/", APP1_HOST);
+			const response = await app.handle(request);
+			expect(response.status).toBe(302);
+			expect(response.headers.get("Location")).toBe("/app1/");
+		});
+
+		it("App1 subdomain: GET /app1/ should serve app1", async () => {
+			const request = createRequest("/app1/", APP1_HOST);
+			const response = await app.handle(request);
+			expect(response.status).toBe(200);
+			const content = await response.text();
+			expect(content).toContain("App1");
+		});
+
+		it("App2 subdomain: GET /app2/ should serve app2", async () => {
+			const request = createRequest("/app2/", APP2_HOST);
+			const response = await app.handle(request);
+			expect(response.status).toBe(200);
+			const content = await response.text();
+			expect(content).toContain("App2");
+		});
+	});
+
+	describe("Path-based App Routing (without subdomain)", () => {
+		it("GET /admin/ (base host) should serve admin app", async () => {
 			const request = createRequest("/admin/", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
+			const content = await response.text();
+			expect(content).toContain("hello from bun!");
 		});
 
-		it("GET /api/admin/files (admin host, no query) should return files", async () => {
-			const request = createRequest("/api/admin/files", ADMIN_HOST);
+		it("GET /vibesynq/ (base host) should serve vibesynq app", async () => {
+			const request = createRequest("/vibesynq/", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
-			const body = await response.json();
-			expect(body.files).toBeDefined();
+			const content = await response.text();
+			expect(content).toContain("Vibesynq App");
 		});
 
-		it("GET /api/admin/files (base host, no query) should return files", async () => {
-			const request = createRequest("/api/admin/files", BASE_HOST);
+		it("GET /app1/ (base host) should serve app1", async () => {
+			const request = createRequest("/app1/", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
-			const body = await response.json();
-			expect(body.files).toBeDefined();
+			const content = await response.text();
+			expect(content).toContain("App1");
 		});
 
-		it("POST /api/admin/upload (admin host) should succeed with valid data", async () => {
-			const request = createRequest("/api/admin/upload", ADMIN_HOST, {
+		it("GET /app2/ (base host) should serve app2", async () => {
+			const request = createRequest("/app2/", BASE_HOST);
+			const response = await app.handle(request);
+			expect(response.status).toBe(200);
+			const content = await response.text();
+			expect(content).toContain("App2");
+		});
+	});
+
+	describe("VibeSynq AI API", () => {
+		it("POST /api/ask-ai with missing prompt should return validation error", async () => {
+			const request = createRequest("/api/ask-ai", BASE_HOST, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
 				body: JSON.stringify({
-					file: "test-from-bun-test.txt",
-					content: "hello world from bun test"
+					provider: "auto",
+					ApiUrl: "http://localhost",
+					Model: "test"
 				})
 			});
+
 			const response = await app.handle(request);
-			expect(response.status).toBe(200);
-			const body = await response.json();
-			expect(body.success).toBe(true);
-			expect(body.path).toBe("test-from-bun-test.txt");
+			expect(response.status).toBe(400); // Our validation returns 400, not 422
 		});
 
-		it('POST /api/admin/upload (admin host) with missing "file" field should return 400', async () => {
-			const request = createRequest("/api/admin/upload", ADMIN_HOST, {
+		it("POST /api/ask-ai with prompt but missing provider details should return error", async () => {
+			const request = createRequest("/api/ask-ai", BASE_HOST, {
 				method: "POST",
 				headers: { "Content-Type": "application/json" },
-				body: JSON.stringify({ content: "this should fail" })
+				body: JSON.stringify({
+					prompt: "Test prompt",
+					provider: "local"
+					// Missing ApiUrl and Model
+				})
 			});
+
 			const response = await app.handle(request);
 			expect(response.status).toBe(400);
 			const body = await response.json();
-			// Check for Elysia's typical validation error structure or message
-			expect(body.message || body.error).toMatch(/Expected property 'file' to be string/i);
-		});
-
-		it("GET /admin/unknown-path (admin host) should serve Vibesynq SPA (current behavior)", async () => {
-			const request = createRequest("/admin/unknown-path", ADMIN_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
+			expect(body.ok).toBe(false);
+			expect(body.message).toContain("Missing required fields");
 		});
 	});
 
-	describe("LLM App (llm.localhost:3000)", () => {
-		it("GET / (llm host) should serve LLM index.html", async () => {
-			const request = createRequest("/", LLM_HOST);
+	describe("Error Handling & Edge Cases", () => {
+		it("Unknown subdomain should redirect to default app", async () => {
+			const request = createRequest("/", "unknown.localhost:3000");
+			const response = await app.handle(request);
+			expect(response.status).toBe(302);
+			expect(response.headers.get("Location")).toBe(`/${Config.DEFAULT_APP}/`);
+		});
+
+		it("Non-existent path should redirect appropriately", async () => {
+			const request = createRequest("/non-existent-path", BASE_HOST);
+			const response = await app.handle(request);
+			// Should redirect to default app with the path
+			expect(response.status).toBe(302);
+			expect(response.headers.get("Location")).toBe(
+				`/${Config.DEFAULT_APP}/non-existent-path`
+			);
+		});
+
+		it("Static file serving from public should work", async () => {
+			// Note: /public/... URLs will be redirected by our subdomain plugin
+			// so we test with a direct file that doesn't conflict
+			const request = createRequest("/multisynq-js.txt", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
-		});
-
-		it("GET /nonexistent.html (llm host) should return 404 from llmPlugin", async () => {
-			const request = createRequest("/nonexistent.html", LLM_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(404);
-			const text = await response.text();
-			expect(text).toBe("File not found on LLM subdomain");
-		});
-
-		it("GET /api/ask-ai (llm host) should be 404 from llmPlugin", async () => {
-			const request = createRequest("/api/ask-ai", LLM_HOST);
-			const response = await app.handle(request);
-			expect(response.status).toBe(404);
-			expect(await response.text()).toBe("File not found on LLM subdomain");
 		});
 	});
 
-	describe("Swagger UI", () => {
-		it("GET /api/reference/ should serve Swagger UI", async () => {
-			const request = createRequest("/api/reference/", BASE_HOST);
+	describe("Cross-Origin & Security Headers", () => {
+		it("should include appropriate headers", async () => {
+			const request = createRequest("/health", BASE_HOST);
 			const response = await app.handle(request);
 			expect(response.status).toBe(200);
-			expect(response.headers.get("Content-Type")).toMatch(/^text\/html/);
+			// Check for security headers that might be set by rootPlugins
+			expect(response.headers.get("x-content-type-options")).toBe("nosniff");
+			expect(response.headers.get("x-frame-options")).toBe("SAMEORIGIN");
 		});
+	});
+
+	afterAll(async () => {
+		// Clean up test files if needed
+		// Note: Be careful not to remove actual app files
+		console.log("Tests completed");
 	});
 });

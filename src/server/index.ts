@@ -4,105 +4,56 @@
 import { staticPlugin } from "@elysiajs/static";
 import { api } from "@helpers/api";
 import { onBeforeHandle, onError } from "@helpers/elysia";
-import { Config } from "@shared/config";
+import { AVAILABLE_APPS, Config } from "@shared/config";
 import { rootPlugins } from "@src/server/plugins/rootPlugins";
-import Elysia, { type Context } from "elysia";
-import { adminPlugin } from "./plugins/adminPlugin";
-import { llmPlugin } from "./plugins/llmPlugin";
-import { vibesynqPlugin } from "./plugins/vibesynqPlugin";
+import Elysia from "elysia";
+import { subdomainPlugin } from "./plugins/subdomainPlugin";
+import { vibesynqAiPlugin } from "./plugins/vibesynqAiPlugin";
 
 const { PORT, HOST } = Config;
 
-// Robust subdomain detection function
-const getSubdomain = (hostHeader: string): string | null => {
-	if (!hostHeader) return null;
-	const host = hostHeader.split(":")[0]; // Remove port for accurate parsing
-
-	// Handle IP addresses, localhost, and single-level domains (e.g., "example" without TLD)
-	if (/^(\\d+\\.){3}\\d+$/.test(host) || !host.includes(".") || host === "localhost") {
-		return null;
-	}
-	const parts = host.split(".");
-
-	// For "subdomain.localhost" or "subdomain.localhost:port"
-	if (parts.length === 2 && parts[1] === "localhost") {
-		return parts[0] === "localhost" ? null : parts[0]; // technically "localhost.localhost" is invalid
-	}
-
-	// Standard domains:
-	// example.com -> null (no subdomain)
-	// sub.example.com -> "sub"
-	// sub.example.co.uk -> "sub"
-	if (parts.length > 2) {
-		// Check if the last two parts form a common TLD pattern (e.g., co.uk, com.au)
-		// This is a simplified check; a full TLD list would be more robust but complex.
-		if (parts[parts.length - 2].length <= 3 && parts[parts.length - 1].length <= 3) {
-			if (parts.length > 3) {
-				// e.g., sub.example.co.uk (4 parts)
-				return parts[0];
-			}
-			return null; // e.g. example.co.uk (3 parts) - no subdomain
-		}
-		return parts[0]; // e.g. sub.example.com (3 parts)
-	}
-	return null; // e.g. example.com (2 parts) - no subdomain
-};
-
-// Define the shape of derived properties for context typing
-interface DerivedProps {
-	subdomain: string | null;
-	// Simplified IP address type for now
-	ipAddress: string | undefined | null;
-}
-
-// Create a dedicated handler for the LLM subdomain
-export const app = new Elysia()
+// Main Elysia server following best practices
+export const app = new Elysia({ name: "synq-chat-server" })
+	// Global error handling
 	.onError(c => onError(c))
 	.onBeforeHandle(onBeforeHandle)
+
+	// MultiSynq manual routes (keep these as requested)
 	.get("/multisynq-react.txt", () => Bun.file("./public/multisynq-react.txt"))
 	.get("/multisynq-threejs.txt", () => Bun.file("./public/multisynq-js.txt"))
 	.get("/multisynq-js.txt", () => Bun.file("./public/multisynq-js.txt"))
+
+	// Root plugins and API
 	.use(rootPlugins)
 	.use(api)
-	.derive({ as: "global" }, ({ server, request }) => ({
-		subdomain: getSubdomain(request.headers.get("host") || ""),
-		ipAddress: server?.requestIP(request)?.address // Access .address for string IP
-	}))
-	// Mount the plugins properly
-	.use(adminPlugin)
-	.use(vibesynqPlugin)
-	.use(llmPlugin)
-	// Static file serving for the root public directory.
+
+	// VibeSynq AI endpoint (keep existing functionality)
+	.use(vibesynqAiPlugin)
+
+	// Subdomain and app routing
+	.use(subdomainPlugin)
+
+	// Fallback static serving for any remaining public files
 	.use(
 		staticPlugin({
 			assets: "./public",
-			prefix: "/",
+			prefix: "/public",
 			alwaysStatic: true,
-			noCache: true
+			noCache: !Config.IS_PROD
 		})
 	)
-	.get("/", (context: Context & DerivedProps) => {
-		const { redirect, subdomain } = context;
 
-		if (subdomain === "admin") {
-			const adminPath = "/admin/";
-			return redirect(adminPath);
-		}
-		if (subdomain === "llm") {
-			// llmPlugin handles its own root (e.g. index.html via its staticPlugin).
-			// The .get('*') should have already dispatched to llmPlugin.handle for subdomain 'llm'.
-			// So, doing nothing here is correct, letting the previous handler complete.
-			return;
-		}
-		// For main domain or vibesynq subdomain, redirect to /vibesynq/
-		const currentSub =
-			subdomain === "vibesynq" ? "vibesynq" : subdomain === null ? "vibesynq" : subdomain;
-		const redirectPath = `/${currentSub || "vibesynq"}/`;
-		return redirect(redirectPath);
-	})
+	// Health check endpoint
+	.get("/health", () => ({
+		status: "ok",
+		timestamp: new Date().toISOString(),
+		apps: Object.keys(AVAILABLE_APPS)
+	}))
+
 	.listen(PORT, () => {
-		// Using template literal for console.log as preferred by linter
-		console.log(`Server listening on ${HOST}:${PORT}`);
+		console.log(`🚀 Synq Chat Server listening on ${HOST}:${PORT}`);
+		console.log(`📱 Default app: ${Config.DEFAULT_APP}`);
+		console.log(`📁 Apps directory: ${Config.APPS_DIR}`);
 	});
 
 export type App = typeof app;

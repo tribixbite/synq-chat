@@ -9,7 +9,8 @@ import { Env, Route } from "../../src/shared/constants";
 const base = "/admin/";
 
 const root = resolve(__dirname, "src/client");
-const outDir = "public"; // resolve(__dirname, "public");
+const outDir = resolve(__dirname, "../../public/admin"); // Build output goes to project root public/admin
+const publicDir = resolve(__dirname, "src/client/public/assets"); // Static assets from client/public/assets
 const toCopy: Target[] = [];
 
 export default defineConfig(({ mode }) => ({
@@ -29,7 +30,7 @@ export default defineConfig(({ mode }) => ({
 			}
 		}
 	},
-	// publicDir: resolve(__dirname, "public"),
+	publicDir, // Use separate directory for static assets
 	build: {
 		outDir,
 		emptyOutDir: true,

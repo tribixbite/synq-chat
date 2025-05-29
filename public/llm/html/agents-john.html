@@ -1,0 +1,1002 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>MultiSynq 3D Art Gallery</title>
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://cdn.jsdelivr.net/npm/three@0.163.0/build/three.module.js",
+                "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.163.0/examples/jsm/"
+            }
+        }
+    </script>
+    <style>
+        body { margin: 0; overflow: hidden; background-color: #111; color: white; font-family: sans-serif; touch-action: none; }
+        #gallery-container { width: 100vw; height: 100vh; position: fixed; top: 0; left: 0; }
+        #css-renderer-container { position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none; }
+        #css-renderer-container > div > div { pointer-events: auto; } /* Allow interaction with CSS2DObjects */
+
+        #chat-ui { position: fixed; bottom: 10px; left: 10px; width: 300px; background-color: rgba(0,0,0,0.7); padding: 10px; border-radius: 8px; z-index: 10; }
+        #chat-log { height: 100px; overflow-y: auto; margin-bottom: 5px; border: 1px solid #444; padding: 5px; font-size: 0.9em; }
+        #chat-log p { margin: 2px 0; }
+        #chat-input { width: calc(100% - 10px); padding: 5px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: white; }
+        #name-input-container { position: fixed; top: 10px; left: 10px; z-index: 10; }
+        #name-input { padding: 8px; border-radius: 4px; border: 1px solid #555; background-color: #333; color: white; }
+        #invite-button { position: fixed; top: 10px; right: 10px; z-index: 10; }
+        .modal { display: none; position: fixed; z-index: 20; left: 0; top: 0; width: 100%; height: 100%; overflow: auto; background-color: rgba(0,0,0,0.6); }
+        .modal-content { background-color: #2d2d2d; margin: 15% auto; padding: 20px; border: 1px solid #888; width: 80%; max-width: 500px; border-radius: 8px; color: white; }
+        .close-button { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; }
+        .label-nametag, .label-chatbubble {
+            color: white;
+            font-family: sans-serif;
+            padding: 5px 10px;
+            border-radius: 5px;
+            background: rgba(0,0,0,0.6);
+            text-shadow: 1px 1px 2px black;
+            white-space: nowrap;
+        }
+        .label-chatbubble {
+            max-width: 150px;
+            white-space: normal;
+            word-wrap: break-word;
+        }
+        /* Touch controls */
+        #touch-controls { display: none; position: fixed; bottom: 20px; width: 100%; z-index: 5; }
+        #joystick-area { position: absolute; left: 50px; bottom: 0px; width: 150px; height: 150px; background-color: rgba(128,128,128,0.3); border-radius: 50%; }
+        #joystick-knob { position: absolute; width: 50px; height: 50px; background-color: rgba(200,200,200,0.5); border-radius: 50%; left: 50px; top: 50px; }
+        #action-button-area { position: absolute; right: 50px; bottom: 0px; width: 100px; height: 100px; display: flex; justify-content: center; align-items: center; }
+        #action-button { width: 70px; height: 70px; background-color: rgba(128,128,255,0.5); border-radius: 50%; display: flex; justify-content: center; align-items: center; font-size: 0.8em; }
+
+        @media (max-width: 768px) { /* Show touch controls on smaller screens */
+             #touch-controls { display: block; }
+             #chat-ui { width: calc(100% - 20px); max-width: 300px; }
+        }
+        #croquet_dock { bottom: 10px !important; right: 10px !important; left: auto !important; top: auto !important; }
+
+        /* AI Panel CSS */
+        .ai-panel-screen {
+            width: 300px; /* Corresponds to 3 units in 3D if scale is 0.01 */
+            height: 220px; /* Increased height for input */
+            background-color: rgba(10, 20, 40, 0.9);
+            border: 2px solid #66aaff;
+            border-radius: 10px;
+            padding: 10px;
+            color: #e0e0ff;
+            font-family: 'Courier New', Courier, monospace;
+            display: flex;
+            flex-direction: column;
+            box-sizing: border-box;
+        }
+        .ai-panel-title {
+            font-size: 16px; /* Adjusted */
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 8px; /* Adjusted */
+            color: #99ccff;
+        }
+        .ai-panel-question-area, .ai-panel-response-area {
+            background-color: rgba(0,0,0,0.3);
+            border-radius: 5px;
+            padding: 6px; /* Adjusted */
+            margin-bottom: 8px; /* Adjusted */
+            min-height: 30px; /* Adjusted */
+            max-height: 60px; /* Limit height */
+            overflow-y: auto;
+            font-size: 12px; /* Adjusted */
+            white-space: pre-wrap;
+            word-break: break-word;
+        }
+        .ai-panel-response-area {
+            flex-grow: 1;
+            max-height: 80px; /* Limit height */
+        }
+        .ai-panel-input {
+            width: calc(100% - 4px); /* Adjusted for padding/border */
+            padding: 6px; /* Adjusted */
+            border-radius: 5px;
+            border: 1px solid #66aaff;
+            background-color: #203050;
+            color: #e0e0ff;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 12px; /* Adjusted */
+            box-sizing: border-box;
+            margin-top: auto; /* Push to bottom */
+        }
+
+    </style>
+</head>
+<body>
+    <div id="gallery-container"></div>
+    <div id="css-renderer-container" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; pointer-events: none;"></div>
+
+    <div id="name-input-container">
+        <input type="text" id="name-input" placeholder="Your Name" class="bg-gray-700 text-white p-2 rounded">
+    </div>
+
+    <div id="chat-ui">
+        <div id="chat-log" class="bg-gray-800 border border-gray-600 p-2 rounded mb-2 text-sm"></div>
+        <input type="text" id="chat-input" placeholder="Type message..." class="w-full bg-gray-700 text-white p-2 rounded">
+    </div>
+
+    <button id="invite-button" class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded">
+        Invite
+    </button>
+
+    <div id="invite-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button" id="close-invite-modal">&times;</span>
+            <h2 class="text-xl font-bold mb-4">Invite Others</h2>
+            <p class="mb-2">Share this session URL:</p>
+            <input type="text" id="session-url-input" readonly class="w-full bg-gray-600 text-white p-2 rounded mb-4">
+            <div class="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                <button id="copy-url-button" class="bg-green-500 hover:bg-green-700 text-white font-bold py-2 px-4 rounded">Copy Link</button>
+                <a id="email-share-button" href="#" class="bg-yellow-500 hover:bg-yellow-700 text-white font-bold py-2 px-4 rounded text-center block">Email</a>
+                <a id="sms-share-button" href="#" class="bg-purple-500 hover:bg-purple-700 text-white font-bold py-2 px-4 rounded text-center block">SMS</a>
+            </div>
+        </div>
+    </div>
+
+    <div id="touch-controls">
+        <div id="joystick-area">
+            <div id="joystick-knob"></div>
+        </div>
+        <div id="action-button-area">
+            <div id="action-button">ChatFocus</div>
+        </div>
+    </div>
+
+    <script type="module">
+        import * as THREE from 'three';
+        import { CSS2DRenderer, CSS2DObject } from 'three/addons/renderers/CSS2DRenderer.js';
+
+        const API_KEY = "2KoNofFsKgyEFUhgcJCaJhpuzQjqH9S40JeKFW3YjJ";
+        const APP_ID = "com.example.multisynq.artgallery.v14"; // Incremented version
+        const MONAD_LOGO_URL = 'https://raw.githubusercontent.com/monad-xyz/monad-brand-kit/main/Monad%20Glyph/Monad%20Glyph%20-%20White.png';
+
+        const TICK_RATE = 50; 
+        const AVATAR_SPEED = 3; 
+        const AVATAR_TURN_SPEED = Math.PI / 2; 
+        const CHAT_BUBBLE_DURATION = 7000; 
+
+        const GALLERY_SIZE = { width: 30, depth: 40, height: 5 };
+        const WALL_THICKNESS = 0.5;
+
+        class AvatarModel extends Multisynq.Model {
+            init(options) { 
+                this.viewId = options.viewId;
+                this.name = options.name || `User-${String(this.viewId).slice(0,4)}`;
+                this.position = { ...options.initialPosition } || { x: 0, y: 0.85, z: 0 }; 
+                this.rotationY = 0; 
+                this.color = options.color || '#FFFFFF';
+                
+                this.inputs = { forward: 0, turn: 0 }; 
+                this.currentChatMessage = "";
+                this.chatMessageClearTime = 0;
+
+                this.subscribe(this.viewId, "avatar-input", this.onInput);
+                this.subscribe(this.viewId, "set-name", this.onSetName);
+                this.subscribe(this.viewId, "send-chat", this.onSendChat);
+            }
+
+            onInput(inputs) { 
+                this.inputs.forward = Math.max(-1, Math.min(1, inputs.forward || 0));
+                this.inputs.turn = Math.max(-1, Math.min(1, inputs.turn || 0));
+            }
+
+            onSetName(data) { 
+                this.name = data.name;
+                this.publish(this.id, "name-changed", { name: this.name });
+            }
+
+            onSendChat(data) { 
+                this.currentChatMessage = data.message;
+                this.chatMessageClearTime = this.now() + CHAT_BUBBLE_DURATION;
+                this.publish(this.id, "chat-bubble-updated", { message: this.currentChatMessage });
+                
+                const rootModel = this.wellKnownModel("galleryRoot");
+                if (rootModel) {
+                    rootModel.addGlobalChatMessage(this.name, data.message);
+                }
+                this.future(CHAT_BUBBLE_DURATION).clearBubbleMessage();
+            }
+            
+            clearBubbleMessage() {
+                if (this.now() >= this.chatMessageClearTime) {
+                     this.currentChatMessage = "";
+                     this.publish(this.id, "chat-bubble-updated", { message: "" });
+                }
+            }
+
+            update(deltaTime, galleryModel) {
+                if (this.inputs.turn !== 0) {
+                    this.rotationY += this.inputs.turn * AVATAR_TURN_SPEED * deltaTime;
+                }
+                if (this.inputs.forward !== 0) {
+                    const moveSpeed = this.inputs.forward * AVATAR_SPEED * deltaTime;
+                    const newX = this.position.x + Math.sin(this.rotationY) * moveSpeed;
+                    const newZ = this.position.z + Math.cos(this.rotationY) * moveSpeed;
+
+                    let canMove = true;
+                    const avatarRadius = 0.35;
+
+                    if (newX - avatarRadius < -GALLERY_SIZE.width / 2 + WALL_THICKNESS || newX + avatarRadius > GALLERY_SIZE.width / 2 - WALL_THICKNESS ||
+                        newZ - avatarRadius < -GALLERY_SIZE.depth / 2 + WALL_THICKNESS || newZ + avatarRadius > GALLERY_SIZE.depth / 2 - WALL_THICKNESS) {
+                        canMove = false;
+                    }
+                    
+                    for (const otherAvatar of galleryModel.avatars.values()) {
+                        if (otherAvatar.id === this.id) continue;
+                        const dx = newX - otherAvatar.position.x;
+                        const dz = newZ - otherAvatar.position.z;
+                        const distanceSq = dx * dx + dz * dz;
+                        if (distanceSq < (avatarRadius * 2) * (avatarRadius * 2)) {
+                            canMove = false;
+                            break;
+                        }
+                    }
+
+                    for (const artItem of galleryModel.galleryItems) {
+                        if (artItem.collidable) {
+                            const itemHalfWidth = (artItem.size?.x || 1) / 2;
+                            const itemHalfDepth = (artItem.size?.z || 1) / 2;
+                            if (Math.abs(newX - artItem.position.x) < itemHalfWidth + avatarRadius &&
+                                Math.abs(newZ - artItem.position.z) < itemHalfDepth + avatarRadius) {
+                                canMove = false;
+                                break;
+                            }
+                        }
+                    }
+
+                    if (canMove) {
+                        this.position.x = newX;
+                        this.position.z = newZ;
+                    }
+                }
+
+                if (this.inputs.forward !== 0 || this.inputs.turn !== 0) {
+                     this.publish(this.id, "state-updated", { position: this.position, rotationY: this.rotationY });
+                }
+
+                if (this.currentChatMessage && this.now() >= this.chatMessageClearTime) {
+                    this.currentChatMessage = "";
+                    this.publish(this.id, "chat-bubble-updated", { message: "" });
+                }
+            }
+        }
+        AvatarModel.register("AvatarModel");
+
+        class GalleryModel extends Multisynq.Model {
+            init() {
+                this.avatars = new Map(); 
+                this.chatHistory = []; 
+                this.galleryItems = [
+                    { id: "art1", type: "painting", position: { x: 0, y: 2.5, z: -GALLERY_SIZE.depth/2 + WALL_THICKNESS + 0.1 }, rotation: { x: 0, y: 0, z: 0 }, data: { imageUrl: "https://picsum.photos/seed/art1/400/300", width: 4, height: 3 }, collidable: false },
+                    { id: "art2", type: "sculpture", position: { x: -5, y: 1, z: -5 }, rotation: { x: 0, y: 0, z: 0 }, data: { shape: 'cube', color: 0xff0000, size: {x:1,y:1,z:1} }, collidable: true, size: {x:1,y:1,z:1} },
+                    { id: "art3", type: "interactive", position: { x: 5, y: 1.25, z: -5 }, rotation: { x: 0, y: 0, z: 0 }, data: { shape: 'sphere', color: 0x00ff00, radius:0.75, originalColor: 0x00ff00 }, collidable: true, size: {x:1.5,y:1.5,z:1.5} },
+                    { id: "art4", type: "pedestal", position: { x: 0, y: 0.5, z: 5 }, rotation: { x:0,y:0,z:0}, data: {color: 0x888888, size:{x:1,y:1,z:1}}, collidable:true, size:{x:1,y:1,z:1}},
+                    { id: "art5", type: "sculpture", position: { x: 0, y: 1.75, z: 5 }, rotation: { x:0,y:0,z:0}, data: {shape: 'torusknot', color: 0x0000ff, size: {x:0.75,y:0.75,z:0.75} }, collidable: false },
+
+                    { id: "art6", type: "painting", position: { x: -GALLERY_SIZE.width/2 + WALL_THICKNESS + 0.1, y: 2.5, z: -GALLERY_SIZE.depth/4 }, rotation: { x: 0, y: Math.PI / 2, z: 0 }, data: { imageUrl: "https://picsum.photos/seed/art6/300/400", width: 3, height: 4 }, collidable: false },
+                    { id: "art7", type: "painting", position: { x: -GALLERY_SIZE.width/2 + WALL_THICKNESS + 0.1, y: 2.5, z: GALLERY_SIZE.depth/4 }, rotation: { x: 0, y: Math.PI / 2, z: 0 }, data: { imageUrl: "https://picsum.photos/seed/art7/500/350", width: 5, height: 3.5 }, collidable: false },
+                    { id: "art8", type: "painting", position: { x: GALLERY_SIZE.width/2 - WALL_THICKNESS - 0.1, y: 2.5, z: -GALLERY_SIZE.depth/4 - 5 }, rotation: { x: 0, y: -Math.PI / 2, z: 0 }, data: { imageUrl: "https://picsum.photos/seed/art8/350/500", width: 3.5, height: 5 }, collidable: false }, // Moved slightly for AI panel
+                    { id: "art9", type: "painting", position: { x: GALLERY_SIZE.width/2 - WALL_THICKNESS - 0.1, y: 2.5, z: GALLERY_SIZE.depth/4 + 5 }, rotation: { x: 0, y: -Math.PI / 2, z: 0 }, data: { imageUrl: "https://picsum.photos/seed/art9/400/400", width: 4, height: 4 }, collidable: false }, // Moved slightly for AI panel
+                    { id: "art10", type: "painting", position: { x: GALLERY_SIZE.width/4, y: 2.5, z: GALLERY_SIZE.depth/2 - WALL_THICKNESS - 0.1 }, rotation: { x: 0, y: Math.PI, z: 0 }, data: { imageUrl: "https://picsum.photos/seed/art10/600/300", width: 6, height: 3 }, collidable: false },
+                    
+                    { id: "aiExpertPanel", type: "ai-panel", position: { x: GALLERY_SIZE.width / 2 - WALL_THICKNESS - 0.2, y: 2.0, z: 0 }, rotation: { x: 0, y: -Math.PI / 2, z: 0 }, data: { size: { width: 3, height: 2.2, depth: 0.1 } }, collidable: true, size: {x: 0.1, y:2.2, z:3} } // Adjusted size for collision
+                ];
+                
+                this.aiPanelQuestion = "";
+                this.aiPanelResponse = "Ask me about art history!";
+
+                this.subscribe(this.sessionId, "view-join", this.onViewJoin);
+                this.subscribe(this.sessionId, "view-exit", this.onViewExit);
+                this.subscribe(this.id, "interact-art", this.onInteractArt);
+                this.subscribe(this.id, "ask-ai-expert", this.handleAskAIExpert);
+
+                this.future(TICK_RATE).mainLoop();
+            }
+
+            handleAskAIExpert(data) { 
+                this.aiPanelQuestion = data.question;
+                this.aiPanelResponse = "Thinking...";
+                this.publish(this.id, "ai-panel-updated", { question: this.aiPanelQuestion, response: this.aiPanelResponse });
+                
+                this.future(1000 + Math.floor(this.random() * 1000)).generateAndPublishAIResponse(data.question);
+            }
+
+            generateAndPublishAIResponse(question) {
+                let response = "I'm an expert in specific artists like Van Gogh, Monet, or Picasso, and art movements such as Impressionism or Cubism. Feel free to ask!";
+                const qLower = question.toLowerCase();
+
+                if (qLower.includes("van gogh")) {
+                    response = "Vincent van Gogh (1853-1890) was a Dutch Post-Impressionist painter, highly influential in Western art. His notable works include 'Starry Night', 'Sunflowers', and 'The Potato Eaters'. He struggled with mental illness throughout his life.";
+                } else if (qLower.includes("monet")) {
+                    response = "Claude Monet (1840-1926) was a key figure in the Impressionist movement. He's famed for his series paintings, such as 'Water Lilies' and 'Haystacks', capturing light and atmosphere at different times of day.";
+                } else if (qLower.includes("picasso")) {
+                    response = "Pablo Picasso (1881-1973), a Spanish artist, co-founded Cubism. His vast and varied work includes 'Guernica', 'Les Demoiselles d'Avignon', and periods like the Blue Period and Rose Period.";
+                } else if (qLower.includes("impressionism")) {
+                    response = "Impressionism, a 19th-century movement, focused on capturing fleeting moments and the subjective 'impression' of light and color. Key artists include Monet, Renoir, Degas, and Pissarro. Characteristics include visible brushstrokes and plein air painting.";
+                } else if (qLower.includes("cubism")) {
+                    response = "Cubism, an early 20th-century avant-garde movement pioneered by Picasso and Braque, revolutionized art by depicting subjects from multiple viewpoints simultaneously, fragmenting objects into geometric forms.";
+                } else if (qLower.includes("hello") || qLower.includes("hi") || qLower.includes("hey")) {
+                    response = "Hello there! I am the Gallery's Art History AI. How can I enlighten you today?";
+                } else if (qLower.includes("your name") || qLower.includes("who are you")) {
+                    response = "I am the resident Art History AI Expert, here to answer your questions about famous artists and art movements!";
+                }
+
+
+                this.aiPanelResponse = response;
+                this.publish(this.id, "ai-panel-updated", { question: this.aiPanelQuestion, response: this.aiPanelResponse });
+            }
+
+
+            onViewJoin(viewInfo) { 
+                const color = `hsl(${this.random() * 360}, 70%, 70%)`;
+                const avatar = AvatarModel.create({
+                    viewId: viewInfo.viewId,
+                    name: viewInfo.viewData?.name,
+                    initialPosition: { x: (this.random() - 0.5) * 5, y: 0.85, z: (this.random() - 0.5) * 5 },
+                    color: color,
+                });
+                this.avatars.set(viewInfo.viewId, avatar);
+                this.publish(this.id, "avatar-added", { viewId: viewInfo.viewId, avatarData: this.getAvatarSnapshot(avatar) });
+                
+                for (const [vid, av] of this.avatars) {
+                    if (vid !== viewInfo.viewId) {
+                         this.publish(this.id, "avatar-added", { viewId: vid, avatarData: this.getAvatarSnapshot(av) }, {to: viewInfo.viewId});
+                    }
+                }
+                 this.publish(this.id, "initial-art-state", { items: this.galleryItems }, {to: viewInfo.viewId});
+                 this.publish(this.id, "ai-panel-updated", { question: this.aiPanelQuestion, response: this.aiPanelResponse }, {to: viewInfo.viewId});
+
+
+                this.addGlobalChatMessage("System", `${avatar.name} joined the gallery.`);
+            }
+
+            onViewExit(viewInfo) { 
+                const avatar = this.avatars.get(viewInfo.viewId);
+                if (avatar) {
+                    this.addGlobalChatMessage("System", `${avatar.name} left the gallery.`);
+                    avatar.destroy();
+                    this.avatars.delete(viewInfo.viewId);
+                    this.publish(this.id, "avatar-removed", { viewId: viewInfo.viewId });
+                }
+            }
+
+            getAvatarSnapshot(avatar) {
+                return { 
+                    id: avatar.id, 
+                    viewId: avatar.viewId,
+                    name: avatar.name, 
+                    position: avatar.position, 
+                    rotationY: avatar.rotationY, 
+                    color: avatar.color,
+                    currentChatMessage: avatar.currentChatMessage
+                };
+            }
+            
+            addGlobalChatMessage(senderName, message) {
+                const chatMessage = { senderName, message, timestamp: this.now() };
+                this.chatHistory.push(chatMessage);
+                if (this.chatHistory.length > 50) this.chatHistory.shift(); 
+                this.publish(this.id, "chat-history-updated", { history: this.chatHistory });
+            }
+
+            onInteractArt(data) { 
+                const item = this.galleryItems.find(i => i.id === data.itemId);
+                const avatar = this.avatars.get(data.viewId);
+
+                if (item && item.type === 'interactive') {
+                    item.data.color = (item.data.color === item.data.originalColor) ? 0xffff00 : item.data.originalColor; 
+                    this.publish(this.id, "art-item-updated", { item });
+                    if (avatar) {
+                       this.addGlobalChatMessage("System", `${avatar.name} interacted with ${item.id}.`);
+                    }
+                }
+            }
+
+            mainLoop() {
+                const deltaTime = TICK_RATE / 1000.0;
+                for (const avatar of this.avatars.values()) {
+                    avatar.update(deltaTime, this);
+                }
+                
+                const rotatingSculpture = this.galleryItems.find(item => item.id === "art5");
+                if (rotatingSculpture) {
+                    rotatingSculpture.rotation.y = (rotatingSculpture.rotation.y + Math.PI/4 * deltaTime) % (2*Math.PI);
+                    this.publish(this.id, "art-item-updated", { item: rotatingSculpture });
+                }
+
+                this.future(TICK_RATE).mainLoop();
+            }
+        }
+        GalleryModel.register("GalleryModel");
+
+
+        class GalleryView extends Multisynq.View {
+            constructor(model) {
+                super(model);
+                this.galleryModel = model;
+                this.avatarMeshes = new Map(); 
+                this.artItemMeshes = new Map(); 
+                this.aiPanelUI = null; // To store CSS2DObject for AI panel
+
+                this.keysPressed = {};
+                this.touchJoystick = { active: false, startX: 0, startY: 0, currentX: 0, currentY: 0, forward: 0, turn: 0 };
+
+                this.initThreeJS();
+                this.initUI();
+                
+                this.loadMonadLogoTexture().then(texture => {
+                    this.monadLogoMaterial = new THREE.MeshBasicMaterial({ map: texture, transparent: true, side: THREE.DoubleSide });
+                    for (const avatarMesh of this.avatarMeshes.values()) {
+                        if (!avatarMesh.getObjectByName("monadLogo")) { 
+                             this.addMonadLogoToAvatar(avatarMesh);
+                        }
+                    }
+                }).catch(err => {
+                    console.error("Failed to load Monad logo:", err);
+                    this.monadLogoMaterial = new THREE.MeshBasicMaterial({ color: 0xdddddd, side: THREE.DoubleSide }); 
+                });
+
+                this.subscribe(this.galleryModel.id, "avatar-added", this.onAvatarAdded.bind(this));
+                this.subscribe(this.galleryModel.id, "avatar-removed", this.onAvatarRemoved.bind(this));
+                this.subscribe(this.galleryModel.id, "chat-history-updated", this.onChatHistoryUpdated.bind(this));
+                this.subscribe(this.galleryModel.id, "art-item-updated", this.onArtItemUpdated.bind(this));
+                this.subscribe(this.galleryModel.id, "initial-art-state", (data) => {
+                    data.items.forEach(itemData => this.createOrUpdateArtItemMesh(itemData));
+                });
+                this.subscribe(this.galleryModel.id, "ai-panel-updated", this.onAIPanelUpdated.bind(this));
+
+                this.galleryModel.galleryItems.forEach(itemData => this.createOrUpdateArtItemMesh(itemData));
+                this.onAIPanelUpdated({question: this.galleryModel.aiPanelQuestion, response: this.galleryModel.aiPanelResponse}); // Initial AI panel state
+                
+                this.myAvatarModelId = null;
+                const myInitialAvatarModel = this.galleryModel.avatars.get(this.viewId);
+                if (myInitialAvatarModel) {
+                    this.myAvatarModelId = myInitialAvatarModel.id;
+                    this.subscribeToMyAvatarUpdates(myInitialAvatarModel);
+                }
+            }
+
+            initThreeJS() {
+                this.scene = new THREE.Scene();
+                this.scene.background = new THREE.Color(0x303040);
+                this.scene.fog = new THREE.Fog(0x303040, 20, 60);
+
+                this.camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 100);
+                this.camera.position.set(0, 5, 10); 
+
+                this.renderer = new THREE.WebGLRenderer({ antialias: true });
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.renderer.setPixelRatio(window.devicePixelRatio);
+                this.renderer.shadowMap.enabled = true;
+                document.getElementById('gallery-container').appendChild(this.renderer.domElement);
+
+                this.cssRenderer = new CSS2DRenderer();
+                this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+                document.getElementById('css-renderer-container').appendChild(this.cssRenderer.domElement);
+
+                const ambientLight = new THREE.AmbientLight(0xffffff, 1.0); 
+                this.scene.add(ambientLight);
+                const directionalLight = new THREE.DirectionalLight(0xffffff, 1.2); 
+                directionalLight.position.set(15, 20, 15); 
+                directionalLight.castShadow = true;
+                directionalLight.shadow.mapSize.width = 2048;
+                directionalLight.shadow.mapSize.height = 2048;
+                directionalLight.shadow.camera.near = 0.5;
+                directionalLight.shadow.camera.far = 100;
+                directionalLight.shadow.camera.left = -GALLERY_SIZE.width;
+                directionalLight.shadow.camera.right = GALLERY_SIZE.width;
+                directionalLight.shadow.camera.top = GALLERY_SIZE.depth;
+                directionalLight.shadow.camera.bottom = -GALLERY_SIZE.depth;
+                this.scene.add(directionalLight);
+                
+                const hemisphereLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.5);
+                this.scene.add(hemisphereLight);
+
+                const groundGeo = new THREE.PlaneGeometry(GALLERY_SIZE.width, GALLERY_SIZE.depth);
+                const groundMat = new THREE.MeshStandardMaterial({ color: 0x505060, roughness: 0.8 });
+                const ground = new THREE.Mesh(groundGeo, groundMat);
+                ground.rotation.x = -Math.PI / 2;
+                ground.receiveShadow = true;
+                this.scene.add(ground);
+
+                const wallMaterial = new THREE.MeshStandardMaterial({ color: 0x707080 }); 
+                const wallHeight = GALLERY_SIZE.height;
+                
+                const wallBack = new THREE.Mesh(new THREE.BoxGeometry(GALLERY_SIZE.width + WALL_THICKNESS*2, wallHeight, WALL_THICKNESS), wallMaterial);
+                wallBack.position.set(0, wallHeight/2, -GALLERY_SIZE.depth/2);
+                wallBack.receiveShadow = true; wallBack.castShadow = true;
+                this.scene.add(wallBack);
+                const wallFront = new THREE.Mesh(new THREE.BoxGeometry(GALLERY_SIZE.width + WALL_THICKNESS*2, wallHeight, WALL_THICKNESS), wallMaterial);
+                wallFront.position.set(0, wallHeight/2, GALLERY_SIZE.depth/2);
+                wallFront.receiveShadow = true; wallFront.castShadow = true;
+                this.scene.add(wallFront);
+                const wallLeft = new THREE.Mesh(new THREE.BoxGeometry(WALL_THICKNESS, wallHeight, GALLERY_SIZE.depth), wallMaterial);
+                wallLeft.position.set(-GALLERY_SIZE.width/2, wallHeight/2, 0);
+                wallLeft.receiveShadow = true; wallLeft.castShadow = true;
+                this.scene.add(wallLeft);
+                const wallRight = new THREE.Mesh(new THREE.BoxGeometry(WALL_THICKNESS, wallHeight, GALLERY_SIZE.depth), wallMaterial);
+                wallRight.position.set(GALLERY_SIZE.width/2, wallHeight/2, 0);
+                wallRight.receiveShadow = true; wallRight.castShadow = true;
+                this.scene.add(wallRight);
+
+                window.addEventListener('resize', this.onWindowResize.bind(this), false);
+            }
+            
+            loadMonadLogoTexture() {
+                return new Promise((resolve, reject) => {
+                    const textureLoader = new THREE.TextureLoader();
+                    textureLoader.load(MONAD_LOGO_URL, resolve, undefined, reject);
+                });
+            }
+
+            initUI() {
+                const nameInput = document.getElementById('name-input');
+                nameInput.value = localStorage.getItem('galleryUserName') || '';
+                nameInput.addEventListener('change', (e) => {
+                    const name = e.target.value.trim();
+                    if (name && this.myAvatarModelId) {
+                        localStorage.setItem('galleryUserName', name);
+                        this.publish(this.viewId, "set-name", { name });
+                    }
+                });
+                 if (nameInput.value && this.myAvatarModelId) {
+                    this.publish(this.viewId, "set-name", { name: nameInput.value });
+                }
+
+                const chatInput = document.getElementById('chat-input');
+                chatInput.addEventListener('keypress', (e) => {
+                    if (e.key === 'Enter') {
+                        const message = chatInput.value.trim();
+                        if (message && this.myAvatarModelId) {
+                            this.publish(this.viewId, "send-chat", { message });
+                            chatInput.value = '';
+                        }
+                    }
+                });
+
+                const inviteButton = document.getElementById('invite-button');
+                const inviteModal = document.getElementById('invite-modal');
+                const closeInviteModal = document.getElementById('close-invite-modal');
+                const sessionUrlInput = document.getElementById('session-url-input');
+                const copyUrlButton = document.getElementById('copy-url-button');
+                const emailShareButton = document.getElementById('email-share-button');
+                const smsShareButton = document.getElementById('sms-share-button');
+
+                inviteButton.onclick = () => {
+                    sessionUrlInput.value = window.location.href;
+                    inviteModal.style.display = 'block';
+                };
+                closeInviteModal.onclick = () => inviteModal.style.display = 'none';
+                window.onclick = (event) => {
+                    if (event.target == inviteModal) inviteModal.style.display = 'none';
+                };
+                copyUrlButton.onclick = () => {
+                    sessionUrlInput.select();
+                    document.execCommand('copy');
+                    alert('Session URL copied to clipboard!');
+                };
+                emailShareButton.onclick = (e) => {
+                    e.preventDefault();
+                    const subject = "Join me in the 3D Art Gallery!";
+                    const body = `Let's explore this gallery together: ${sessionUrlInput.value}`;
+                    window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+                };
+                smsShareButton.onclick = (e) => {
+                    e.preventDefault();
+                    const body = `Join me in the 3D Art Gallery: ${sessionUrlInput.value}`;
+                    window.location.href = `sms:?&body=${encodeURIComponent(body)}`;
+                };
+                
+                document.addEventListener('keydown', (e) => { 
+                    if (document.activeElement.tagName === 'INPUT') return; // Don't capture keys if an input is focused
+                    this.keysPressed[e.key.toLowerCase()] = true; 
+                });
+                document.addEventListener('keyup', (e) => { 
+                     if (document.activeElement.tagName === 'INPUT') return;
+                    this.keysPressed[e.key.toLowerCase()] = false; 
+                });
+
+                const joystickArea = document.getElementById('joystick-area');
+                const joystickKnob = document.getElementById('joystick-knob');
+                const actionButton = document.getElementById('action-button');
+
+                joystickArea.addEventListener('touchstart', (e) => {
+                    e.preventDefault();
+                    this.touchJoystick.active = true;
+                    const touch = e.touches[0];
+                    this.touchJoystick.startX = touch.clientX;
+                    this.touchJoystick.startY = touch.clientY;
+                }, { passive: false });
+
+                joystickArea.addEventListener('touchmove', (e) => {
+                    e.preventDefault();
+                    if (!this.touchJoystick.active) return;
+                    const touch = e.touches[0];
+                    let dx = touch.clientX - this.touchJoystick.startX;
+                    let dy = touch.clientY - this.touchJoystick.startY;
+                    
+                    const maxDist = joystickArea.clientWidth / 2 - joystickKnob.clientWidth / 2;
+                    const dist = Math.sqrt(dx*dx + dy*dy);
+                    if (dist > maxDist) {
+                        dx = (dx / dist) * maxDist;
+                        dy = (dy / dist) * maxDist;
+                    }
+                    joystickKnob.style.transform = `translate(${dx}px, ${dy}px)`;
+
+                    this.touchJoystick.forward = Math.max(-1, Math.min(1, -dy / maxDist));
+                    this.touchJoystick.turn = Math.max(-1, Math.min(1, -dx / maxDist));
+                }, { passive: false });
+
+                joystickArea.addEventListener('touchend', (e) => {
+                    e.preventDefault();
+                    this.touchJoystick.active = false;
+                    joystickKnob.style.transform = `translate(0px, 0px)`;
+                    this.touchJoystick.forward = 0;
+                    this.touchJoystick.turn = 0;
+                }, { passive: false });
+
+                actionButton.addEventListener('click', () => {
+                    document.getElementById('chat-input').focus();
+                });
+            }
+
+            onWindowResize() {
+                this.camera.aspect = window.innerWidth / window.innerHeight;
+                this.camera.updateProjectionMatrix();
+                this.renderer.setSize(window.innerWidth, window.innerHeight);
+                this.cssRenderer.setSize(window.innerWidth, window.innerHeight);
+            }
+
+            createOrUpdateAvatarMesh(avatarData) {
+                let avatarGroup = this.avatarMeshes.get(avatarData.viewId);
+                if (!avatarGroup) {
+                    avatarGroup = new THREE.Group();
+                    avatarGroup.name = `avatar-${avatarData.viewId}`;
+                    
+                    const radius = 0.35;
+                    const height = 1.0;
+                    const bodyGeom = new THREE.CylinderGeometry(radius, radius, height, 16);
+                    const bodyMat = new THREE.MeshStandardMaterial({ color: avatarData.color, roughness: 0.6, metalness: 0.2 });
+                    const bodyMesh = new THREE.Mesh(bodyGeom, bodyMat);
+                    bodyMesh.position.y = height / 2;
+                    bodyMesh.castShadow = true;
+                    avatarGroup.add(bodyMesh);
+
+                    const sphereGeom = new THREE.SphereGeometry(radius, 16, 8);
+                    const topSphere = new THREE.Mesh(sphereGeom, bodyMat);
+                    topSphere.position.y = height;
+                    topSphere.castShadow = true;
+                    bodyMesh.add(topSphere);
+
+                    const bottomSphere = new THREE.Mesh(sphereGeom, bodyMat);
+                    bottomSphere.castShadow = true;
+                    bodyMesh.add(bottomSphere);
+
+                    const nameDiv = document.createElement('div');
+                    nameDiv.className = 'label-nametag';
+                    nameDiv.textContent = avatarData.name;
+                    const nameLabel = new CSS2DObject(nameDiv);
+                    nameLabel.position.set(0, height + radius + 0.3, 0);
+                    avatarGroup.add(nameLabel);
+                    avatarGroup.userData.nameLabel = nameLabel;
+
+                    const chatDiv = document.createElement('div');
+                    chatDiv.className = 'label-chatbubble';
+                    chatDiv.style.visibility = 'hidden';
+                    const chatLabel = new CSS2DObject(chatDiv);
+                    chatLabel.position.set(0, height + radius + 0.6, 0);
+                    avatarGroup.add(chatLabel);
+                    avatarGroup.userData.chatLabel = chatLabel;
+                    
+                    if (this.monadLogoMaterial) {
+                       this.addMonadLogoToAvatar(avatarGroup);
+                    }
+
+                    this.scene.add(avatarGroup);
+                    this.avatarMeshes.set(avatarData.viewId, avatarGroup);
+                }
+
+                avatarGroup.position.set(avatarData.position.x, avatarData.position.y, avatarData.position.z);
+                avatarGroup.rotation.y = avatarData.rotationY;
+                
+                if (avatarGroup.userData.nameLabel) {
+                    avatarGroup.userData.nameLabel.element.textContent = avatarData.name;
+                }
+                if (avatarGroup.userData.chatLabel) {
+                    avatarGroup.userData.chatLabel.element.textContent = avatarData.currentChatMessage;
+                    avatarGroup.userData.chatLabel.element.style.visibility = avatarData.currentChatMessage ? 'visible' : 'hidden';
+                }
+                
+                avatarGroup.children.forEach(child => {
+                    if (child.material && child.material.color) {
+                         child.material.color.set(avatarData.color);
+                    }
+                });
+
+                return avatarGroup;
+            }
+            
+            addMonadLogoToAvatar(avatarGroup) {
+                if (!this.monadLogoMaterial) return;
+                 const logoPlaneSize = 0.3;
+                 const logoPlaneGeo = new THREE.PlaneGeometry(logoPlaneSize, logoPlaneSize);
+                 const logoMesh = new THREE.Mesh(logoPlaneGeo, this.monadLogoMaterial);
+                 logoMesh.name = "monadLogo";
+                 logoMesh.position.set(0, 1.0, 0.36);
+                 avatarGroup.add(logoMesh);
+            }
+
+            createOrUpdateArtItemMesh(itemData) {
+                let artMesh = this.artItemMeshes.get(itemData.id);
+                if (!artMesh) {
+                    if (itemData.type === 'painting') {
+                        const textureLoader = new THREE.TextureLoader();
+                        textureLoader.load(itemData.data.imageUrl, (texture) => {
+                            const aspect = texture.image.width / texture.image.height;
+                            const width = itemData.data.width || 4;
+                            const height = itemData.data.height || (width / aspect);
+                            const planeGeo = new THREE.PlaneGeometry(width, height);
+                            const planeMat = new THREE.MeshStandardMaterial({ map: texture, side: THREE.DoubleSide, metalness: 0.1, roughness: 0.8 });
+                            artMesh = new THREE.Mesh(planeGeo, planeMat);
+                            artMesh.castShadow = true;
+                            this.scene.add(artMesh);
+                            this.artItemMeshes.set(itemData.id, artMesh);
+                            // Set position and rotation after mesh is created and added to map
+                            artMesh.position.set(itemData.position.x, itemData.position.y, itemData.position.z);
+                            artMesh.rotation.set(itemData.rotation.x, itemData.rotation.y, itemData.rotation.z);
+                        });
+                        return; 
+                    } else if (itemData.type === 'sculpture' || itemData.type === 'interactive' || itemData.type === 'pedestal') {
+                        let geometry;
+                        const size = itemData.data.size || {x:1,y:1,z:1};
+                        const radius = itemData.data.radius || 0.5;
+
+                        switch(itemData.data.shape) {
+                            case 'cube': geometry = new THREE.BoxGeometry(size.x,size.y,size.z); break;
+                            case 'sphere': geometry = new THREE.SphereGeometry(radius, 32, 16); break;
+                            case 'torusknot': geometry = new THREE.TorusKnotGeometry(radius*0.6, radius*0.2, 100, 16); break;
+                            default: geometry = new THREE.BoxGeometry(size.x,size.y,size.z);
+                        }
+                        const material = new THREE.MeshStandardMaterial({ color: itemData.data.color, roughness: 0.5, metalness: 0.3 });
+                        artMesh = new THREE.Mesh(geometry, material);
+                        artMesh.castShadow = true;
+                        artMesh.receiveShadow = true;
+                        if (itemData.type === 'interactive') {
+                            artMesh.userData.isInteractive = true;
+                            artMesh.userData.itemId = itemData.id;
+                        }
+                    } else if (itemData.type === 'ai-panel') {
+                        const panelData = itemData.data.size;
+                        const panelGeo = new THREE.BoxGeometry(panelData.depth, panelData.height, panelData.width); // depth is x, height is y, width is z due to rotation
+                        const panelMat = new THREE.MeshStandardMaterial({ color: 0x101020, metalness: 0.5, roughness: 0.5 });
+                        artMesh = new THREE.Mesh(panelGeo, panelMat);
+                        artMesh.castShadow = true;
+                        artMesh.receiveShadow = true;
+
+                        // Create CSS2DObject for AI UI
+                        const aiScreenDiv = document.createElement('div');
+                        aiScreenDiv.className = 'ai-panel-screen';
+                        
+                        const titleDiv = document.createElement('div');
+                        titleDiv.className = 'ai-panel-title';
+                        titleDiv.textContent = 'Art History AI Expert';
+                        aiScreenDiv.appendChild(titleDiv);
+
+                        const questionArea = document.createElement('div');
+                        questionArea.className = 'ai-panel-question-area';
+                        questionArea.id = `ai-question-${itemData.id}`;
+                        aiScreenDiv.appendChild(questionArea);
+                        
+                        const responseArea = document.createElement('div');
+                        responseArea.className = 'ai-panel-response-area';
+                        responseArea.id = `ai-response-${itemData.id}`;
+                        aiScreenDiv.appendChild(responseArea);
+
+                        const inputField = document.createElement('input');
+                        inputField.type = 'text';
+                        inputField.className = 'ai-panel-input';
+                        inputField.placeholder = 'Ask a question... (Enter to send)';
+                        inputField.addEventListener('keypress', (e) => {
+                            if (e.key === 'Enter') {
+                                const question = inputField.value.trim();
+                                if (question) {
+                                    this.publish(this.galleryModel.id, "ask-ai-expert", { question });
+                                    inputField.value = '';
+                                }
+                            }
+                        });
+                        aiScreenDiv.appendChild(inputField);
+                        
+                        this.aiPanelUI = new CSS2DObject(aiScreenDiv);
+                        // Scale and position the CSS2DObject. The object is parented to the artMesh.
+                        // If panel width in 3D is `panelData.width` (which is Z for the box due to rotation),
+                        // and CSS width is 300px.
+                        const cssWidth = 300; // from .ai-panel-screen CSS
+                        this.aiPanelUI.scale.set(panelData.width / cssWidth, panelData.width / cssWidth, 1);
+                        // The CSS object should be on the surface of the panel. Depth of panel is panelData.depth (X for box).
+                        this.aiPanelUI.position.x = panelData.depth / 2 + 0.01; // Slightly in front of the mesh surface
+                        artMesh.add(this.aiPanelUI);
+                    }
+
+                    if (artMesh) {
+                       this.scene.add(artMesh);
+                       this.artItemMeshes.set(itemData.id, artMesh);
+                    }
+                }
+
+                if (artMesh) { // This block will be skipped for paintings on first call due to async texture loading
+                    artMesh.position.set(itemData.position.x, itemData.position.y, itemData.position.z);
+                    artMesh.rotation.set(itemData.rotation.x, itemData.rotation.y, itemData.rotation.z);
+                    if (artMesh.material && artMesh.material.color && itemData.data.color) { // Check if material and color exist
+                        artMesh.material.color.setHex(itemData.data.color);
+                    }
+                }
+            }
+            
+            subscribeToMyAvatarUpdates(avatarModelProxy) {
+                this.myAvatarModelId = avatarModelProxy.id;
+                this.subscribe(this.myAvatarModelId, "state-updated", this.onMyAvatarStateUpdated.bind(this));
+                this.subscribe(this.myAvatarModelId, "name-changed", this.onMyAvatarNameChanged.bind(this));
+                this.subscribe(this.myAvatarModelId, "chat-bubble-updated", this.onMyAvatarChatBubbleUpdated.bind(this));
+
+                const nameInput = document.getElementById('name-input');
+                if (!nameInput.value && avatarModelProxy.name) {
+                    nameInput.value = avatarModelProxy.name;
+                } else if (nameInput.value && nameInput.value !== avatarModelProxy.name) {
+                     this.publish(this.viewId, "set-name", { name: nameInput.value });
+                }
+            }
+
+            onAvatarAdded(data) {
+                const avatarMesh = this.createOrUpdateAvatarMesh(data.avatarData);
+                if (data.viewId === this.viewId) {
+                    this.myAvatarModelId = data.avatarData.id;
+                    this.subscribeToMyAvatarUpdates(data.avatarData);
+                } else {
+                    this.subscribe(data.avatarData.id, "state-updated", (state) => this.onOtherAvatarStateUpdated(data.viewId, state));
+                    this.subscribe(data.avatarData.id, "name-changed", (nameData) => this.onOtherAvatarNameChanged(data.viewId, nameData));
+                    this.subscribe(data.avatarData.id, "chat-bubble-updated", (chatData) => this.onOtherAvatarChatBubbleUpdated(data.viewId, chatData));
+                }
+            }
+
+            onAvatarRemoved(data) {
+                const avatarMesh = this.avatarMeshes.get(data.viewId);
+                if (avatarMesh) {
+                    this.scene.remove(avatarMesh);
+                    if (avatarMesh.userData.nameLabel) avatarMesh.remove(avatarMesh.userData.nameLabel);
+                    if (avatarMesh.userData.chatLabel) avatarMesh.remove(avatarMesh.userData.chatLabel);
+                    this.avatarMeshes.delete(data.viewId);
+                }
+            }
+            
+            updateAvatarMesh(viewId, updateData) {
+                const avatarMesh = this.avatarMeshes.get(viewId);
+                if (!avatarMesh) return;
+
+                if (updateData.position && updateData.rotationY !== undefined) {
+                    const targetPos = new THREE.Vector3(updateData.position.x, updateData.position.y, updateData.position.z);
+                    avatarMesh.position.lerp(targetPos, 0.3);
+                    
+                    const targetQuat = new THREE.Quaternion().setFromAxisAngle(new THREE.Vector3(0,1,0), updateData.rotationY);
+                    avatarMesh.quaternion.slerp(targetQuat, 0.3);
+                }
+                if (updateData.name && avatarMesh.userData.nameLabel) {
+                    avatarMesh.userData.nameLabel.element.textContent = updateData.name;
+                }
+                if (updateData.message !== undefined && avatarMesh.userData.chatLabel) {
+                    avatarMesh.userData.chatLabel.element.textContent = updateData.message;
+                    avatarMesh.userData.chatLabel.element.style.visibility = updateData.message ? 'visible' : 'hidden';
+                }
+            }
+
+            onMyAvatarStateUpdated(data) { this.updateAvatarMesh(this.viewId, data); }
+            onMyAvatarNameChanged(data) { this.updateAvatarMesh(this.viewId, data); }
+            onMyAvatarChatBubbleUpdated(data) { this.updateAvatarMesh(this.viewId, data); }
+
+            onOtherAvatarStateUpdated(viewId, data) { this.updateAvatarMesh(viewId, data); }
+            onOtherAvatarNameChanged(viewId, data) { this.updateAvatarMesh(viewId, data); }
+            onOtherAvatarChatBubbleUpdated(viewId, data) { this.updateAvatarMesh(viewId, data); }
+
+            onChatHistoryUpdated(data) {
+                const chatLog = document.getElementById('chat-log');
+                chatLog.innerHTML = '';
+                data.history.forEach(msg => {
+                    const p = document.createElement('p');
+                    p.textContent = `[${new Date(msg.timestamp).toLocaleTimeString()}] ${msg.senderName}: ${msg.message}`;
+                    chatLog.appendChild(p);
+                });
+                chatLog.scrollTop = chatLog.scrollHeight;
+            }
+
+            onArtItemUpdated(data) {
+                this.createOrUpdateArtItemMesh(data.item);
+            }
+            
+            onAIPanelUpdated(data) { // { question, response }
+                if (this.aiPanelUI) {
+                    const screenDiv = this.aiPanelUI.element;
+                    const questionDiv = screenDiv.querySelector('.ai-panel-question-area');
+                    const responseDiv = screenDiv.querySelector('.ai-panel-response-area');
+                    if (questionDiv) questionDiv.textContent = data.question;
+                    if (responseDiv) responseDiv.textContent = data.response;
+                }
+            }
+
+
+            handlePlayerInput() {
+                if (!this.myAvatarModelId || document.activeElement.tagName === 'INPUT') return;
+
+                let forward = 0;
+                let turn = 0;
+
+                if (this.keysPressed['w'] || this.keysPressed['arrowup']) forward = 1;
+                else if (this.keysPressed['s'] || this.keysPressed['arrowdown']) forward = -1;
+                if (this.keysPressed['a'] || this.keysPressed['arrowleft']) turn = 1;
+                else if (this.keysPressed['d'] || this.keysPressed['arrowright']) turn = -1;
+                
+                if (this.touchJoystick.active) {
+                    forward = this.touchJoystick.forward;
+                    turn = this.touchJoystick.turn;
+                }
+
+                this.publish(this.viewId, "avatar-input", { forward, turn });
+            }
+            
+            updateCamera() {
+                const myAvatarMesh = this.avatarMeshes.get(this.viewId);
+                if (myAvatarMesh) {
+                    const offset = new THREE.Vector3(0, 2.5, -4);
+                    const cameraPosition = offset.applyMatrix4(myAvatarMesh.matrixWorld);
+                    this.camera.position.lerp(cameraPosition, 0.1);
+                    
+                    const lookAtTarget = new THREE.Vector3();
+                    myAvatarMesh.getWorldPosition(lookAtTarget);
+                    lookAtTarget.y += 1.2;
+                    this.camera.lookAt(lookAtTarget);
+                }
+            }
+
+            update(time) {
+                this.handlePlayerInput();
+                this.updateCamera();
+                this.renderer.render(this.scene, this.camera);
+                this.cssRenderer.render(this.scene, this.camera);
+            }
+
+            detach() {
+                console.log("View detached");
+                if (this.renderer) this.renderer.dispose();
+                if (this.cssRenderer && this.cssRenderer.domElement.parentNode) {
+                     this.cssRenderer.domElement.parentNode.removeChild(this.cssRenderer.domElement);
+                }
+                 window.removeEventListener('resize', this.onWindowResize.bind(this));
+                super.detach();
+            }
+        }
+
+        Multisynq.Session.join({
+            apiKey: API_KEY,
+            appId: APP_ID,
+            model: GalleryModel,
+            view: GalleryView,
+            options: {}, 
+            viewData: { name: localStorage.getItem('galleryUserName') || `User-${Math.random().toString(36).substring(2,6)}` },
+            debug: []
+        }).then(session => {
+            console.log("Multisynq session joined:", session.id);
+            Multisynq.App.makeWidgetDock();
+        }).catch(err => {
+            console.error("Failed to join Multisynq session:", err);
+            document.body.innerHTML = `<div class="p-4 bg-red-700 text-white">Error: Could not connect to Multisynq. ${err.message}</div>`;
+        });
+
+    </script>
+</body>
+</html>

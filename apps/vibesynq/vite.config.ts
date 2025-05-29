@@ -8,7 +8,7 @@ import { defineConfig } from "vite";
 import { type Target, viteStaticCopy } from "vite-plugin-static-copy";
 
 const appRoot = resolve(__dirname, "src");
-const outDir = resolve(__dirname, "public");
+const outDir = resolve(__dirname, "../../public/vibesynq"); // Build output goes to project root public/vibesynq
 const toCopy: Target[] = [];
 
 export default defineConfig(({ mode }) => {

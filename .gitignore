@@ -6,3 +6,4 @@ node_modules/
 /main*
 *.tsbuildinfo
 public/llm/test/*
+public/beach

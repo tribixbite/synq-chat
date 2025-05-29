@@ -6,6 +6,9 @@
     "defaultBranch": "main",
     "useIgnoreFile": true
   },
+  "files": {
+    "ignore": ["public/**"]
+  },
   "linter": {
     "enabled": true,
     "rules": { "recommended": true }
