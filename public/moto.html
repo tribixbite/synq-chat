@@ -1,0 +1,923 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Farm Horse Dirt Bike Simulator</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r172/three.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            overflow: hidden;
+            background: linear-gradient(to bottom, #4FC3F7, #81C784);
+            font-family: 'Arial', sans-serif;
+            touch-action: none;
+        }
+        
+        #gameContainer {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+        }
+        
+        #ui {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            color: white;
+            font-size: 16px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        #controls {
+            position: absolute;
+            bottom: 10px;
+            left: 10px;
+            color: white;
+            font-size: 12px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 8px;
+            border-radius: 8px;
+        }
+        
+        #bikeStatus {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            color: white;
+            font-size: 14px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.8);
+            z-index: 100;
+            background: rgba(0,0,0,0.3);
+            padding: 10px;
+            border-radius: 8px;
+        }
+        
+        .unlock-notification {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: linear-gradient(45deg, #FFD700, #FFA500);
+            color: #000;
+            padding: 15px 25px;
+            border-radius: 15px;
+            font-size: 18px;
+            font-weight: bold;
+            text-align: center;
+            box-shadow: 0 0 30px rgba(255, 215, 0, 0.8);
+            z-index: 200;
+            animation: pulseGlow 2s infinite;
+            max-width: 80%;
+        }
+        
+        @keyframes pulseGlow {
+            0%, 100% { transform: translate(-50%, -50%) scale(1); }
+            50% { transform: translate(-50%, -50%) scale(1.05); }
+        }
+        
+        /* Mobile Controls */
+        #mobileControls {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            z-index: 100;
+        }
+        
+        .control-row {
+            display: flex;
+            gap: 10px;
+        }
+        
+        .mobile-btn {
+            width: 50px;
+            height: 50px;
+            background: rgba(255,255,255,0.8);
+            border: 2px solid #333;
+            border-radius: 50%;
+            font-size: 16px;
+            font-weight: bold;
+            color: #333;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            touch-action: manipulation;
+            user-select: none;
+            cursor: pointer;
+        }
+        
+        .mobile-btn:active {
+            background: rgba(255,255,255,1);
+            transform: scale(0.95);
+        }
+        
+        .mobile-btn.wide {
+            width: 110px;
+            border-radius: 25px;
+        }
+        
+        /* Virtual Joystick */
+        #virtualJoystick {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            width: 120px;
+            height: 120px;
+            z-index: 100;
+        }
+        
+        .joystick-base {
+            width: 120px;
+            height: 120px;
+            border: 3px solid rgba(255,255,255,0.8);
+            border-radius: 50%;
+            background: rgba(0,0,0,0.3);
+            position: relative;
+            touch-action: none;
+        }
+        
+        .joystick-knob {
+            width: 50px;
+            height: 50px;
+            background: radial-gradient(circle, #fff, #ccc);
+            border: 2px solid #333;
+            border-radius: 50%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+            transition: all 0.1s ease;
+        }
+        
+        .joystick-knob.active {
+            background: radial-gradient(circle, #4CAF50, #45a049);
+        }
+        
+        @media (min-width: 768px) {
+            #mobileControls, #virtualJoystick {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div id="gameContainer">
+        <div id="ui">
+            <div>🐎 Speed: <span id="speed">0</span> mph</div>
+            <div>⏱️ Air Time: <span id="airTime">0.0</span>s</div>
+            <div>🏆 Jump Score: <span id="jumpScore">0</span></div>
+            <div>✨ Perfect Jumps: <span id="perfectJumps">0</span>/1</div>
+        </div>
+        
+        <div id="bikeStatus">
+            <div>🏍️ Bike: <span id="currentBike">Valley Cruiser</span></div>
+            <div>⚡ Power: <span id="torqueLevel">Standard</span></div>
+            <div>🐴 Rider: Champion Horse</div>
+        </div>
+        
+        <div id="controls">
+            <div>Desktop: WASD - Move | Space - Jump | Shift - Boost</div>
+            <div>R - Reset Position</div>
+        </div>
+        
+        <!-- Virtual Joystick for Mobile -->
+        <div id="virtualJoystick">
+            <div class="joystick-base">
+                <div class="joystick-knob" id="joystickKnob"></div>
+            </div>
+        </div>
+        
+        <!-- Mobile Controls -->
+        <div id="mobileControls">
+            <div class="control-row">
+                <div class="mobile-btn wide" id="jump">🦘 JUMP</div>
+            </div>
+            <div class="control-row">
+                <div class="mobile-btn wide" id="boost">🚀 BOOST</div>
+            </div>
+            <div class="control-row">
+                <div class="mobile-btn wide" id="reset">🔄 RESET</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Game variables
+        let scene, camera, renderer, bikeGroup, terrain, horseRider;
+        
+        // Simplified physics system
+        let bike = {
+            position: new THREE.Vector3(0, 5, 0),
+            velocity: new THREE.Vector3(0, 0, 0),
+            rotation: new THREE.Euler(0, 0, 0),
+            angularVelocity: new THREE.Vector3(0, 0, 0),
+            onGround: false,
+            speed: 0,
+            maxSpeed: 60,
+            acceleration: 25,
+            jumpForce: 35,
+            isUnlocked: false
+        };
+        
+        // Game state
+        let gameState = {
+            airTime: 0,
+            lastGrounded: 0,
+            jumpScore: 0,
+            perfectJumps: 0,
+            firstJumpCompleted: false
+        };
+        
+        // Input handling
+        let keys = {};
+        let joystick = {
+            active: false,
+            vector: new THREE.Vector2(0, 0)
+        };
+        
+        let clock = new THREE.Clock();
+        let terrain_geometry;
+        let trees = [];
+        let jumps = [];
+        
+        // Physics constants
+        const PHYSICS = {
+            gravity: -50,
+            groundDamping: 0.85,
+            airDamping: 0.98,
+            rotationDamping: 0.9,
+            groundThreshold: 1.5,
+            steeringStrength: 2.5
+        };
+        
+        // Initialize the game
+        function init() {
+            createScene();
+            createTerrain();
+            createBike();
+            createEnvironment();
+            setupControls();
+            animate();
+        }
+        
+        function createScene() {
+            scene = new THREE.Scene();
+            scene.fog = new THREE.Fog(0x87CEEB, 100, 400);
+            
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            
+            renderer = new THREE.WebGLRenderer({ antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            renderer.shadowMap.enabled = true;
+            renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+            renderer.setClearColor(0x4FC3F7);
+            document.getElementById('gameContainer').appendChild(renderer.domElement);
+            
+            // Lighting
+            const ambientLight = new THREE.AmbientLight(0x404040, 0.7);
+            scene.add(ambientLight);
+            
+            const sunLight = new THREE.DirectionalLight(0xFFFF88, 1.5);
+            sunLight.position.set(80, 100, 50);
+            sunLight.castShadow = true;
+            sunLight.shadow.mapSize.width = 2048;
+            sunLight.shadow.mapSize.height = 2048;
+            sunLight.shadow.camera.near = 0.5;
+            sunLight.shadow.camera.far = 600;
+            sunLight.shadow.camera.left = -150;
+            sunLight.shadow.camera.right = 150;
+            sunLight.shadow.camera.top = 150;
+            sunLight.shadow.camera.bottom = -150;
+            scene.add(sunLight);
+            
+            // Sun
+            const sunGeometry = new THREE.SphereGeometry(8, 16, 16);
+            const sunMaterial = new THREE.MeshBasicMaterial({ 
+                color: 0xFFFF44,
+                transparent: true,
+                opacity: 0.8
+            });
+            const sun = new THREE.Mesh(sunGeometry, sunMaterial);
+            sun.position.set(80, 100, 50);
+            scene.add(sun);
+        }
+        
+        function createTerrain() {
+            const size = 400;
+            const segments = 100;
+            terrain_geometry = new THREE.PlaneGeometry(size, size, segments, segments);
+            const vertices = terrain_geometry.attributes.position.array;
+            
+            // Generate terrain heights
+            for (let i = 0; i < vertices.length; i += 3) {
+                const x = vertices[i];
+                const z = vertices[i + 1];
+                vertices[i + 2] = getTerrainHeight(x, z);
+            }
+            
+            terrain_geometry.attributes.position.needsUpdate = true;
+            terrain_geometry.computeVertexNormals();
+            
+            const grassMaterial = new THREE.MeshLambertMaterial({ color: 0x2d5a2d });
+            terrain = new THREE.Mesh(terrain_geometry, grassMaterial);
+            terrain.rotation.x = -Math.PI / 2;
+            terrain.receiveShadow = true;
+            scene.add(terrain);
+            
+            createJumps();
+        }
+        
+        function getTerrainHeight(x, z) {
+            const distanceFromCenter = Math.sqrt(x * x + z * z);
+            
+            if (distanceFromCenter < 80) {
+                // Flat valley with central hill
+                const hillDistance = Math.sqrt(x * x + (z - 20) * (z - 20));
+                if (hillDistance < 25) {
+                    return Math.cos(hillDistance / 25 * Math.PI * 0.5) * 8;
+                }
+                return 0;
+            } else if (distanceFromCenter > 120) {
+                // Mountains
+                const mountainHeight = (distanceFromCenter - 120) * 0.8;
+                return Math.min(mountainHeight, 60);
+            } else {
+                // Slope
+                const slopeProgress = (distanceFromCenter - 80) / 40;
+                return slopeProgress * slopeProgress * 15;
+            }
+        }
+        
+        function createJumps() {
+            const jumpPositions = [
+                { x: -30, z: 0, isFirst: true },
+                { x: 0, z: 40, isFirst: false },
+                { x: 30, z: -20, isFirst: false }
+            ];
+            
+            jumpPositions.forEach(pos => {
+                const jump = createJump();
+                jump.position.set(pos.x, getTerrainHeight(pos.x, pos.z), pos.z);
+                jumps.push({ mesh: jump, position: pos, isFirst: pos.isFirst });
+                scene.add(jump);
+            });
+        }
+        
+        function createJump() {
+            const jumpGroup = new THREE.Group();
+            const dirtMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            
+            // Ramp
+            const rampGeometry = new THREE.BoxGeometry(15, 3, 8);
+            const ramp = new THREE.Mesh(rampGeometry, dirtMaterial);
+            ramp.position.set(0, 1.5, -4);
+            ramp.rotation.x = -0.3;
+            ramp.castShadow = true;
+            jumpGroup.add(ramp);
+            
+            // Landing
+            const landing = new THREE.Mesh(rampGeometry, dirtMaterial);
+            landing.position.set(0, 1, 8);
+            landing.rotation.x = 0.2;
+            landing.castShadow = true;
+            jumpGroup.add(landing);
+            
+            return jumpGroup;
+        }
+        
+        function createBike() {
+            bikeGroup = new THREE.Group();
+            
+            // Bike body
+            const bodyGeometry = new THREE.BoxGeometry(0.8, 0.4, 2.5);
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: 0xff6b6b });
+            const body = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            body.castShadow = true;
+            bikeGroup.add(body);
+            
+            // Wheels
+            const wheelGeometry = new THREE.CylinderGeometry(0.8, 0.8, 0.3, 16);
+            const wheelMaterial = new THREE.MeshLambertMaterial({ color: 0x2c2c2c });
+            
+            const frontWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            frontWheel.position.set(0, -0.5, 1.2);
+            frontWheel.rotation.z = Math.PI / 2;
+            frontWheel.castShadow = true;
+            bikeGroup.add(frontWheel);
+            
+            const rearWheel = new THREE.Mesh(wheelGeometry, wheelMaterial);
+            rearWheel.position.set(0, -0.5, -1.2);
+            rearWheel.rotation.z = Math.PI / 2;
+            rearWheel.castShadow = true;
+            bikeGroup.add(rearWheel);
+            
+            createHorse();
+            
+            scene.add(bikeGroup);
+        }
+        
+        function createHorse() {
+            horseRider = new THREE.Group();
+            
+            const horseColor = 0x8B4513;
+            const bodyMaterial = new THREE.MeshLambertMaterial({ color: horseColor });
+            
+            // Horse body
+            const bodyGeometry = new THREE.BoxGeometry(0.6, 0.8, 1.2);
+            const horseBody = new THREE.Mesh(bodyGeometry, bodyMaterial);
+            horseBody.position.set(0, 0.8, 0);
+            horseBody.castShadow = true;
+            horseRider.add(horseBody);
+            
+            // Horse head
+            const headGeometry = new THREE.BoxGeometry(0.4, 0.5, 0.6);
+            const horseHead = new THREE.Mesh(headGeometry, bodyMaterial);
+            horseHead.position.set(0, 1.1, 0.7);
+            horseHead.castShadow = true;
+            horseRider.add(horseHead);
+            
+            // Ears
+            const earGeometry = new THREE.ConeGeometry(0.08, 0.2, 4);
+            const leftEar = new THREE.Mesh(earGeometry, bodyMaterial);
+            leftEar.position.set(-0.15, 1.35, 0.8);
+            horseRider.add(leftEar);
+            
+            const rightEar = new THREE.Mesh(earGeometry, bodyMaterial);
+            rightEar.position.set(0.15, 1.35, 0.8);
+            horseRider.add(rightEar);
+            
+            // Legs
+            for (let i = 0; i < 4; i++) {
+                const legGeometry = new THREE.CylinderGeometry(0.08, 0.08, 0.6);
+                const leg = new THREE.Mesh(legGeometry, bodyMaterial);
+                const x = (i % 2) * 0.4 - 0.2;
+                const z = Math.floor(i / 2) * 0.8 - 0.4;
+                leg.position.set(x, 0.1, z);
+                leg.castShadow = true;
+                horseRider.add(leg);
+            }
+            
+            // Mane
+            const maneGeometry = new THREE.SphereGeometry(0.25, 8, 6);
+            const maneMaterial = new THREE.MeshLambertMaterial({ color: 0x654321 });
+            const mane = new THREE.Mesh(maneGeometry, maneMaterial);
+            mane.position.set(0, 1.3, 0.5);
+            mane.scale.set(1, 0.5, 2);
+            horseRider.add(mane);
+            
+            // Tail
+            const tailGeometry = new THREE.ConeGeometry(0.1, 0.8, 6);
+            const tail = new THREE.Mesh(tailGeometry, maneMaterial);
+            tail.position.set(0, 0.8, -1);
+            tail.rotation.x = Math.PI / 4;
+            horseRider.add(tail);
+            
+            // Eyes
+            const eyeGeometry = new THREE.SphereGeometry(0.05);
+            const eyeMaterial = new THREE.MeshBasicMaterial({ color: 0x000000 });
+            
+            const leftEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            leftEye.position.set(-0.12, 1.15, 0.95);
+            horseRider.add(leftEye);
+            
+            const rightEye = new THREE.Mesh(eyeGeometry, eyeMaterial);
+            rightEye.position.set(0.12, 1.15, 0.95);
+            horseRider.add(rightEye);
+            
+            bikeGroup.add(horseRider);
+        }
+        
+        function createEnvironment() {
+            // Create trees
+            for (let angle = 0; angle < Math.PI * 2; angle += 0.3) {
+                for (let radius = 85; radius < 115; radius += 8) {
+                    const x = Math.cos(angle) * radius + (Math.random() - 0.5) * 5;
+                    const z = Math.sin(angle) * radius + (Math.random() - 0.5) * 5;
+                    
+                    const tree = createTree();
+                    tree.position.set(x, getTerrainHeight(x, z), z);
+                    
+                    const scale = 0.8 + Math.random() * 0.4;
+                    tree.scale.set(scale, scale, scale);
+                    
+                    trees.push(tree);
+                    scene.add(tree);
+                }
+            }
+        }
+        
+        function createTree() {
+            const tree = new THREE.Group();
+            
+            // Trunk
+            const trunkGeometry = new THREE.CylinderGeometry(0.3, 0.4, 8);
+            const trunkMaterial = new THREE.MeshLambertMaterial({ color: 0x8B4513 });
+            const trunk = new THREE.Mesh(trunkGeometry, trunkMaterial);
+            trunk.position.y = 4;
+            trunk.castShadow = true;
+            tree.add(trunk);
+            
+            // Leaves
+            const needleMaterial = new THREE.MeshLambertMaterial({ color: 0x0F4F0F });
+            for (let i = 0; i < 4; i++) {
+                const needleGeometry = new THREE.ConeGeometry(3 - i * 0.5, 3, 8);
+                const needles = new THREE.Mesh(needleGeometry, needleMaterial);
+                needles.position.y = 6 + i * 2;
+                needles.castShadow = true;
+                tree.add(needles);
+            }
+            
+            return tree;
+        }
+        
+        function setupControls() {
+            // Keyboard
+            document.addEventListener('keydown', (e) => keys[e.key.toLowerCase()] = true);
+            document.addEventListener('keyup', (e) => keys[e.key.toLowerCase()] = false);
+            window.addEventListener('resize', onWindowResize);
+            
+            // Mobile controls
+            setupMobileButtons();
+            setupVirtualJoystick();
+        }
+        
+        function setupMobileButtons() {
+            const controls = {
+                'jump': ' ',
+                'boost': 'shift',
+                'reset': 'r'
+            };
+            
+            Object.keys(controls).forEach(id => {
+                const element = document.getElementById(id);
+                if (element) {
+                    element.addEventListener('touchstart', (e) => {
+                        e.preventDefault();
+                        keys[controls[id]] = true;
+                    });
+                    
+                    element.addEventListener('touchend', (e) => {
+                        e.preventDefault();
+                        keys[controls[id]] = false;
+                    });
+                }
+            });
+        }
+        
+        function setupVirtualJoystick() {
+            const joystickBase = document.querySelector('.joystick-base');
+            const joystickKnob = document.getElementById('joystickKnob');
+            
+            let isDragging = false;
+            let currentTouchId = null;
+            let baseCenter = { x: 0, y: 0 };
+            
+            function getBaseCenter() {
+                const rect = joystickBase.getBoundingClientRect();
+                baseCenter.x = rect.left + rect.width / 2;
+                baseCenter.y = rect.top + rect.height / 2;
+            }
+            
+            function handleStart(clientX, clientY, touchId = null) {
+                if (isDragging && currentTouchId !== null && touchId !== currentTouchId) return;
+                
+                isDragging = true;
+                currentTouchId = touchId;
+                joystick.active = true;
+                getBaseCenter();
+                joystickKnob.classList.add('active');
+            }
+            
+            function handleMove(clientX, clientY, touchId = null) {
+                if (!isDragging || (touchId !== null && touchId !== currentTouchId)) return;
+                
+                const deltaX = clientX - baseCenter.x;
+                const deltaY = clientY - baseCenter.y;
+                const distance = Math.sqrt(deltaX * deltaX + deltaY * deltaY);
+                const maxDistance = 35;
+                
+                let knobX = deltaX;
+                let knobY = deltaY;
+                
+                if (distance > maxDistance) {
+                    knobX = (deltaX / distance) * maxDistance;
+                    knobY = (deltaY / distance) * maxDistance;
+                }
+                
+                joystickKnob.style.transform = `translate(${knobX - 25}px, ${knobY - 25}px)`;
+                
+                // Fixed joystick vector - left is negative, right is positive
+                joystick.vector.x = -knobX / maxDistance; // FIXED: Negated for correct direction
+                joystick.vector.y = -knobY / maxDistance; // Forward/backward
+            }
+            
+            function handleEnd(touchId = null) {
+                if (touchId !== null && touchId !== currentTouchId) return;
+                
+                isDragging = false;
+                currentTouchId = null;
+                joystick.active = false;
+                joystickKnob.classList.remove('active');
+                
+                joystickKnob.style.transform = 'translate(-50%, -50%)';
+                joystick.vector.set(0, 0);
+            }
+            
+            // Touch events
+            joystickBase.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                if (e.touches.length > 0) {
+                    const touch = e.touches[0];
+                    handleStart(touch.clientX, touch.clientY, touch.identifier);
+                }
+            });
+            
+            document.addEventListener('touchmove', (e) => {
+                e.preventDefault();
+                if (isDragging && currentTouchId !== null) {
+                    for (let i = 0; i < e.touches.length; i++) {
+                        const touch = e.touches[i];
+                        if (touch.identifier === currentTouchId) {
+                            handleMove(touch.clientX, touch.clientY, touch.identifier);
+                            break;
+                        }
+                    }
+                }
+            });
+            
+            document.addEventListener('touchend', (e) => {
+                e.preventDefault();
+                if (currentTouchId !== null) {
+                    let touchStillActive = false;
+                    for (let i = 0; i < e.touches.length; i++) {
+                        if (e.touches[i].identifier === currentTouchId) {
+                            touchStillActive = true;
+                            break;
+                        }
+                    }
+                    if (!touchStillActive) {
+                        handleEnd(currentTouchId);
+                    }
+                }
+            });
+            
+            // Mouse events for testing
+            joystickBase.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                handleStart(e.clientX, e.clientY);
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (isDragging) {
+                    e.preventDefault();
+                    handleMove(e.clientX, e.clientY);
+                }
+            });
+            
+            document.addEventListener('mouseup', (e) => {
+                if (isDragging) {
+                    e.preventDefault();
+                    handleEnd();
+                }
+            });
+        }
+        
+        function updatePhysics(deltaTime) {
+            // Get input
+            let throttle = 0;
+            let steering = 0;
+            let boost = 1;
+            let jump = false;
+            
+            // Keyboard input - FIXED controls
+            if (keys['w']) throttle = 1;
+            if (keys['s']) throttle = -0.5;
+            if (keys['a']) steering = -1; // FIXED: A = left
+            if (keys['d']) steering = 1;  // FIXED: D = right
+            if (keys['shift']) boost = bike.isUnlocked ? 2.2 : 1.6;
+            if (keys[' ']) jump = true;
+            if (keys['r']) resetBike();
+            
+            // Joystick input
+            if (joystick.active) {
+                throttle += joystick.vector.y;
+                steering += joystick.vector.x; // Now correctly mapped
+                throttle = Math.max(-1, Math.min(1, throttle));
+                steering = Math.max(-1, Math.min(1, steering));
+            }
+            
+            // Ground detection
+            const groundHeight = getTerrainHeight(bike.position.x, bike.position.z);
+            const groundY = groundHeight + PHYSICS.groundThreshold;
+            bike.onGround = bike.position.y <= groundY + 0.5;
+            
+            if (bike.onGround) {
+                // Ground physics
+                bike.position.y = Math.max(bike.position.y, groundY);
+                
+                if (bike.velocity.y < 0) {
+                    bike.velocity.y = 0;
+                }
+                
+                // Movement
+                if (throttle !== 0) {
+                    const moveForce = throttle * bike.acceleration * boost * deltaTime;
+                    bike.velocity.x += Math.sin(bike.rotation.y) * moveForce;
+                    bike.velocity.z += Math.cos(bike.rotation.y) * moveForce;
+                }
+                
+                // Steering - FIXED direction
+                if (Math.abs(steering) > 0.1 && bike.speed > 1) {
+                    const steerForce = steering * PHYSICS.steeringStrength * deltaTime * Math.min(bike.speed / 20, 1);
+                    bike.angularVelocity.y += steerForce; // Positive steering = right turn
+                }
+                
+                // Ground damping
+                bike.velocity.multiplyScalar(PHYSICS.groundDamping);
+                
+                // Jump
+                if (jump) {
+                    bike.velocity.y = bike.jumpForce;
+                    bike.onGround = false;
+                    gameState.lastGrounded = Date.now();
+                }
+                
+                // Reset air time
+                if (gameState.airTime > 0) {
+                    checkJumpScore();
+                    gameState.airTime = 0;
+                }
+            } else {
+                // Air physics
+                bike.velocity.y += PHYSICS.gravity * deltaTime;
+                gameState.airTime = (Date.now() - gameState.lastGrounded) / 1000;
+                
+                // Air damping
+                bike.velocity.multiplyScalar(PHYSICS.airDamping);
+            }
+            
+            // Apply velocity
+            bike.position.add(bike.velocity.clone().multiplyScalar(deltaTime));
+            
+            // Apply angular velocity with damping
+            bike.rotation.y += bike.angularVelocity.y * deltaTime;
+            bike.angularVelocity.multiplyScalar(PHYSICS.rotationDamping);
+            
+            // Speed calculation
+            const horizontalVelocity = new THREE.Vector2(bike.velocity.x, bike.velocity.z);
+            bike.speed = horizontalVelocity.length() * 2.237; // Convert to mph
+            
+            // Limit max speed
+            if (bike.speed > bike.maxSpeed) {
+                const ratio = bike.maxSpeed / bike.speed;
+                bike.velocity.x *= ratio;
+                bike.velocity.z *= ratio;
+            }
+            
+            // Boundaries
+            const maxDistance = 180;
+            const distanceFromCenter = bike.position.length();
+            if (distanceFromCenter > maxDistance) {
+                bike.position.normalize().multiplyScalar(maxDistance);
+                bike.velocity.multiplyScalar(-0.5);
+            }
+        }
+        
+        function checkJumpScore() {
+            const firstJump = jumps.find(j => j.isFirst);
+            if (!firstJump) return;
+            
+            const distance = bike.position.distanceTo(new THREE.Vector3(firstJump.position.x, 0, firstJump.position.z));
+            
+            if (distance < 20 && !gameState.firstJumpCompleted) {
+                const score = Math.floor(gameState.airTime * 150);
+                gameState.jumpScore += score;
+                
+                if (gameState.airTime >= 1.2 && gameState.airTime <= 2.8) {
+                    gameState.perfectJumps++;
+                    gameState.firstJumpCompleted = true;
+                    
+                    if (!bike.isUnlocked) {
+                        unlockBike();
+                    }
+                }
+            }
+        }
+        
+        function unlockBike() {
+            bike.isUnlocked = true;
+            bike.maxSpeed = 80;
+            bike.acceleration = 35;
+            bike.jumpForce = 45;
+            
+            const notification = document.createElement('div');
+            notification.className = 'unlock-notification';
+            notification.innerHTML = '🐎🏍️ FARM POWER BIKE UNLOCKED! 🏍️🐎<br/>SUPER HORSE POWER ACTIVATED!';
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                if (document.body.contains(notification)) {
+                    document.body.removeChild(notification);
+                }
+            }, 4000);
+            
+            // Visual updates
+            bikeGroup.children[0].material.color.setHex(0x228B22);
+        }
+        
+        function resetBike() {
+            bike.position.set(0, 5, 0);
+            bike.velocity.set(0, 0, 0);
+            bike.rotation.set(0, 0, 0);
+            bike.angularVelocity.set(0, 0, 0);
+        }
+        
+        function updateCamera() {
+            const cameraDistance = 18;
+            const cameraHeight = 10;
+            
+            const targetX = bike.position.x - Math.sin(bike.rotation.y) * cameraDistance;
+            const targetY = bike.position.y + cameraHeight;
+            const targetZ = bike.position.z - Math.cos(bike.rotation.y) * cameraDistance;
+            
+            camera.position.lerp(new THREE.Vector3(targetX, targetY, targetZ), 0.08);
+            
+            const lookAtTarget = new THREE.Vector3(bike.position.x, bike.position.y + 2, bike.position.z);
+            camera.lookAt(lookAtTarget);
+        }
+        
+        function updateVisuals() {
+            // Update bike position and rotation
+            bikeGroup.position.copy(bike.position);
+            bikeGroup.rotation.y = bike.rotation.y;
+            
+            // Animate horse
+            if (horseRider && bike.onGround) {
+                horseRider.scale.y = 1 + Math.sin(Date.now() * 0.006) * 0.015;
+                
+                const tail = horseRider.children.find(child => 
+                    child.geometry && child.geometry.type === 'ConeGeometry'
+                );
+                if (tail) {
+                    tail.rotation.z = Math.sin(Date.now() * 0.004) * 0.2;
+                }
+            }
+            
+            // Animate trees
+            trees.forEach((tree, index) => {
+                tree.children.forEach((child, childIndex) => {
+                    if (child.geometry && child.geometry.type === 'ConeGeometry') {
+                        child.rotation.z = Math.sin(Date.now() * 0.0008 + index + childIndex) * 0.03;
+                    }
+                });
+            });
+        }
+        
+        function updateUI() {
+            document.getElementById('speed').textContent = Math.round(bike.speed);
+            document.getElementById('airTime').textContent = gameState.airTime.toFixed(1);
+            document.getElementById('jumpScore').textContent = gameState.jumpScore;
+            document.getElementById('perfectJumps').textContent = gameState.perfectJumps;
+            
+            if (bike.isUnlocked) {
+                document.getElementById('currentBike').textContent = 'Farm Power Beast';
+                document.getElementById('torqueLevel').textContent = 'HORSE POWER! 🐎⚡';
+                document.getElementById('torqueLevel').style.color = '#4169E1';
+            }
+        }
+        
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            const deltaTime = Math.min(clock.getDelta(), 0.016); // Cap at 60fps
+            
+            updatePhysics(deltaTime);
+            updateVisuals();
+            updateCamera();
+            updateUI();
+            
+            renderer.render(scene, camera);
+        }
+        
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        }
+        
+        // Start the game
+        init();
+    </script>
+</body>
+</html>
