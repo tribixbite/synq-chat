@@ -45,13 +45,9 @@ WORKDIR /app
 COPY --from=build /app/main /app/main
 
 # Copy all static assets from public directory
-# This includes our app directories: public/admin, public/vibesynq, public/app1, public/app2
+# This includes the built frontend apps at public/admin, public/vibesynq, 
+# plus all other static files like public/app1, public/app2, public/moto.html, etc.
 COPY --from=build /app/public /app/public
-
-# Copy built frontend apps to their expected locations
-# These will be served from public/admin and public/vibesynq 
-COPY --from=build /app/apps/vibesynq/public /app/public/vibesynq
-COPY --from=build /app/apps/admin/public /app/public/admin
 
 # Set production environment
 ENV NODE_ENV=production

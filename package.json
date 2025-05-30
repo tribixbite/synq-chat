@@ -65,6 +65,7 @@
     "@elysiajs/swagger": "^1.3.0",
     "elysia": "^1.3.1",
     "elysia-helmet": "^2.0.0",
+    "logixlysia": "^5.0.0",
     "react-icons": "^5.5.0",
     "react-markdown": "^10.1.0",
     "react-speech-recognition": "^4.0.0",

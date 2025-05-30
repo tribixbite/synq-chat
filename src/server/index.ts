@@ -7,6 +7,7 @@ import { onBeforeHandle, onError } from "@helpers/elysia";
 import { AVAILABLE_APPS, Config } from "@shared/config";
 import { rootPlugins } from "@src/server/plugins/rootPlugins";
 import Elysia from "elysia";
+import logixlysia from "logixlysia";
 import { subdomainPlugin } from "./plugins/subdomainPlugin";
 import { vibesynqAiPlugin } from "./plugins/vibesynqAiPlugin";
 
@@ -14,6 +15,26 @@ const { PORT, HOST } = Config;
 
 // Main Elysia server following best practices
 export const app = new Elysia({ name: "synq-chat-server" })
+	.use(
+		logixlysia({
+			config: {
+				showStartupMessage: true,
+				startupMessageFormat: "simple",
+				timestamp: {
+					translateTime: "yyyy-mm-dd HH:MM:ss"
+				},
+				ip: true,
+				logFilePath: "./logs/example.log",
+				customLogFormat:
+					"🦊 {now} {level} {duration} {method} {pathname} {status} {message} {ip} {epoch}",
+				logFilter: {
+					level: ["ERROR", "WARNING"],
+					status: [500, 404],
+					method: "GET"
+				}
+			}
+		})
+	)
 	// Global error handling
 	.onError(c => onError(c))
 	.onBeforeHandle(onBeforeHandle)
@@ -30,14 +51,14 @@ export const app = new Elysia({ name: "synq-chat-server" })
 	// VibeSynq AI endpoint (keep existing functionality)
 	.use(vibesynqAiPlugin)
 
-	// Subdomain and app routing
+	// Subdomain and app routing (this includes app-specific static serving)
 	.use(subdomainPlugin)
 
-	// Fallback static serving for any remaining public files
+	// Root-level static file serving for files like moto.html, index.html, etc.
 	.use(
 		staticPlugin({
 			assets: "./public",
-			prefix: "/public",
+			prefix: "/",
 			alwaysStatic: true,
 			noCache: !Config.IS_PROD
 		})

@@ -1,3 +1,4 @@
+import { staticPlugin } from "@elysiajs/static";
 import { AVAILABLE_APPS, Config, type AppKey } from "@shared/config";
 import Elysia, { file } from "elysia";
 import { existsSync } from "node:fs";
@@ -82,7 +83,40 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			hostHeader
 		};
 	})
-	// Manual file serving for each app
+	// Static asset serving for each app
+	.use(
+		staticPlugin({
+			assets: "./public/admin",
+			prefix: "/admin",
+			alwaysStatic: true,
+			noCache: false
+		})
+	)
+	.use(
+		staticPlugin({
+			assets: "./public/vibesynq",
+			prefix: "/vibesynq",
+			alwaysStatic: true,
+			noCache: false
+		})
+	)
+	.use(
+		staticPlugin({
+			assets: "./public/app1",
+			prefix: "/app1",
+			alwaysStatic: true,
+			noCache: false
+		})
+	)
+	.use(
+		staticPlugin({
+			assets: "./public/app2",
+			prefix: "/app2",
+			alwaysStatic: true,
+			noCache: false
+		})
+	)
+	// Manual file serving for each app index.html (fallback)
 	.get("/admin/", () => {
 		const indexPath = resolve("./public/admin/index.html");
 		if (existsSync(indexPath)) {
