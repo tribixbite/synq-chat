@@ -1,20 +1,17 @@
-import { resolve } from "node:path";
 // apps/admin/vite.config.ts
 import react from "@vitejs/plugin-react-swc";
+import { resolve } from "node:path";
 import { defineConfig } from "vite";
-import { type Target, viteStaticCopy } from "vite-plugin-static-copy";
 import tsconfigPaths from "vite-tsconfig-paths";
-import { Env, Route } from "../../src/shared/constants";
 
-const base = "/admin/";
-
-const root = resolve(__dirname, "src/client");
-const outDir = resolve(__dirname, "../../public/admin"); // Build output goes to project root public/admin
-const publicDir = resolve(__dirname, "src/client/public/assets"); // Static assets from client/public/assets
-const toCopy: Target[] = [];
+const appName = "admin";
+const appRoot = resolve(__dirname);
+const srcRoot = resolve(appRoot, "src/client");
+const outDir = resolve(appRoot, "../../public", appName);
+const base = `/${appName}/`;
 
 export default defineConfig(({ mode }) => ({
-	root,
+	root: srcRoot,
 	base,
 	define: {
 		"import.meta.env.MODE": JSON.stringify(mode)
@@ -24,25 +21,25 @@ export default defineConfig(({ mode }) => ({
 		strictPort: false,
 		fs: { deny: ["sw.*"] },
 		proxy: {
-			[Route.Api]: {
+			"/api": {
 				target: `http://localhost:3000${base}`,
 				changeOrigin: true
 			}
 		}
 	},
-	publicDir, // Use separate directory for static assets
+	publicDir: resolve(appRoot, "src/client/public/assets"),
 	build: {
 		outDir,
 		emptyOutDir: true,
-		sourcemap: mode !== Env.Production,
-		minify: mode === Env.Production,
+		sourcemap: mode !== "production",
+		minify: mode === "production",
 		rollupOptions: {
 			input: {
-				main: resolve(root, "index.html"),
-				sw: resolve(root, "sw.ts")
+				main: resolve(srcRoot, "index.html"),
+				sw: resolve(srcRoot, "sw.ts")
 			},
 			output: {
-				manualChunks: path => {
+				manualChunks: (path: string) => {
 					if (path.includes("node_modules")) return "vendor";
 					return null;
 				},
@@ -55,15 +52,15 @@ export default defineConfig(({ mode }) => ({
 	plugins: [
 		react(),
 		tsconfigPaths({
-			projects: [resolve(__dirname, "../../tsconfig.json")]
-		}),
-		...(mode === Env.Production && toCopy.length > 0
-			? [
-					viteStaticCopy({
-						targets: toCopy
-					})
-				]
-			: [])
+			projects: [resolve(appRoot, "../../tsconfig.json")]
+		})
 	],
-	resolve: {}
+	resolve: {
+		alias: {
+			"@": resolve(appRoot, "../../src"),
+			"@shared": resolve(appRoot, "../../src/shared"),
+			"@client": resolve(appRoot, "../../src/client"),
+			"@server": resolve(appRoot, "../../src/server")
+		}
+	}
 }));
