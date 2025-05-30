@@ -7,7 +7,7 @@ This document provides a comprehensive guide to the Synq platform's sophisticate
 The Synq platform implements a multi-layered routing system that handles:
 
 1. **Subdomain-based routing** (e.g., `admin.domain.com`, `vibesynq.domain.com`)
-2. **Path-based routing** (e.g., `/admin/`, `/vibesynq/`)
+2. **Path-based routing** (e.g., `/apps/admin/`, `/apps/vibesynq/`)
 3. **Static file serving** with proper MIME types and caching
 4. **SPA fallback routing** for React applications
 5. **Direct file access** for standalone content
@@ -46,18 +46,19 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 ### 2. Static File Serving
 
 #### Production Build Outputs
-Each app builds to its dedicated directory in `public/`:
+Each app builds to its dedicated directory in `public/apps/`:
 
 ```
 public/
-├── admin/              # Built admin React app
-│   ├── index.html      # Entry point
-│   ├── assets/         # JS, CSS, images
-│   └── sw.js           # Service worker
-├── vibesynq/           # Built vibesynq React app
-│   ├── index.html      # Entry point
-│   ├── assets/         # JS, CSS, images
-│   └── logo.svg        # App-specific assets
+├── apps/
+│   ├── admin/              # Built admin React app
+│   │   ├── index.html      # Entry point
+│   │   ├── assets/         # JS, CSS, images
+│   │   └── sw.js           # Service worker
+│   └── vibesynq/           # Built vibesynq React app
+│       ├── index.html      # Entry point
+│       ├── assets/         # JS, CSS, images
+│       └── sw.js           # Service worker
 ├── llm/                # LLM service files
 │   └── file.txt        # Example content
 ├── moto.html           # Standalone Three.js game
@@ -86,24 +87,24 @@ const MIME_TYPES = {
 
 #### Admin Subdomain
 **Pattern:** `admin.domain.com/*`
-**Target:** Serves admin React app from `public/admin/`
+**Target:** Serves admin React app from `public/apps/admin/` (usually proxied to `/apps/admin/` path by server logic if subdomain directly serves the app's root)
 
 ```bash
 # Examples
-admin.localhost:3000/           → public/admin/index.html
-admin.localhost:3000/dashboard  → public/admin/index.html (SPA routing)
-admin.localhost:3000/assets/    → public/admin/assets/* (static assets)
+admin.localhost:3000/           → public/apps/admin/index.html
+admin.localhost:3000/dashboard  → public/apps/admin/index.html (SPA routing)
+admin.localhost:3000/assets/    → public/apps/admin/assets/* (static assets)
 ```
 
 #### Vibesynq Subdomain
 **Pattern:** `vibesynq.domain.com/*`
-**Target:** Serves vibesynq React app from `public/vibesynq/`
+**Target:** Serves vibesynq React app from `public/apps/vibesynq/`
 
 ```bash
 # Examples
-vibesynq.localhost:3000/        → public/vibesynq/index.html
-vibesynq.localhost:3000/create  → public/vibesynq/index.html (SPA routing)
-vibesynq.localhost:3000/assets/ → public/vibesynq/assets/* (static assets)
+vibesynq.localhost:3000/        → public/apps/vibesynq/index.html
+vibesynq.localhost:3000/create  → public/apps/vibesynq/index.html (SPA routing)
+vibesynq.localhost:3000/assets/ → public/apps/vibesynq/assets/* (static assets)
 ```
 
 #### LLM Subdomain
@@ -122,25 +123,25 @@ llm.localhost:3000/api/         → API endpoints (if configured)
 When subdomain routing isn't available, path-based routing takes over:
 
 #### Admin Path
-**Pattern:** `domain.com/admin/*`
-**Target:** Serves admin React app with `/admin/` base path
+**Pattern:** `domain.com/apps/admin/*`
+**Target:** Serves admin React app with `/apps/admin/` base path
 
 ```bash
 # Examples
-localhost:3000/admin/           → public/admin/index.html
-localhost:3000/admin/dashboard  → public/admin/index.html (SPA routing)
-localhost:3000/admin/assets/    → public/admin/assets/* (static assets)
+localhost:3000/apps/admin/           → public/apps/admin/index.html
+localhost:3000/apps/admin/dashboard  → public/apps/admin/index.html (SPA routing)
+localhost:3000/apps/admin/assets/    → public/apps/admin/assets/* (static assets)
 ```
 
 #### Vibesynq Path
-**Pattern:** `domain.com/vibesynq/*`
-**Target:** Serves vibesynq React app with `/vibesynq/` base path
+**Pattern:** `domain.com/apps/vibesynq/*`
+**Target:** Serves vibesynq React app with `/apps/vibesynq/` base path
 
 ```bash
 # Examples
-localhost:3000/vibesynq/        → public/vibesynq/index.html
-localhost:3000/vibesynq/create  → public/vibesynq/index.html (SPA routing)
-localhost:3000/vibesynq/assets/ → public/vibesynq/assets/* (static assets)
+localhost:3000/apps/vibesynq/        → public/apps/vibesynq/index.html
+localhost:3000/apps/vibesynq/create  → public/apps/vibesynq/index.html (SPA routing)
+localhost:3000/apps/vibesynq/assets/ → public/apps/vibesynq/assets/* (static assets)
 ```
 
 ### 3. Direct File Access
@@ -152,8 +153,8 @@ localhost:3000/vibesynq/assets/ → public/vibesynq/assets/* (static assets)
 ```bash
 # Examples
 localhost:3000/moto.html        → public/moto.html
-localhost:3000/favicon.ico      → public/favicon.ico
-localhost:3000/robots.txt       → public/robots.txt
+localhost:3000/favicon.ico      → public/favicon.ico (if present at root)
+localhost:3000/robots.txt       → public/robots.txt (if present at root)
 ```
 
 #### Nested Static Content
@@ -177,22 +178,22 @@ Each app runs its own Vite dev server during development:
 ```bash
 # Vibesynq dev server
 cd apps/vibesynq && bunx vite
-# Serves at http://localhost:5173 with HMR
+# Serves at http://localhost:5173 (or other port) with /apps/vibesynq/ base
 
 # Admin dev server  
 cd apps/admin && bunx vite
-# Serves at http://localhost:5174 with HMR
+# Serves at http://localhost:5174 (or other port) with /apps/admin/ base
 ```
 
 #### Dev Server Proxying
 Vite dev servers proxy API calls to the main server:
 
 ```typescript
-// apps/vibesynq/vite.config.ts
+// Example for apps/vibesynq/vite.config.ts
 server: {
   proxy: {
-    "/api": {
-      target: "http://localhost:3000/vibesynq/",
+    "/api": { // Assuming your API is served at /api by the main server
+      target: "http://localhost:3000", // Main server
       changeOrigin: true
     }
   }
@@ -216,8 +217,10 @@ bun run dev:admin     # Server + Admin
 #### 1. Build Phase
 ```bash
 # Build all frontend apps
-bun run build:vibesynq  # apps/vibesynq → public/vibesynq/
-bun run build:admin     # apps/admin → public/admin/
+bun run build:vibesynq  # apps/vibesynq/src → apps/vibesynq/dist/
+bun run build:admin     # apps/admin/src/client → apps/admin/dist/
+
+# Dockerfile then copies dist contents to public/apps/appname/
 
 # Compile server
 bun run compile         # src/server → ./main
@@ -227,40 +230,32 @@ bun run compile         # src/server → ./main
 
 **Vibesynq Build (`apps/vibesynq/vite.config.ts`):**
 ```typescript
+// Simplified example of the new structure
 export default defineConfig({
-  root: resolve(__dirname, "src"),
-  base: "/vibesynq/",
+  root: resolve(__dirname, "src"),       // e.g., apps/vibesynq/src
+  base: "/apps/vibesynq/",
   build: {
-    outDir: "../../public/vibesynq",
+    outDir: resolve(__dirname, "dist"),  // e.g., apps/vibesynq/dist
     emptyOutDir: true
+    // ... PWA options, rollup, etc.
   },
-  plugins: [react(), tailwindcss()]
+  plugins: [react(), tailwindcss() /*, svgr, viteStaticCopy, etc. */ ]
 });
 ```
 
 **Admin Build (`apps/admin/vite.config.ts`):**
 ```typescript
+// Simplified example of the new structure
 export default defineConfig({
-  root: resolve(__dirname, "src/client"),
-  base: "/admin/",
+  root: resolve(__dirname, "src/client"), // e.g., apps/admin/src/client
+  base: "/apps/admin/",
   build: {
-    outDir: "../../public/admin",
+    outDir: resolve(__dirname, "dist"),   // e.g., apps/admin/dist
     emptyOutDir: true
+    // ... PWA options, rollup, etc.
   },
-  plugins: [react()]
+  plugins: [react() /*, svgr, viteStaticCopy, etc. */]
 });
-```
-
-#### 3. Docker Production
-```dockerfile
-# Build all apps
-RUN bun run build:vibesynq
-RUN bun run build:admin
-RUN bun run compile
-
-# Copy built files to production image
-COPY --from=build /app/main /app/main
-COPY --from=build /app/public /app/public
 ```
 
 ## Testing the Routing System

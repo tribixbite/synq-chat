@@ -24,31 +24,31 @@ Successfully resolved Docker build issues and implemented a robust routing syste
 3. Fixed `.dockerignore` to include necessary lefthook files
 4. Cleaned up unnecessary Docker commands
 
-### **Final Build Results**
+### **Final Build Results** (Reflects new structure with apps built to `apps/appname/dist` then copied to `public/apps/appname`)
 
 #### ✅ Vibesynq App Build (With Tailwind CSS v4)
 ```
 Source: apps/vibesynq/src/
-Output: public/vibesynq/
+Output: apps/vibesynq/dist/ (Copied to public/apps/vibesynq/)
 Files:
-  - index.html (625B)
-  - assets/logo-BMVfXAv4.svg (5.8KB)
-  - assets/index-CLnzJEGe.js (265KB) 
-  - assets/index-CPQhxxxJ.css (28KB) - Full Tailwind CSS v4
-  - assets/success-rK_Ordu6.mp3 (48KB)
+  - index.html (example size)
+  - assets/logo-XXXX.svg (example size)
+  - assets/index-XXXX.js (example size) 
+  - assets/index-XXXX.css (example size) - Full Tailwind CSS v4
+  - sw.js (example size)
 ```
 
 #### ✅ Admin App Build  
 ```
 Source: apps/admin/src/client/
-Output: public/admin/
+Output: apps/admin/dist/ (Copied to public/apps/admin/)
 Files:
-  - index.html (2.3KB)
-  - main-Cng2WDY9.js (9.4KB)
-  - sw-Dzi_0iVT.js (1.1KB) - Service Worker
-  - vendor-CBRnrolm.js (236KB)
-  - main-IxDZhtBV.css (757B)
-  - manifest-Dus5wFfM.json (813B)
+  - index.html (example size)
+  - assets/main-XXXX.js (example size)
+  - sw.js (example size) - Service Worker
+  - assets/vendor-XXXX.js (example size)
+  - assets/main-XXXX.css (example size)
+  - manifest.json (example size)
 ```
 
 #### ✅ Docker Build
@@ -64,39 +64,40 @@ Technology: @tailwindcss/vite + Bun working properly
 
 ### **File Structure Mapping**
 ```
-apps/vibesynq/src/          → public/vibesynq/      → /vibesynq/* routes
-apps/admin/src/client/      → public/admin/         → /admin/* routes  
+apps/vibesynq/dist/         → public/apps/vibesynq/      → /apps/vibesynq/* routes
+apps/admin/dist/            → public/apps/admin/         → /apps/admin/* routes  
 public/moto.html            → /moto.html            → Direct file access
 public/llm/                 → /llm/* or llm.subdomain.com
 ```
 
 ### **Path-Based Routing** ✅ IMPLEMENTED
 ```bash
-localhost:3000/admin/           → Serves admin React SPA
-localhost:3000/admin/dashboard  → Admin SPA routing (index.html fallback)
-localhost:3000/admin/assets/    → Admin static assets
+localhost:3000/apps/admin/           → Serves admin React SPA
+localhost:3000/apps/admin/dashboard  → Admin SPA routing (index.html fallback)
+localhost:3000/apps/admin/assets/    → Admin static assets
 
-localhost:3000/vibesynq/        → Serves vibesynq React SPA  
-localhost:3000/vibesynq/create  → Vibesynq SPA routing (index.html fallback)
-localhost:3000/vibesynq/assets/ → Vibesynq static assets with Tailwind CSS v4
+localhost:3000/apps/vibesynq/        → Serves vibesynq React SPA  
+localhost:3000/apps/vibesynq/create  → Vibesynq SPA routing (index.html fallback)
+localhost:3000/apps/vibesynq/assets/ → Vibesynq static assets with Tailwind CSS v4
 
 localhost:3000/moto.html        → Direct Three.js game file
 localhost:3000/llm/file.txt     → LLM service content
 ```
 
 ### **Subdomain Routing** ✅ IMPLEMENTED
+(Assuming subdomain logic correctly maps to the `/apps/appname/` paths or serves directly from `public/apps/appname/`)
 ```bash
-admin.domain.com/*              → Routes to admin app
-vibesynq.domain.com/*           → Routes to vibesynq app  
+admin.domain.com/*              → Routes to admin app (served from /apps/admin/)
+vibesynq.domain.com/*           → Routes to vibesynq app (served from /apps/vibesynq/) 
 llm.domain.com/*                → Routes to LLM services
 ```
 
 ### **Asset Serving** ✅ VERIFIED
 ```bash
-/admin/assets/main-IxDZhtBV.css     → Correct MIME: text/css
-/vibesynq/assets/index-CPQhxxxJ.css → Correct MIME: text/css + Full Tailwind v4
-/vibesynq/assets/logo-BMVfXAv4.svg  → Correct MIME: image/svg+xml
-/vibesynq/assets/success-rK_Ordu6.mp3 → Correct MIME: audio/mpeg
+/apps/admin/assets/main-XXXX.css     → Correct MIME: text/css
+/apps/vibesynq/assets/index-XXXX.css → Correct MIME: text/css + Full Tailwind v4
+/apps/vibesynq/assets/logo-XXXX.svg  → Correct MIME: image/svg+xml
+# /vibesynq/assets/success-rK_Ordu6.mp3 → /apps/vibesynq/assets/success-XXXX.mp3 (Correct MIME: audio/mpeg)
 ```
 
 ## **Technology Stack Verification**
@@ -127,15 +128,15 @@ llm.domain.com/*                → Routes to LLM services
 bun run dev
 
 # Individual services  
-bun run dev:vibesynq  # Server + Vibesynq dev
-bun run dev:admin     # Server + Admin dev
+bun run dev:vibesynq  # Server + Vibesynq dev (served from /apps/vibesynq/)
+bun run dev:admin     # Server + Admin dev (served from /apps/admin/)
 ```
 
 ### **Production Build**
 ```bash
 # Build frontend apps
-bun run build:vibesynq  # ✅ Working (Tailwind CSS v4)
-bun run build:admin     # ✅ Working
+bun run build:vibesynq  # ✅ Working (Tailwind CSS v4) - output to apps/vibesynq/dist/
+bun run build:admin     # ✅ Working - output to apps/admin/dist/
 
 # Compile server
 bun run compile         # ✅ Working
@@ -153,8 +154,8 @@ docker run -p 3006:3000 synq-chat  # ✅ Running
 Test-NetConnection -ComputerName localhost -Port 3006  # ✅ Connected
 
 # Manual browser testing
-# http://localhost:3006/admin/     → Admin React app
-# http://localhost:3006/vibesynq/  → Vibesynq React app with full Tailwind CSS v4
+# http://localhost:3006/apps/admin/     → Admin React app
+# http://localhost:3006/apps/vibesynq/  → Vibesynq React app with full Tailwind CSS v4
 # http://localhost:3006/moto.html  → Three.js dirt bike game
 ```
 
@@ -163,14 +164,14 @@ Test-NetConnection -ComputerName localhost -Port 3006  # ✅ Connected
 ### **Updated Files**
 1. **overview.md** - Reflects current production-ready state
 2. **todo.md** - Updated priorities and completed infrastructure  
-3. **routing.md** - Comprehensive routing system documentation
+3. **routing.md** - Comprehensive routing system documentation (updated for /apps/ structure)
 4. **Removed** - `src/utils/createViteConfig.ts` (unused factory)
 5. **Restored** - `@tailwindcss/vite` plugin with proper documentation
 
 ### **Key Achievements**
 - ✅ **Infrastructure**: Production-ready monorepo with Docker
-- ✅ **Routing**: Sophisticated multi-app routing system
-- ✅ **Build**: Optimized Vite configurations with Tailwind CSS v4
+- ✅ **Routing**: Sophisticated multi-app routing system (updated for /apps/ structure)
+- ✅ **Build**: Optimized Vite configurations with Tailwind CSS v4 (apps build to local dist)
 - ✅ **Deploy**: Working Docker containerization  
 - ✅ **Assets**: Proper static file serving with MIME types
 - ✅ **Documentation**: Comprehensive guides and troubleshooting

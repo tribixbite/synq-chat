@@ -7,7 +7,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["public/**"]
+    "ignore": ["public/**", "**/dist/**"]
   },
   "linter": {
     "enabled": true,

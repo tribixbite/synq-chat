@@ -1,7 +1,10 @@
 /// <reference lib="webworker" />
 
-import { registerRoute } from "workbox-routing";
-import { CacheFirst, NetworkFirst, NetworkOnly } from "workbox-strategies";
+import { clientsClaim } from "workbox-core";
+import { ExpirationPlugin } from "workbox-expiration";
+import { createHandlerBoundToURL, precacheAndRoute } from "workbox-precaching";
+import { NavigationRoute, registerRoute } from "workbox-routing";
+import { CacheFirst, NetworkFirst, StaleWhileRevalidate } from "workbox-strategies";
 
 import { HASH_PREFIX, HASH_REGEX } from "@shared/constants";
 
@@ -28,12 +31,14 @@ self.addEventListener("install", event => {
 		(async () => {
 			const cache = await caches.open(cacheName);
 			if (!cache) return;
-			const urlsToPrecache = ["/", ...(manifest?.map(({ url }) => url) ?? [])];
-			await cache.addAll(urlsToPrecache.map(url => url));
+			const urlsToPrecache = [
+				"/",
+				...(manifest?.map(entry => (typeof entry === "string" ? entry : entry.url)) ?? [])
+			];
+			await cache.addAll(urlsToPrecache);
 		})().catch(console.error)
 	);
 });
-
 self.addEventListener("activate", event => {
 	event.waitUntil(
 		(async () => {
@@ -78,3 +83,38 @@ const isCacheFirstRequest = (url: URL) => {
 registerRoute(({ url }) => isCacheFirstRequest(url), new CacheFirst({ cacheName }));
 
 registerRoute(() => true, new NetworkFirst({ cacheName }));
+
+self.skipWaiting();
+clientsClaim();
+
+precacheAndRoute(self.__WB_MANIFEST || []);
+
+const fileExtensionRegexp = /\/[^\/?]+\.[^\/]+$/;
+const navigationRoute = new NavigationRoute(createHandlerBoundToURL("/index.html"), {
+	denylist: [fileExtensionRegexp]
+});
+registerRoute(navigationRoute);
+
+registerRoute(
+	({ url }) => url.origin === self.location.origin && url.pathname.endsWith(".png"),
+	new StaleWhileRevalidate({
+		cacheName: "images",
+		plugins: [new ExpirationPlugin({ maxEntries: 50 })]
+	})
+);
+
+registerRoute(
+	({ url }) =>
+		url.origin === self.location.origin &&
+		(url.pathname.endsWith(".woff2") || url.pathname.endsWith(".svg")),
+	new CacheFirst({
+		cacheName: "static-assets",
+		plugins: [new ExpirationPlugin({ maxEntries: 30, maxAgeSeconds: 30 * 24 * 60 * 60 })]
+	})
+);
+
+self.addEventListener("message", event => {
+	if (event.data && event.data.type === "SKIP_WAITING") {
+		self.skipWaiting();
+	}
+});

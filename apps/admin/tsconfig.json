@@ -1,17 +1,18 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src/client",
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@client/*": ["./src/client/*"],
-      "@contexts/*": ["./src/client/contexts/*"],
-      "@hooks/*": ["./src/client/hooks/*"],
+      "@/*": ["src/client/*"],
       "@shared/*": ["../../src/shared/*"],
-      "@server/*": ["../../src/server/*"],
-      "@helpers/*": ["../../src/server/helpers/*"]
-    }
+      "@api/*": ["../../src/server/api/*"],
+      "@components/*": ["src/client/components/*"]
+    },
+    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
+    "types": ["vite/client"]
   },
-  "include": ["src", "src/**/*.json"],
+  "include": ["src/client"],
   "exclude": ["node_modules", "dist"]
 }

@@ -17,7 +17,8 @@ COPY --link lefthook.ts lefthook.json ./
 # Copy source code and app code
 COPY --link src ./src
 COPY --link apps ./apps
-COPY --link public ./public
+# Copy the original root public assets to a temporary distinguished name
+COPY --link public ./public_root_assets 
 
 # Install dependencies with proper flags for Docker
 RUN bun install --frozen-lockfile --ignore-scripts
@@ -26,15 +27,25 @@ RUN bun install --frozen-lockfile --ignore-scripts
 # RUN bun run biome ci .
 # RUN bun run tsc --noEmit # tsc is run by individual app builds if needed via vite
 
-# Build frontend apps
-RUN bun run build:vibesynq
-RUN bun run build:admin
+# Build frontend apps (they now build to their own dist/ folders)
+# Ensure build:all or individual build scripts are correct in package.json
+RUN bun run build:all 
 
 # Compile backend
 RUN bun run compile
 
 # Ensure the compiled output is executable
 RUN chmod +x ./main
+
+# Create the target public structure in the build stage
+RUN mkdir -p /app/public_final/apps/vibesynq && mkdir -p /app/public_final/apps/admin
+
+# Copy built frontend apps to the structured public directory
+RUN cp -r /app/apps/vibesynq/dist/* /app/public_final/apps/vibesynq/
+RUN cp -r /app/apps/admin/dist/* /app/public_final/apps/admin/
+
+# Copy other root public assets to the final public directory
+RUN cp -r /app/public_root_assets/* /app/public_final/
 
 # Minimalist final stage for app image
 FROM gcr.io/distroless/base
@@ -44,10 +55,8 @@ WORKDIR /app
 # Copy compiled backend
 COPY --from=build /app/main /app/main
 
-# Copy all static assets from public directory
-# This includes the built frontend apps at public/admin, public/vibesynq, 
-# plus all other static files like public/app1, public/app2, public/moto.html, etc.
-COPY --from=build /app/public /app/public
+# Copy the complete public directory structure from build stage
+COPY --from=build /app/public_final /app/public
 
 # Set production environment
 ENV NODE_ENV=production

@@ -30,6 +30,6 @@
       "@helpers/*": ["src/server/helpers/*"]
     }
   },
-  "exclude": ["node_modules", "**/public", "dist", "main"],
+  "exclude": ["node_modules", "**/public", "**/dist", "main"],
   "include": ["src", "apps"]
 }
