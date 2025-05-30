@@ -9,7 +9,7 @@ const IS_PROD = process.env.NODE_ENV === Env.Production;
 
 // App routing configuration
 const DEFAULT_APP = process.env.DEFAULT_APP ?? "vibesynq";
-const APPS_DIR = process.env.APPS_DIR ?? "./public";
+const APPS_DIR = process.env.APPS_DIR ?? "./public/apps";
 
 export const Config: TConfig = {
 	PORT,

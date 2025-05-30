@@ -57,12 +57,12 @@ const getAppFromSubdomainOrPath = (subdomain: string | null, pathname: string): 
 		return subdomain as AppKey;
 	}
 
-	// Then, try to match path prefix (e.g., /admin/, /vibesynq/)
+	// Then, try to match path prefix (e.g., /apps/admin/, /apps/vibesynq/)
 	const pathSegments = pathname.split("/").filter(Boolean);
-	if (pathSegments.length > 0) {
-		const firstSegment = pathSegments[0];
-		if (appExists(firstSegment)) {
-			return firstSegment as AppKey;
+	if (pathSegments.length > 1 && pathSegments[0] === "apps") {
+		const appKey = pathSegments[1];
+		if (appExists(appKey)) {
+			return appKey as AppKey;
 		}
 	}
 
@@ -83,63 +83,92 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			hostHeader
 		};
 	})
-	// Static asset serving for each app
+	// Static asset serving for each app with correct /apps/ prefix
 	.use(
 		staticPlugin({
-			assets: "./public/admin",
-			prefix: "/admin",
+			assets: "./public/apps/admin",
+			prefix: "/apps/admin",
 			alwaysStatic: true,
 			noCache: false
 		})
 	)
 	.use(
 		staticPlugin({
-			assets: "./public/vibesynq",
-			prefix: "/vibesynq",
+			assets: "./public/apps/vibesynq",
+			prefix: "/apps/vibesynq",
 			alwaysStatic: true,
 			noCache: false
 		})
 	)
 	.use(
 		staticPlugin({
-			assets: "./public/app1",
-			prefix: "/app1",
+			assets: "./public/apps/app1",
+			prefix: "/apps/app1",
 			alwaysStatic: true,
 			noCache: false
 		})
 	)
 	.use(
 		staticPlugin({
-			assets: "./public/app2",
-			prefix: "/app2",
+			assets: "./public/apps/app2",
+			prefix: "/apps/app2",
 			alwaysStatic: true,
 			noCache: false
 		})
 	)
-	// Manual file serving for each app index.html (fallback)
-	.get("/admin/", () => {
-		const indexPath = resolve("./public/admin/index.html");
+	// Manual file serving for each app index.html with /apps/ prefix
+	.get("/apps/admin/", () => {
+		const indexPath = resolve("./public/apps/admin/index.html");
 		if (existsSync(indexPath)) {
 			return file(indexPath);
 		}
 		throw new Error("Admin app not found");
 	})
-	.get("/vibesynq/", () => {
-		const indexPath = resolve("./public/vibesynq/index.html");
+	.get("/apps/vibesynq/", () => {
+		const indexPath = resolve("./public/apps/vibesynq/index.html");
 		if (existsSync(indexPath)) {
 			return file(indexPath);
 		}
 		throw new Error("VibeSynq app not found");
 	})
-	.get("/app1/", () => {
-		const indexPath = resolve("./public/app1/index.html");
+	.get("/apps/app1/", () => {
+		const indexPath = resolve("./public/apps/app1/index.html");
 		if (existsSync(indexPath)) {
 			return file(indexPath);
 		}
 		throw new Error("App1 not found");
 	})
-	.get("/app2/", () => {
-		const indexPath = resolve("./public/app2/index.html");
+	.get("/apps/app2/", () => {
+		const indexPath = resolve("./public/apps/app2/index.html");
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error("App2 not found");
+	})
+	// SPA fallback routes for each app to handle client-side routing
+	.get("/apps/admin/*", () => {
+		const indexPath = resolve("./public/apps/admin/index.html");
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error("Admin app not found");
+	})
+	.get("/apps/vibesynq/*", () => {
+		const indexPath = resolve("./public/apps/vibesynq/index.html");
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error("VibeSynq app not found");
+	})
+	.get("/apps/app1/*", () => {
+		const indexPath = resolve("./public/apps/app1/index.html");
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error("App1 not found");
+	})
+	.get("/apps/app2/*", () => {
+		const indexPath = resolve("./public/apps/app2/index.html");
 		if (existsSync(indexPath)) {
 			return file(indexPath);
 		}
@@ -156,18 +185,18 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			throw new Error("LLM index not found");
 		}
 
-		// If we have a target app from subdomain, redirect to its path
+		// If we have a target app from subdomain, redirect to its path with /apps/ prefix
 		if (targetApp) {
-			return redirect(`/${AVAILABLE_APPS[targetApp].path}/`);
+			return redirect(`/apps/${AVAILABLE_APPS[targetApp].path}/`);
 		}
 
 		// If subdomain doesn't match any app, redirect to default app
 		if (subdomain && !targetApp) {
-			return redirect(`/${AVAILABLE_APPS[Config.DEFAULT_APP as AppKey].path}/`);
+			return redirect(`/apps/${AVAILABLE_APPS[Config.DEFAULT_APP as AppKey].path}/`);
 		}
 
 		// No subdomain, redirect to default app
-		return redirect(`/${AVAILABLE_APPS[Config.DEFAULT_APP as AppKey].path}/`);
+		return redirect(`/apps/${AVAILABLE_APPS[Config.DEFAULT_APP as AppKey].path}/`);
 	})
 	// Catch-all for unmatched routes - handle LLM subdomain and app redirects
 	.get("*", ({ subdomain, targetApp, redirect, path }) => {
@@ -205,11 +234,11 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 		}
 
 		// Handle regular app subdomain redirects
-		// If we have a subdomain that matches an app, redirect to that app
+		// If we have a subdomain that matches an app, redirect to that app with /apps/ prefix
 		if (subdomain && appExists(subdomain)) {
-			return redirect(`/${AVAILABLE_APPS[subdomain as AppKey].path}${path}`);
+			return redirect(`/apps/${AVAILABLE_APPS[subdomain as AppKey].path}${path}`);
 		}
 
 		// Otherwise redirect to default app
-		return redirect(`/${AVAILABLE_APPS[Config.DEFAULT_APP as AppKey].path}${path}`);
+		return redirect(`/apps/${AVAILABLE_APPS[Config.DEFAULT_APP as AppKey].path}${path}`);
 	});
