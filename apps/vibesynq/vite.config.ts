@@ -12,7 +12,8 @@ export default defineConfig({
 		emptyOutDir: true,
 		rollupOptions: {
 			output: {
-				manualChunks: undefined // Disable manual chunking to avoid issues
+				// Disable manual chunking to avoid Docker issues
+				manualChunks: undefined
 			}
 		}
 	},

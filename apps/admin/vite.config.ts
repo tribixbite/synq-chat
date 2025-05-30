@@ -39,13 +39,7 @@ export default defineConfig(({ mode }) => ({
 				sw: resolve(srcRoot, "sw.ts")
 			},
 			output: {
-				manualChunks: (path: string) => {
-					if (path.includes("node_modules")) return "vendor";
-					return null;
-				},
-				chunkFileNames: "assets/[name]-[hash].js",
-				entryFileNames: "assets/[name]-[hash].js",
-				assetFileNames: "assets/[name]-[hash][extname]"
+				manualChunks: undefined
 			}
 		}
 	},
