@@ -18,9 +18,10 @@ COPY --link src ./src
 COPY --link apps ./apps
 COPY --link public ./public
 
-# Install dependencies
-RUN bun install
-# --frozen-lockfile
+# Install dependencies with proper flags for Docker
+RUN bun install --frozen-lockfile --no-save
+RUN bun pm trust --all
+RUN bun run lefthook install
 
 # Lint and type-check (optional in Docker build, but good for CI consistency)
 # RUN bun run biome ci .
