@@ -7,6 +7,5 @@
 .dockerignore
 Dockerfile
 fly.toml
-lefthook*
 LICENSE
 README.md

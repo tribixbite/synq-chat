@@ -6,8 +6,13 @@ Successfully resolved the "undefined" build error and implemented a robust routi
 
 ### **Issue Resolution**
 - **Problem**: Docker build failing with "undefined" error in `bun run build:vibesynq`
-- **Root Cause**: `manualChunks` function in Vite rollup configuration causing issues in Docker/Bun environment
-- **Solution**: Simplified rollup configurations to use `manualChunks: undefined` for both apps
+- **Root Cause 1**: `manualChunks` function in Vite rollup configuration causing issues in Docker/Bun environment
+- **Root Cause 2**: Incorrect bun install flags and missing lefthook files in Docker context
+- **Final Solution**: 
+  1. Simplified rollup configurations to use `manualChunks: undefined` for both apps
+  2. Fixed Dockerfile to use `--ignore-scripts` during install (skipping prepare scripts)
+  3. Removed `lefthook*` from `.dockerignore` to allow lefthook.ts/lefthook.json copying
+  4. Removed unnecessary `bun pm trust --all` and `bun run lefthook install` commands
 
 ### **Final Build Results**
 
@@ -39,10 +44,11 @@ Files:
 
 #### ✅ Docker Build
 ```
-Build Time: ~23 seconds
+Build Time: ~7.5 seconds (optimized)
 Image Size: Optimized with distroless base
-Status: ✅ SUCCESS - No "undefined" errors
+Status: ✅ SUCCESS - All issues resolved
 Container: Running and serving on port 3000
+Key Fixes: Proper bun install flags, cleaned Dockerfile, fixed .dockerignore
 ```
 
 ## **Routing System Verification**

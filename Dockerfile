@@ -12,6 +12,7 @@ RUN apt-get update -qq && \
 # Copy package files and config
 COPY --link package.json bun.lockb tsconfig.json ./
 COPY --link vite.config.ts bun.lock ./
+COPY --link lefthook.ts lefthook.json ./
 
 # Copy source code and app code
 COPY --link src ./src
@@ -19,9 +20,7 @@ COPY --link apps ./apps
 COPY --link public ./public
 
 # Install dependencies with proper flags for Docker
-RUN bun install --frozen-lockfile --no-save
-RUN bun pm trust --all
-RUN bun run lefthook install
+RUN bun install --frozen-lockfile --ignore-scripts
 
 # Lint and type-check (optional in Docker build, but good for CI consistency)
 # RUN bun run biome ci .
