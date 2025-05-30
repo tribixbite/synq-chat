@@ -1,3 +1,5 @@
+@import "tailwindcss";
+
 /* Basic styles for vibesynq app */
 * {
 	margin: 0;
