@@ -87,3 +87,14 @@
 🦊 2025-05-31 16:04:04 ERROR      938µs         GET     /.well-known/appspecific/com.chrome.devtools.json 200   1748721844
 🦊 2025-05-31 16:04:07 ERROR        1ms         GET     /.well-known/appspecific/com.chrome.devtools.json 200   1748721847
 🦊 2025-05-31 16:04:11 ERROR        1ms         GET     /favicon.ico 200   1748721851
+🦊 2025-05-31 16:07:30 ERROR        6ms         HEAD    /favicon.ico 200   1748722050
+🦊 2025-05-31 16:07:51 ERROR        4ms         HEAD    /moto.html 200   1748722071
+🦊 2025-05-31 16:09:33 ERROR        4ms         HEAD    /favicon.ico 200   1748722173
+🦊 2025-05-31 16:10:04 ERROR        8ms         HEAD    /favicon.ico 200   1748722204
+🦊 2025-05-31 16:10:26 ERROR        1ms         HEAD    /moto.html 200   1748722226
+🦊 2025-05-31 16:11:54 ERROR        4ms         HEAD    /favicon.ico 200   1748722314
+🦊 2025-05-31 16:12:24 ERROR       12ms         HEAD    /favicon.ico 200   1748722344
+🦊 2025-05-31 16:12:24 ERROR        6ms         HEAD    /moto.html 200   1748722344
+🦊 2025-05-31 16:18:20 ERROR        5ms         HEAD    /multisynq-react.txt 200   1748722700
+🦊 2025-05-31 16:18:50 ERROR        3ms         HEAD    /favicon.ico 200   1748722730
+🦊 2025-05-31 16:19:07 ERROR        4ms         HEAD    /favicon.ico 200   1748722747
