@@ -102,5 +102,11 @@ export default defineConfig(({ mode }) => ({
 			silent: true,
 			watch: { reloadPageOnChange: true }
 		})
-	]
+	],
+	resolve: {
+		alias: {
+			"@": resolve(__dirname, "src"),
+			"@shared": resolve(__dirname, "../../src/shared")
+		}
+	}
 }));

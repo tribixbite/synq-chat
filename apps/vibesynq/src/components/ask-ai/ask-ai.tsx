@@ -8,7 +8,7 @@ import { useLocalStorage } from "react-use";
 import { MdPreview } from "react-icons/md";
 
 import Login from "../login/login";
-// import SuccessSound from "@/assets/success.mp3";
+import SuccessSound from "@assets/success.mp3";
 import Settings from "../settings/settings";
 import ProModal from "../pro-modal/pro-modal";
 
@@ -98,8 +98,8 @@ function AskAI({
 		loadLocalSettings();
 	}, [loadLocalSettings]);
 
-	// const audio = new Audio(SuccessSound);
-	// audio.volume = 0.5;
+	const audio = new Audio(SuccessSound);
+	audio.volume = 0.5;
 
 	const callAi = async () => {
 		if (isAiWorking || !prompt.trim()) return;

@@ -1,5 +1,5 @@
 import { FaGithub } from "react-icons/fa";
-import Multisynq from "@/assets/logo.svg";
+import Multisynq from "@assets/logo.svg";
 
 function Tabs({ children }: { children?: React.ReactNode }) {
 	return (
