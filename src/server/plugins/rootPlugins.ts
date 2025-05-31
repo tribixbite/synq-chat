@@ -42,6 +42,7 @@ export const rootPlugins = new Elysia()
 						"'sha256-TcUB1mzXiQO4GxpTRZ0EMpOXKMU3u+n/q1WrgVIcs1I='",
 						"https://cdn.jsdelivr.net/npm/@scalar/",
 						"https://cdn.jsdelivr.net/npm/monaco-editor/",
+						"https://cdn.jsdelivr.net/",
 						"blob:"
 					],
 					styleSrc: ["'self'", "'unsafe-inline'"],

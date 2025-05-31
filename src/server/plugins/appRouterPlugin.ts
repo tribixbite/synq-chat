@@ -1,5 +1,5 @@
 import { AVAILABLE_APPS, type AppKey } from "@shared/config";
-import Elysia, { file } from "elysia";
+import Elysia from "elysia";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 
@@ -9,7 +9,7 @@ const serveAppIndex = (appKey: AppKey) => {
 	const indexPath = resolve(`${app.staticDir}/index.html`);
 
 	if (existsSync(indexPath)) {
-		return file(indexPath);
+		return Bun.file(indexPath);
 	}
 
 	throw new Error(`${app.name} app not found`);
@@ -21,7 +21,7 @@ const serveAppAsset = (appKey: AppKey, assetPath: string) => {
 	const filePath = resolve(`${app.staticDir}/${assetPath}`);
 
 	if (existsSync(filePath)) {
-		return file(filePath);
+		return Bun.file(filePath);
 	}
 
 	throw new Error(`Asset not found: ${assetPath}`);

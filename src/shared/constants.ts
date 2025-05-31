@@ -9,9 +9,9 @@ export const DefaultConfig: TConfig = {
 };
 
 export const Contact = {
-	name: "Chris Leveille",
-	email: "cdleveille@gmail.com",
-	url: "https://www.cdleveille.net"
+	name: "Will Stone",
+	email: "willstone@gmail.com",
+	url: "https://www.willstone.net"
 };
 
 export enum Env {

@@ -1,7 +1,7 @@
 import classNames from "classnames";
 import { useEffect, type KeyboardEvent, useCallback } from "react";
 import { PiGearSixFill } from "react-icons/pi";
-import { PROVIDERS } from "./../../../utils/providers";
+import { PROVIDERS } from "../../utils/providers";
 
 interface LocalSettings {
 	apiKey?: string;
@@ -144,7 +144,7 @@ function Settings({
 									}}
 								>
 									<img
-										src={`/providers/${id}.svg`}
+										src={`/apps/vibesynq/providers/${id}.svg`}
 										alt={PROVIDERS[id].name}
 										className="size-5"
 									/>

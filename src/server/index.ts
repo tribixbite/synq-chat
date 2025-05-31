@@ -1,7 +1,6 @@
 // src/server/index.ts - Corrected version
 // Fixed the LLM guard to prevent blocking other routes
 
-import { staticPlugin } from "@elysiajs/static";
 import { api } from "@helpers/api";
 import { onBeforeHandle, onError } from "@helpers/elysia";
 import { Config } from "@shared/config";
@@ -15,6 +14,22 @@ const { PORT, HOST } = Config;
 
 // Main Elysia server following best practices
 export const app = new Elysia({ name: "synq-chat-server" })
+	// Root redirect to default app (highest priority)
+	.get("/", () => {
+		return { message: "Root route works!", redirect: `/apps/${Config.DEFAULT_APP}/` };
+	})
+	// Alternative root route
+	.get("/index", () => {
+		const redirectUrl = `/apps/${Config.DEFAULT_APP}/`;
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: redirectUrl
+			}
+		});
+	})
+	// Test route to debug routing issues
+	.get("/test", () => ({ message: "Test route works!" }))
 	.use(
 		logixlysia({
 			config: {
@@ -36,7 +51,6 @@ export const app = new Elysia({ name: "synq-chat-server" })
 		})
 	)
 	// Global error handling
-	.onError(c => onError(c))
 	.onBeforeHandle(onBeforeHandle)
 
 	// MultiSynq manual routes (keep these as requested)
@@ -53,16 +67,18 @@ export const app = new Elysia({ name: "synq-chat-server" })
 
 	// Subdomain and app routing (this includes app-specific static serving)
 	.use(subdomainPlugin)
+	.onError(c => onError(c))
 
 	// Root-level static file serving for files like moto.html, index.html, etc.
-	.use(
-		staticPlugin({
-			assets: "./public",
-			prefix: "/"
-			// alwaysStatic: true,
-			// noCache: !Config.IS_PROD
-		})
-	)
+	// Commented out as it interferes with subdomain plugin's root route handling
+	// .use(
+	// 	staticPlugin({
+	// 		assets: "./public",
+	// 		prefix: "/"
+	// 		// alwaysStatic: true,
+	// 		// noCache: !Config.IS_PROD
+	// 	})
+	// )
 
 	// Health check endpoint (removed duplicate - it's now in subdomainPlugin)
 	.listen(PORT, () => {

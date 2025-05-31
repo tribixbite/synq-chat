@@ -2,7 +2,7 @@
   "name": "fullstack-bun",
   "version": "1.0.0",
   "description": "Synq Multi-App Platform - A monorepo web platform powered by Bun, ElysiaJS, React, and Svelte",
-  "author": "Chris Leveille <cdleveille@gmail.com>",
+  "author": "Will Stone <willstone@gmail.com>",
   "license": "MIT",
   "type": "module",
   "module": "src/server/index.ts",

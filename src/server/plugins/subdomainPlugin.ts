@@ -1,9 +1,8 @@
 import { AVAILABLE_APPS, Config, type AppKey } from "@shared/config";
-import Elysia, { file } from "elysia";
+import Elysia from "elysia";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
 import { appRouterPlugin } from "./appRouterPlugin";
-import { llmPlugin } from "./llmPlugin";
 
 // Utility to get subdomain from host header
 export const getSubdomain = (hostHeader: string): string | null => {
@@ -71,6 +70,17 @@ const getAppFromSubdomainOrPath = (subdomain: string | null, pathname: string): 
 };
 
 export const subdomainPlugin = new Elysia({ name: "subdomain" })
+	// Root redirect to default app (put this first to ensure highest priority)
+	.get("/", () => {
+		const defaultApp = Config.DEFAULT_APP;
+		const redirectUrl = `/apps/${defaultApp}/`;
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: redirectUrl
+			}
+		});
+	})
 	// Add subdomain information to context
 	.derive({ as: "global" }, ({ request }) => {
 		const hostHeader = request.headers.get("host") || "";
@@ -85,49 +95,21 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			hostHeader
 		};
 	})
-	// Root redirect to default app
-	.get("/", () => {
-		const defaultApp = Config.DEFAULT_APP;
-		const redirectUrl = `/apps/${defaultApp}/`;
-		return new Response(null, {
-			status: 302,
-			headers: {
-				Location: redirectUrl
-			}
-		});
-	})
-	// Mount LLM plugin with subdomain guard
-	.guard({ as: "scoped" }, app =>
-		app.derive(({ subdomain }) => {
-			if (subdomain !== "llm") {
-				throw new Error("Not LLM subdomain");
-			}
-			return {};
-		})
-	)
-	.use(llmPlugin)
-	// Remove the guard and continue with regular app routing
-	.guard({ as: "scoped" }, app =>
-		app.derive(({ subdomain }) => {
-			if (subdomain === "llm") {
-				throw new Error("LLM subdomain handled by dedicated plugin");
-			}
-			return {};
-		})
-	)
-	// Use the dynamic app router plugin for all app routes
-	.use(appRouterPlugin)
+
 	// Health endpoint
 	.get("/health", () => ({
 		status: "ok",
 		timestamp: new Date().toISOString(),
 		apps: Object.keys(AVAILABLE_APPS)
 	}))
-	// Static file serving from root public directory (for files like moto.html, etc.)
-	.get("/:file", ({ params }: { params: { file: string } }) => {
-		const filePath = resolve(`./public/${params.file}`);
-		if (existsSync(filePath)) {
-			return file(filePath);
-		}
-		throw new Error(`File not found: ${params.file}`);
-	});
+	// Use the dynamic app router plugin for all app routes
+	.use(appRouterPlugin);
+// Static file serving from root public directory (for specific files like moto.html, etc.)
+// .get("/:file.:ext", ({ params }: { params: { file: string; ext: string } }) => {
+// 	const fileName = `${params.file}.${params.ext}`;
+// 	const filePath = resolve(`./public/${fileName}`);
+// 	if (existsSync(filePath)) {
+// 		return file(filePath);
+// 	}
+// 	throw new Error(`File not found: ${fileName}`);
+// });
