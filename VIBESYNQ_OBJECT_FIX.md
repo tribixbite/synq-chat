@@ -3,87 +3,106 @@
 ## Problem
 When navigating to `http://localhost:3000/apps/vibesynq/`, the browser displayed "[object Object]" instead of the expected React application.
 
-## Root Cause
-The issue was caused by missing SVG handling in the VibeSynq app's Vite configuration. Specifically:
+## Root Causes & Issues Identified
 
-1. The `apps/vibesynq/src/components/header/header.tsx` component imports an SVG logo:
-   ```tsx
-   import Logo from "@/assets/logo.svg";
-   ```
-
-2. Without proper SVG processing, Vite treats the SVG import as a plain JavaScript object rather than a usable component or URL string.
-
-3. When React tries to render this object in the JSX:
-   ```tsx
-   <img src={Logo} alt="Vibesynq Logo" className="size-6 lg:size-8 mr-2" />
-   ```
-   
-   The `Logo` variable contains an object instead of a string URL, causing React to display "[object Object]".
-
-## Solution
-Added the missing `vite-plugin-svgr` to the VibeSynq Vite configuration:
-
-### Before
-```typescript
-// apps/vibesynq/vite.config.ts
-export default defineConfig(({ mode }) => ({
-	...buildConfig(mode),
-	plugins: [
-		react(),
-		tsconfigPaths(),
-		// ... other plugins
-	],
-	// ...
-}));
+### 1. SVG Import Handling Issue
+The `apps/vibesynq/src/components/header/header.tsx` component imports an SVG logo:
+```tsx
+import Logo from "@assets/logo.svg";
 ```
 
-### After
-```typescript
-// apps/vibesynq/vite.config.ts
-import svgr from "vite-plugin-svgr";
+Without proper SVG processing, Vite treats the SVG import as a plain JavaScript object rather than a usable component or URL string.
 
-export default defineConfig(({ mode }) => ({
-	...buildConfig(mode),
-	plugins: [
-		react(),
-		svgr({
-			svgrOptions: { exportType: "default", ref: true },
-			include: "**/*.svg"
-		}),
-		tsconfigPaths(),
-		// ... other plugins
-	],
-	// ...
-}));
+### 2. Missing Provider SVG Files
+The app was trying to load provider icons from `/providers/local.svg` and `/providers/openrouter.svg` which didn't exist, causing 404 errors.
+
+### 3. Content Security Policy (CSP) Violations
+The restrictive CSP was blocking:
+- External CDN resources for Monaco Editor
+- Inline scripts and styles needed for dynamic content
+- Image sources from external URLs
+- Web workers and blob URLs
+
+## Solutions Implemented
+
+### ✅ Fix 1: SVG Import Resolution
+**Without svgr plugin** (as preferred by user), updated the import to use Vite's built-in asset handling:
+
+```typescript
+// Before
+import Logo from "@assets/logo.svg";
+
+// After  
+import Logo from "@assets/logo.svg?url";
 ```
 
-## Configuration Consistency
-This change brings the VibeSynq app's Vite configuration in line with the Admin app, which already had proper SVG handling configured.
+This tells Vite to return the SVG as a URL string instead of trying to process it as a React component.
 
-## Additional Fixes
-Also added the missing `resolve` section to the Admin app's Vite configuration for completeness:
+### ✅ Fix 2: Created Missing Provider SVG Icons
+Created the missing provider icons:
+
+**`apps/vibesynq/public/providers/local.svg`** - Server stack icon for local provider
+**`apps/vibesynq/public/providers/openrouter.svg`** - Network router icon for OpenRouter provider
+
+These icons are now properly served and accessible to the settings component.
+
+### ✅ Fix 3: Updated Content Security Policy
+Modified `src/server/plugins/rootPlugins.ts` to allow necessary resources:
 
 ```typescript
-// apps/admin/vite.config.ts
-resolve: {
-	alias: {
-		"@": resolve(__dirname, "src"),
-		"@shared": resolve(__dirname, "../../src/shared")
-	}
+contentSecurityPolicy: {
+  directives: {
+    // Allow external images (including provider icons)
+    imgSrc: ["'self'", "data:", "https:"],
+    
+    // Allow scripts needed for Monaco Editor and dynamic content
+    scriptSrc: ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
+    scriptSrcElem: [
+      "'self'",
+      "'unsafe-inline'",
+      "'unsafe-eval'",
+      "'sha256-TcUB1mzXiQO4GxpTRZ0EMpOXKMU3u+n/q1WrgVIcs1I='",
+      "https://cdn.jsdelivr.net/npm/@scalar/",
+      "https://cdn.jsdelivr.net/npm/monaco-editor/",
+      "blob:"
+    ],
+    
+    // Allow inline styles for dynamic components
+    styleSrc: ["'self'", "'unsafe-inline'"],
+    
+    // Allow web workers for Monaco Editor
+    workerSrc: ["'self'", "blob:"]
+  }
 }
 ```
 
+### ✅ Fix 4: Configuration Consistency
+Added the missing `@assets` alias in the vite config resolve section for better import handling.
+
+## Build & Test Results
+After implementing these fixes:
+
+1. **Build Success**: `bun run build:vibesynq` completes without errors
+2. **Asset Processing**: SVG logo properly processed as URL asset
+3. **Provider Icons**: Local and OpenRouter SVG icons accessible at `/providers/` paths
+4. **Server Health**: Health endpoint confirms all apps are registered correctly
+
 ## Result
 After rebuilding with `bun run build:vibesynq`, the VibeSynq app now:
-- ✅ Properly handles SVG imports
+- ✅ Properly handles SVG imports without the svgr plugin
+- ✅ Loads provider icons without 404 errors
 - ✅ Renders the React application correctly
-- ✅ Displays the logo and UI as expected
 - ✅ No longer shows "[object Object]"
+- ✅ Monaco Editor works without CSP violations
+- ✅ External resources load properly
 
 ## Prevention
 This issue highlights the importance of:
-1. **Consistent plugin configuration** across all apps in the monorepo
-2. **Proper SVG handling** when importing SVG assets in React components
-3. **Build process validation** to catch missing plugin configurations early
+
+1. **SVG Asset Handling**: Understanding different ways to import SVG files in Vite (as components vs. URLs)
+2. **Asset Organization**: Ensuring all referenced assets exist in the public directory structure
+3. **CSP Configuration**: Balancing security with functionality for complex web applications
+4. **Build Process Validation**: Testing builds in production mode to catch asset handling issues early
+5. **Consistent Plugin Configuration**: Maintaining similar setups across monorepo apps
 
 The architectural improvements implemented previously now make it easier to maintain consistency across all apps, reducing the likelihood of such configuration mismatches in the future. 

@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 import { MdAdd } from "react-icons/md";
 
-import Logo from "@assets/logo.svg";
+import Logo from "@assets/logo.svg?url";
 
 function Header({
 	onReset,

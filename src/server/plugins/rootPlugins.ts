@@ -29,22 +29,26 @@ export const rootPlugins = new Elysia()
 					fontSrc: ["'self'", "https:", "data:"],
 					formAction: ["'self'"],
 					frameAncestors: ["'self'"],
-					imgSrc: ["'self'", "data:"],
+					imgSrc: ["'self'", "data:", "https:"],
 					manifestSrc: ["'self'"],
 					mediaSrc: ["'self'"],
 					objectSrc: ["'none'"],
-					scriptSrc: ["'self'"],
+					scriptSrc: ["'self'", "'unsafe-eval'", "'unsafe-inline'"],
 					scriptSrcAttr: ["'none'"],
 					scriptSrcElem: [
 						"'self'",
+						"'unsafe-inline'",
+						"'unsafe-eval'",
 						"'sha256-TcUB1mzXiQO4GxpTRZ0EMpOXKMU3u+n/q1WrgVIcs1I='",
-						"https://cdn.jsdelivr.net/npm/@scalar/"
+						"https://cdn.jsdelivr.net/npm/@scalar/",
+						"https://cdn.jsdelivr.net/npm/monaco-editor/",
+						"blob:"
 					],
-					styleSrc: ["'self'"],
+					styleSrc: ["'self'", "'unsafe-inline'"],
 					styleSrcAttr: ["'self'", "'unsafe-inline'"],
 					styleSrcElem: ["'self'", "'unsafe-inline'"],
 					upgradeInsecureRequests: [],
-					workerSrc: ["'self'"]
+					workerSrc: ["'self'", "blob:"]
 				}
 			}
 		})
