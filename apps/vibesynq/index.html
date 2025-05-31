@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Vibesynq App</title>
+  <title>{{name}} - {{description}}</title>
+  <meta name="description" content="{{description}}">
+  <meta name="author" content="{{author.name}}">
+  <link rel="canonical" href="{{author.url}}{{url}}">
   <!-- Styles will be injected by Vite or imported in main.tsx -->
 </head>
 <body>
   <noscript>You need to enable JavaScript to run this app.</noscript>
   <div id="root"></div>
-  <script type="module" src="./main.tsx"></script>
+  <script type="module" src="./src/main.tsx"></script>
 </body>
 </html> 

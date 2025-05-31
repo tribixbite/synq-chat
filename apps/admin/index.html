@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, height=device-height, initial-scale=1.0"
+    />
+    <meta name="application-name" content="{{name}}" />
+    <meta name="description" content="{{description}}" />
+    <meta name="author" content="{{author.name}}" />
+    <meta name="theme-color" content="#14151a" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="{{name}}" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="msapplication-navbutton-color" content="#14151a" />
+    <meta name="msapplication-TileColor" content="#14151a" />
+    <meta name="msapplication-TileImage" content="icons/icon_144x144.png" />
+    <meta name="msapplication-tooltip" content="{{name}}" />
+    <meta name="msapplication-starturl" content="{{url}}" />
+    <meta name="full-screen" content="yes" />
+    <meta name="browsermode" content="application" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="{{name}}" />
+    <meta property="og:description" content="{{description}}" />
+    <meta property="og:site_name" content="{{name}}" />
+    <meta property="og:url" content="{{author.url}}{{url}}" />
+    <meta property="og:image" content="icons/icon_192x192.png" />
+    <meta property="og:image:width" content="192" />
+    <meta property="og:image:height" content="192" />
+    <meta property="og:image:alt" content="{{name}}" />
+    <meta property="og:image:type" content="image/png" />
+    <link rel="icon" href="assets/bun.svg" type="image/svg+xml" />
+    <link
+      rel="apple-touch-icon"
+      href="icons/icon_180x180.png"
+      sizes="180x180"
+    />
+    <link rel="manifest" href="manifest.json" />
+    <link rel="stylesheet" href="src/client/styles.css" type="text/css" />
+    <script src="src/client/app.tsx" type="module"></script>
+    <title>{{name}}</title>
+  </head>
+  <body>
+    <div id="root"></div>
+  </body>
+</html> 

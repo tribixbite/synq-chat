@@ -16,7 +16,7 @@ COPY --link lefthook.ts lefthook.json ./
 
 # Copy source code and app code
 COPY --link src ./src
-COPY --link apps ./apps
+# COPY --link apps ./apps
 # Copy the original root public assets to a temporary distinguished name
 COPY --link public ./public_root_assets 
 
@@ -38,11 +38,15 @@ RUN bun run compile
 RUN chmod +x ./main
 
 # Create the target public structure in the build stage
-RUN mkdir -p /app/public_final/apps/vibesynq && mkdir -p /app/public_final/apps/admin
+RUN mkdir -p /app/public_final/apps #/vibesynq && mkdir -p /app/public_final/apps/admin && mkdir -p /app/public_final/apps/app1 && mkdir -p /app/public_final/apps/app2
 
 # Copy built frontend apps to the structured public directory
 RUN cp -r /app/apps/vibesynq/dist/* /app/public_final/apps/vibesynq/
 RUN cp -r /app/apps/admin/dist/* /app/public_final/apps/admin/
+
+# Create placeholder index.html files for app1 and app2
+# RUN echo '<html><head><title>App1</title></head><body><h1>App1 - Coming Soon</h1></body></html>' > /app/public_final/apps/app1/index.html
+# RUN echo '<html><head><title>App2</title></head><body><h1>App2 - Coming Soon</h1></body></html>' > /app/public_final/apps/app2/index.html
 
 # Copy other root public assets to the final public directory
 RUN cp -r /app/public_root_assets/* /app/public_final/

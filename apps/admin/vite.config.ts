@@ -1,4 +1,5 @@
 // apps/admin/vite.config.ts
+import { Env, Route } from "@shared/constants";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
@@ -6,7 +7,7 @@ import { viteStaticCopy } from "vite-plugin-static-copy";
 import svgr from "vite-plugin-svgr";
 import tsconfigPaths from "vite-tsconfig-paths";
 
-// Placeholder for AppInfo - replace with actual data source
+// App configuration
 const AppInfo = {
 	name: "Admin Panel",
 	url: "/apps/admin",
@@ -17,82 +18,69 @@ const AppInfo = {
 	}
 };
 
-// Placeholder for Config.PORT, adjust as needed (see vibesynq config notes)
-const Config = {
-	PORT: process.env.PORT || 3000
-};
-
+// Define paths following the root template structure
 const appRoot = __dirname; // apps/admin
-// Original admin config had root: resolve(appRoot, "src/client")
-const srcDir = resolve(appRoot, "src/client"); // apps/admin/src/client
-const outDir = resolve(appRoot, "dist"); // apps/admin/dist
-const publicAppPath = "/apps/admin/";
+const outDir = resolve(__dirname, "../../public/apps/admin"); // Output to public/apps/admin
 
-// Assuming these are in src/client/assets/ or similar, adjust paths as needed
-// The original admin config had publicDir: resolve(appRoot, "src/client/public/assets")
-// So PWA assets might be in src/client/public/assets/icons, etc.
+// PWA asset paths - these should be in the app's public directory
 const pwaAssetPaths = ["public/assets/icons/", "public/assets/favicon.ico", "public/manifest.json"];
 
-export default defineConfig(({ mode }) => ({
-	root: srcDir,
-	base: publicAppPath,
+const buildConfig = (mode: string) => ({
+	root: appRoot, // Use app root, not src/client
+	base: "/apps/admin/",
 	define: {
-		"import.meta.env.MODE": JSON.stringify(mode),
-		"import.meta.env.PORT": JSON.stringify(Config.PORT)
+		"import.meta.env.MODE": JSON.stringify(mode)
 	},
-	// Original admin publicDir was src/client/public/assets
-	// viteStaticCopy will handle copying these now from srcDir + assetPath
-	publicDir: false, // Disable default public dir copying, viteStaticCopy handles it
 	server: {
-		// open: true,
 		hmr: true,
 		strictPort: false,
+		fs: { deny: ["sw.*"] },
 		proxy: {
-			"/api": {
-				target: `http://localhost:${Config.PORT}`,
+			[Route.Api]: {
+				target: "http://localhost:3000",
 				changeOrigin: true
-			}
-		},
-		fs: { deny: ["sw.*"] }
-	},
-	build: {
-		outDir: outDir,
-		emptyOutDir: true,
-		sourcemap: mode !== "production",
-		minify: mode === "production",
-		rollupOptions: {
-			input: {
-				main: resolve(srcDir, "index.html"),
-				sw: resolve(srcDir, "sw.ts")
-			},
-			output: {
-				manualChunks: path => {
-					if (path.includes("node_modules")) return "vendor";
-					return null;
-				},
-				chunkFileNames: "assets/[name]~[hash].js",
-				entryFileNames: entry => {
-					if (entry.name === "sw") return "sw.js";
-					return "assets/[name]~[hash].js";
-				},
-				assetFileNames: assetInfo => {
-					if (assetInfo.name === "manifest.json") return "manifest.json";
-					return "assets/[name]~[hash][extname]";
-				}
 			}
 		}
 	},
+	publicDir: resolve(appRoot, "public"), // Look for public dir in app root
+	build: {
+		outDir,
+		emptyOutDir: true,
+		sourcemap: mode !== Env.Production,
+		minify: mode === Env.Production,
+		rollupOptions: {
+			input: {
+				main: resolve(appRoot, "index.html"), // index.html in app root
+				sw: resolve(appRoot, "src/client/sw.ts") // Service worker in src/client
+			},
+			output: {
+				manualChunks: (path: string) => {
+					if (path.includes("node_modules")) return "vendor";
+					return null;
+				},
+				chunkFileNames: "assets/[name]-[hash].js",
+				entryFileNames: (entry: { name: string }) => {
+					if (entry.name === "sw") return "sw.js";
+					return "assets/[name]-[hash].js";
+				},
+				assetFileNames: (assetInfo: { name?: string }) => {
+					if (assetInfo.name === "manifest.json") return "manifest.json";
+					return "assets/[name]-[hash][extname]";
+				}
+			}
+		}
+	}
+});
+
+export default defineConfig(({ mode }) => ({
+	...buildConfig(mode),
 	plugins: [
-		react(), // Using react-swc as per original config
+		react(),
 		svgr({
 			svgrOptions: { exportType: "default", ref: true },
 			include: "**/*.svg"
 		}),
-		tsconfigPaths({
-			// Point to the root tsconfig if that's what admin app was using
-			// Or remove/adjust if apps/admin/tsconfig.json handles paths itself.
-			projects: [resolve(appRoot, "../../tsconfig.json")]
-		}),
+		tsconfigPaths(),
 		{
 			name: "html-transform",
 			transformIndexHtml(html) {
@@ -106,8 +94,7 @@ export default defineConfig(({ mode }) => ({
 		},
 		viteStaticCopy({
 			targets: pwaAssetPaths.map(assetPath => ({
-				// assetPath is relative to srcDir (src/client)
-				src: resolve(srcDir, assetPath),
+				src: resolve(appRoot, assetPath),
 				dest: assetPath.includes("/")
 					? assetPath.substring(0, assetPath.lastIndexOf("/"))
 					: "."
@@ -118,11 +105,10 @@ export default defineConfig(({ mode }) => ({
 	],
 	resolve: {
 		alias: {
-			// Original aliases from admin config, adjust if src structure changed
-			"@": resolve(appRoot, "../../src"),
-			"@shared": resolve(appRoot, "../../src/shared"),
-			"@client": resolve(appRoot, "../../src/client"),
-			"@server": resolve(appRoot, "../../src/server")
+			"@": resolve(__dirname, "src"),
+			"@shared": resolve(__dirname, "../../src/shared"),
+			"@client": resolve(__dirname, "../../src/client"),
+			"@server": resolve(__dirname, "../../src/server")
 		}
 	}
 }));

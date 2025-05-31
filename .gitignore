@@ -9,3 +9,4 @@ public/llm/test/*
 public/beach
 **/dist/**
 public/apps/
+public/test/*

@@ -8,7 +8,6 @@ import { AVAILABLE_APPS, Config } from "@shared/config";
 import { rootPlugins } from "@src/server/plugins/rootPlugins";
 import Elysia from "elysia";
 import logixlysia from "logixlysia";
-import { subdomainPlugin } from "./plugins/subdomainPlugin";
 import { vibesynqAiPlugin } from "./plugins/vibesynqAiPlugin";
 
 const { PORT, HOST } = Config;
@@ -52,15 +51,15 @@ export const app = new Elysia({ name: "synq-chat-server" })
 	.use(vibesynqAiPlugin)
 
 	// Subdomain and app routing (this includes app-specific static serving)
-	.use(subdomainPlugin)
+	// .use(subdomainPlugin)
 
 	// Root-level static file serving for files like moto.html, index.html, etc.
 	.use(
 		staticPlugin({
 			assets: "./public",
-			prefix: "/",
-			alwaysStatic: true,
-			noCache: !Config.IS_PROD
+			prefix: "/"
+			// alwaysStatic: true,
+			// noCache: !Config.IS_PROD
 		})
 	)
 

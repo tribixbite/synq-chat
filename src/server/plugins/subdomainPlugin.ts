@@ -74,9 +74,10 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 	.derive({ as: "global" }, ({ request }) => {
 		const hostHeader = request.headers.get("host") || "";
 		const subdomain = getSubdomain(hostHeader);
+		console.log("subdomain", subdomain);
 		const url = new URL(request.url);
 		const targetApp = getAppFromSubdomainOrPath(subdomain, url.pathname);
-
+		console.log("targetApp", targetApp);
 		return {
 			subdomain,
 			targetApp,
@@ -89,6 +90,7 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			assets: "./public/apps/admin",
 			prefix: "/apps/admin",
 			alwaysStatic: true,
+			indexHTML: true,
 			noCache: false
 		})
 	)
@@ -100,80 +102,80 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			noCache: false
 		})
 	)
-	.use(
-		staticPlugin({
-			assets: "./public/apps/app1",
-			prefix: "/apps/app1",
-			alwaysStatic: true,
-			noCache: false
-		})
-	)
-	.use(
-		staticPlugin({
-			assets: "./public/apps/app2",
-			prefix: "/apps/app2",
-			alwaysStatic: true,
-			noCache: false
-		})
-	)
+	// .use(
+	// 	staticPlugin({
+	// 		assets: "./public/apps/app1",
+	// 		prefix: "/apps/app1",
+	// 		alwaysStatic: true,
+	// 		noCache: false
+	// 	})
+	// )
+	// .use(
+	// 	staticPlugin({
+	// 		assets: "./public/apps/app2",
+	// 		prefix: "/apps/app2",
+	// 		alwaysStatic: true,
+	// 		noCache: false
+	// 	})
+	// )
 	// Manual file serving for each app index.html with /apps/ prefix
-	.get("/apps/admin/", () => {
-		const indexPath = resolve("./public/apps/admin/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("Admin app not found");
-	})
-	.get("/apps/vibesynq/", () => {
-		const indexPath = resolve("./public/apps/vibesynq/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("VibeSynq app not found");
-	})
-	.get("/apps/app1/", () => {
-		const indexPath = resolve("./public/apps/app1/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("App1 not found");
-	})
-	.get("/apps/app2/", () => {
-		const indexPath = resolve("./public/apps/app2/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("App2 not found");
-	})
-	// SPA fallback routes for each app to handle client-side routing
-	.get("/apps/admin/*", () => {
-		const indexPath = resolve("./public/apps/admin/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("Admin app not found");
-	})
-	.get("/apps/vibesynq/*", () => {
-		const indexPath = resolve("./public/apps/vibesynq/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("VibeSynq app not found");
-	})
-	.get("/apps/app1/*", () => {
-		const indexPath = resolve("./public/apps/app1/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("App1 not found");
-	})
-	.get("/apps/app2/*", () => {
-		const indexPath = resolve("./public/apps/app2/index.html");
-		if (existsSync(indexPath)) {
-			return file(indexPath);
-		}
-		throw new Error("App2 not found");
-	})
+	// .get("/apps/admin/", () => {
+	// 	const indexPath = resolve("./public/apps/admin/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("Admin app not found");
+	// })
+	// .get("/apps/vibesynq/", () => {
+	// 	const indexPath = resolve("./public/apps/vibesynq/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("VibeSynq app not found");
+	// })
+	// .get("/apps/app1/", () => {
+	// 	const indexPath = resolve("./public/apps/app1/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("App1 not found");
+	// })
+	// .get("/apps/app2/", () => {
+	// 	const indexPath = resolve("./public/apps/app2/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("App2 not found");
+	// })
+	// // SPA fallback routes for each app to handle client-side routing
+	// .get("/apps/admin/*", () => {
+	// 	const indexPath = resolve("./public/apps/admin/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("Admin app not found");
+	// })
+	// .get("/apps/vibesynq/*", () => {
+	// 	const indexPath = resolve("./public/apps/vibesynq/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("VibeSynq app not found");
+	// })
+	// .get("/apps/app1/*", () => {
+	// 	const indexPath = resolve("./public/apps/app1/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("App1 not found");
+	// })
+	// .get("/apps/app2/*", () => {
+	// 	const indexPath = resolve("./public/apps/app2/index.html");
+	// 	if (existsSync(indexPath)) {
+	// 		return file(indexPath);
+	// 	}
+	// 	throw new Error("App2 not found");
+	// })
 	// Root route handler for subdomain/path-based routing
 	.get("/", ({ subdomain, targetApp, redirect }) => {
 		// Handle LLM subdomain root
