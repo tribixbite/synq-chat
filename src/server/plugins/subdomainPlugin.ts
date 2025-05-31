@@ -1,8 +1,8 @@
-import { staticPlugin } from "@elysiajs/static";
 import { AVAILABLE_APPS, Config, type AppKey } from "@shared/config";
 import Elysia, { file } from "elysia";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
+import { llmPlugin } from "./llmPlugin";
 
 // Utility to get subdomain from host header
 export const getSubdomain = (hostHeader: string): string | null => {
@@ -84,109 +84,181 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			hostHeader
 		};
 	})
-	// Static asset serving for each app with correct /apps/ prefix
-	.use(
-		staticPlugin({
-			assets: "./public/apps/admin",
-			prefix: "/apps/admin",
-			alwaysStatic: true,
-			indexHTML: true,
-			noCache: false
+	// Mount LLM plugin with subdomain guard
+	.guard({ as: "scoped" }, app =>
+		app.derive(({ subdomain }) => {
+			if (subdomain !== "llm") {
+				throw new Error("Not LLM subdomain");
+			}
 		})
 	)
-	.use(
-		staticPlugin({
-			assets: "./public/apps/vibesynq",
-			prefix: "/apps/vibesynq",
-			alwaysStatic: true,
-			noCache: false
+	.use(llmPlugin)
+	// Remove the guard and continue with regular app routing
+	.guard({ as: "scoped" }, app =>
+		app.derive(({ subdomain }) => {
+			if (subdomain === "llm") {
+				throw new Error("LLM subdomain handled by dedicated plugin");
+			}
 		})
 	)
-	// .use(
-	// 	staticPlugin({
-	// 		assets: "./public/apps/app1",
-	// 		prefix: "/apps/app1",
-	// 		alwaysStatic: true,
-	// 		noCache: false
-	// 	})
-	// )
-	// .use(
-	// 	staticPlugin({
-	// 		assets: "./public/apps/app2",
-	// 		prefix: "/apps/app2",
-	// 		alwaysStatic: true,
-	// 		noCache: false
-	// 	})
-	// )
-	// Manual file serving for each app index.html with /apps/ prefix
-	// .get("/apps/admin/", () => {
-	// 	const indexPath = resolve("./public/apps/admin/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("Admin app not found");
-	// })
-	// .get("/apps/vibesynq/", () => {
-	// 	const indexPath = resolve("./public/apps/vibesynq/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("VibeSynq app not found");
-	// })
-	// .get("/apps/app1/", () => {
-	// 	const indexPath = resolve("./public/apps/app1/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("App1 not found");
-	// })
-	// .get("/apps/app2/", () => {
-	// 	const indexPath = resolve("./public/apps/app2/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("App2 not found");
-	// })
-	// // SPA fallback routes for each app to handle client-side routing
-	// .get("/apps/admin/*", () => {
-	// 	const indexPath = resolve("./public/apps/admin/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("Admin app not found");
-	// })
-	// .get("/apps/vibesynq/*", () => {
-	// 	const indexPath = resolve("./public/apps/vibesynq/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("VibeSynq app not found");
-	// })
-	// .get("/apps/app1/*", () => {
-	// 	const indexPath = resolve("./public/apps/app1/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("App1 not found");
-	// })
-	// .get("/apps/app2/*", () => {
-	// 	const indexPath = resolve("./public/apps/app2/index.html");
-	// 	if (existsSync(indexPath)) {
-	// 		return file(indexPath);
-	// 	}
-	// 	throw new Error("App2 not found");
-	// })
+	// Dynamic routes for admin app
+	.get(`/apps/${AVAILABLE_APPS.admin.path}/assets/:file`, ({ params }) => {
+		const filePath = resolve(`${AVAILABLE_APPS.admin.staticDir}/assets/${params.file}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${params.file}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.admin.path}/assets/*`, ({ params }) => {
+		const assetPath = params["*"];
+		const filePath = resolve(`${AVAILABLE_APPS.admin.staticDir}/assets/${assetPath}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${assetPath}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.admin.path}/`, () => {
+		const indexPath = resolve(`${AVAILABLE_APPS.admin.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.admin.name} app not found`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.admin.path}/*`, ({ path }) => {
+		// For SPA routes, serve the index.html unless it's an asset
+		if (path.includes("/assets/")) {
+			const assetPath = path.replace(`/apps/${AVAILABLE_APPS.admin.path}/`, "");
+			const filePath = resolve(`${AVAILABLE_APPS.admin.staticDir}/${assetPath}`);
+			if (existsSync(filePath)) {
+				return file(filePath);
+			}
+			throw new Error(`Asset not found: ${assetPath}`);
+		}
+		const indexPath = resolve(`${AVAILABLE_APPS.admin.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.admin.name} app not found`);
+	})
+	// Dynamic routes for vibesynq app
+	.get(`/apps/${AVAILABLE_APPS.vibesynq.path}/assets/:file`, ({ params }) => {
+		const filePath = resolve(`${AVAILABLE_APPS.vibesynq.staticDir}/assets/${params.file}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${params.file}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.vibesynq.path}/assets/*`, ({ params }) => {
+		const assetPath = params["*"];
+		const filePath = resolve(`${AVAILABLE_APPS.vibesynq.staticDir}/assets/${assetPath}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${assetPath}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.vibesynq.path}/`, () => {
+		const indexPath = resolve(`${AVAILABLE_APPS.vibesynq.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.vibesynq.name} app not found`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.vibesynq.path}/*`, ({ path }) => {
+		// For SPA routes, serve the index.html unless it's an asset
+		if (path.includes("/assets/")) {
+			const assetPath = path.replace(`/apps/${AVAILABLE_APPS.vibesynq.path}/`, "");
+			const filePath = resolve(`${AVAILABLE_APPS.vibesynq.staticDir}/${assetPath}`);
+			if (existsSync(filePath)) {
+				return file(filePath);
+			}
+			throw new Error(`Asset not found: ${assetPath}`);
+		}
+		const indexPath = resolve(`${AVAILABLE_APPS.vibesynq.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.vibesynq.name} app not found`);
+	})
+	// Dynamic routes for app1
+	.get(`/apps/${AVAILABLE_APPS.app1.path}/assets/:file`, ({ params }) => {
+		const filePath = resolve(`${AVAILABLE_APPS.app1.staticDir}/assets/${params.file}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${params.file}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.app1.path}/assets/*`, ({ params }) => {
+		const assetPath = params["*"];
+		const filePath = resolve(`${AVAILABLE_APPS.app1.staticDir}/assets/${assetPath}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${assetPath}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.app1.path}/`, () => {
+		const indexPath = resolve(`${AVAILABLE_APPS.app1.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.app1.name} app not found`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.app1.path}/*`, ({ path }) => {
+		// For SPA routes, serve the index.html unless it's an asset
+		if (path.includes("/assets/")) {
+			const assetPath = path.replace(`/apps/${AVAILABLE_APPS.app1.path}/`, "");
+			const filePath = resolve(`${AVAILABLE_APPS.app1.staticDir}/${assetPath}`);
+			if (existsSync(filePath)) {
+				return file(filePath);
+			}
+			throw new Error(`Asset not found: ${assetPath}`);
+		}
+		const indexPath = resolve(`${AVAILABLE_APPS.app1.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.app1.name} app not found`);
+	})
+	// Dynamic routes for app2
+	.get(`/apps/${AVAILABLE_APPS.app2.path}/assets/:file`, ({ params }) => {
+		const filePath = resolve(`${AVAILABLE_APPS.app2.staticDir}/assets/${params.file}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${params.file}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.app2.path}/assets/*`, ({ params }) => {
+		const assetPath = params["*"];
+		const filePath = resolve(`${AVAILABLE_APPS.app2.staticDir}/assets/${assetPath}`);
+		if (existsSync(filePath)) {
+			return file(filePath);
+		}
+		throw new Error(`Asset not found: ${assetPath}`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.app2.path}/`, () => {
+		const indexPath = resolve(`${AVAILABLE_APPS.app2.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.app2.name} app not found`);
+	})
+	.get(`/apps/${AVAILABLE_APPS.app2.path}/*`, ({ path }) => {
+		// For SPA routes, serve the index.html unless it's an asset
+		if (path.includes("/assets/")) {
+			const assetPath = path.replace(`/apps/${AVAILABLE_APPS.app2.path}/`, "");
+			const filePath = resolve(`${AVAILABLE_APPS.app2.staticDir}/${assetPath}`);
+			if (existsSync(filePath)) {
+				return file(filePath);
+			}
+			throw new Error(`Asset not found: ${assetPath}`);
+		}
+		const indexPath = resolve(`${AVAILABLE_APPS.app2.staticDir}/index.html`);
+		if (existsSync(indexPath)) {
+			return file(indexPath);
+		}
+		throw new Error(`${AVAILABLE_APPS.app2.name} app not found`);
+	})
 	// Root route handler for subdomain/path-based routing
 	.get("/", ({ subdomain, targetApp, redirect }) => {
-		// Handle LLM subdomain root
-		if (subdomain === "llm") {
-			const llmIndex = resolve("./public/llm/index.html");
-			if (existsSync(llmIndex)) {
-				return file(llmIndex);
-			}
-			throw new Error("LLM index not found");
-		}
-
 		// If we have a target app from subdomain, redirect to its path with /apps/ prefix
 		if (targetApp) {
 			return redirect(`/apps/${AVAILABLE_APPS[targetApp].path}/`);
@@ -200,41 +272,8 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 		// No subdomain, redirect to default app
 		return redirect(`/apps/${AVAILABLE_APPS[Config.DEFAULT_APP as AppKey].path}/`);
 	})
-	// Catch-all for unmatched routes - handle LLM subdomain and app redirects
+	// Catch-all for unmatched routes - handle app redirects (LLM is handled by dedicated plugin)
 	.get("*", ({ subdomain, targetApp, redirect, path }) => {
-		// Handle LLM subdomain file serving FIRST
-		if (subdomain === "llm") {
-			// Remove leading slash from path
-			let filePath = path.startsWith("/") ? path.substring(1) : path;
-
-			// Handle /public/ prefixed requests by removing the redundant "public/" prefix
-			if (filePath.startsWith("public/")) {
-				filePath = filePath.substring("public/".length);
-			}
-
-			// Try LLM-specific directory first
-			const llmPath = resolve(`./public/llm/${filePath}`);
-			// Fallback to root public directory for shared files
-			const publicPath = resolve(`./public/${filePath}`);
-
-			// Check LLM directory first
-			if (existsSync(llmPath)) {
-				return file(llmPath);
-			}
-			// Fallback to root public directory
-			if (existsSync(publicPath)) {
-				return file(publicPath);
-			}
-
-			// If no file found, serve LLM index.html if it exists
-			const llmIndex = resolve("./public/llm/index.html");
-			if (existsSync(llmIndex)) {
-				return file(llmIndex);
-			}
-
-			throw new Error(`File not found: ${path}`);
-		}
-
 		// Handle regular app subdomain redirects
 		// If we have a subdomain that matches an app, redirect to that app with /apps/ prefix
 		if (subdomain && appExists(subdomain)) {

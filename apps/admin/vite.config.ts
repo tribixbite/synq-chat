@@ -27,7 +27,7 @@ const pwaAssetPaths = ["public/assets/icons/", "public/assets/favicon.ico", "pub
 
 const buildConfig = (mode: string) => ({
 	root: appRoot, // Use app root, not src/client
-	base: "/apps/admin/",
+	base: mode === Env.Production ? "/apps/admin/" : "/",
 	define: {
 		"import.meta.env.MODE": JSON.stringify(mode)
 	},

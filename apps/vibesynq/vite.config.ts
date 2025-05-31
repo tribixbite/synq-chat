@@ -22,7 +22,7 @@ const outDir = resolve(__dirname, "../../public/apps/vibesynq"); // Output to pu
 
 const buildConfig = (mode: string) => ({
 	root: appRoot, // Use app root, not src
-	base: "/apps/vibesynq/",
+	base: mode === Env.Production ? "/apps/vibesynq/" : "/",
 	define: {
 		"import.meta.env.MODE": JSON.stringify(mode)
 	},
