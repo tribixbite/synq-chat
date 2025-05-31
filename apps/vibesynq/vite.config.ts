@@ -3,7 +3,7 @@ import { Env, Route } from "@shared/constants";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
-import svgr from "vite-plugin-svgr";
+// import svgr from "vite-plugin-svgr";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // App configuration
@@ -65,10 +65,10 @@ export default defineConfig(({ mode }) => ({
 	...buildConfig(mode),
 	plugins: [
 		react(),
-		svgr({
-			svgrOptions: { exportType: "default", ref: true },
-			include: "**/*.svg"
-		}),
+		// svgr({
+		// 	svgrOptions: { exportType: "default", ref: true },
+		// 	include: "**/*.svg"
+		// }),
 		tsconfigPaths(),
 		{
 			name: "html-transform",
@@ -85,6 +85,7 @@ export default defineConfig(({ mode }) => ({
 	resolve: {
 		alias: {
 			"@": resolve(__dirname, "src"),
+			"@assets": resolve(__dirname, "src/assets"),
 			"@shared": resolve(__dirname, "../../src/shared")
 		}
 	}

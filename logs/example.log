@@ -35,3 +35,9 @@
 🦊 2025-05-30 23:44:18 ERROR        8ms         HEAD    /apps/vibesynq/assets/main-UbRldEmb.js 200   1748663058
 🦊 2025-05-30 23:44:52 ERROR       11ms         GET     /apps/vibesynq/some-spa-route 404   1748663092
 🦊 2025-05-31 14:29:17 ERROR        7ms         GET     /favicon.ico 500   1748716157
+🦊 2025-05-31 14:44:09 ERROR        5ms         GET     /favicon.ico 500   1748717049
+🦊 2025-05-31 14:44:22 ERROR        2ms         GET     /favicon.ico 500   1748717062
+🦊 2025-05-31 15:05:24 ERROR       13ms         GET     / 404   1748718324
+🦊 2025-05-31 15:05:55 ERROR        7ms         GET     /.well-known/appspecific/com.chrome.devtools.json 404   1748718355
+🦊 2025-05-31 15:05:57 ERROR        3ms         GET     /.well-known/appspecific/com.chrome.devtools.json 404   1748718357
+🦊 2025-05-31 15:06:40 ERROR        2ms         GET     /.well-known/appspecific/com.chrome.devtools.json 404   1748718400

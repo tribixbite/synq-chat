@@ -1,5 +1,12 @@
 // import { SocketEvent } from "@shared/constants";
 
+export interface Auth {
+	preferred_username: string;
+	picture: string;
+	name: string;
+	isLocalUse?: boolean;
+}
+
 export type TConfig = {
 	PORT: number;
 	HOST: string;

@@ -2,9 +2,9 @@ import classNames from "classnames";
 import { useState } from "react";
 import { toast } from "react-toastify";
 
-import SpaceIcon from "@/assets/space.svg";
+import SpaceIcon from "@assets/space.svg";
 import Loading from "../loading/loading";
-import type { Auth } from "../../../utils/types";
+import type { Auth } from "@shared/types";
 
 function LoadButton({
 	auth,
