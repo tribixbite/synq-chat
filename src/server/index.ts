@@ -4,8 +4,9 @@
 import { staticPlugin } from "@elysiajs/static";
 import { api } from "@helpers/api";
 import { onBeforeHandle, onError } from "@helpers/elysia";
-import { AVAILABLE_APPS, Config } from "@shared/config";
+import { Config } from "@shared/config";
 import { rootPlugins } from "@src/server/plugins/rootPlugins";
+import { subdomainPlugin } from "@src/server/plugins/subdomainPlugin";
 import Elysia from "elysia";
 import logixlysia from "logixlysia";
 import { vibesynqAiPlugin } from "./plugins/vibesynqAiPlugin";
@@ -51,7 +52,7 @@ export const app = new Elysia({ name: "synq-chat-server" })
 	.use(vibesynqAiPlugin)
 
 	// Subdomain and app routing (this includes app-specific static serving)
-	// .use(subdomainPlugin)
+	.use(subdomainPlugin)
 
 	// Root-level static file serving for files like moto.html, index.html, etc.
 	.use(
@@ -63,13 +64,7 @@ export const app = new Elysia({ name: "synq-chat-server" })
 		})
 	)
 
-	// Health check endpoint
-	.get("/health", () => ({
-		status: "ok",
-		timestamp: new Date().toISOString(),
-		apps: Object.keys(AVAILABLE_APPS)
-	}))
-
+	// Health check endpoint (removed duplicate - it's now in subdomainPlugin)
 	.listen(PORT, () => {
 		console.log(`🚀 Synq Chat Server listening on ${HOST}:${PORT}`);
 		console.log(`📱 Default app: ${Config.DEFAULT_APP}`);

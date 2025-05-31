@@ -10,3 +10,7 @@ public/beach
 **/dist/**
 public/apps/
 public/test/*
+
+# Build artifacts that should not be committed
+apps/*/public/
+apps/public/*/

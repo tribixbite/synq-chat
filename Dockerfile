@@ -23,13 +23,19 @@ COPY --link public ./public_root_assets
 # Install dependencies with proper flags for Docker
 RUN bun install --frozen-lockfile --ignore-scripts
 
+# Ensure proper permissions on all files
+# RUN chmod -R 755 /app
+
+# Set Node.js memory limit for build processes
+ENV NODE_OPTIONS="--max-old-space-size=4096"
+
 # Lint and type-check (optional in Docker build, but good for CI consistency)
 # RUN bun run biome ci .
 # RUN bun run tsc --noEmit # tsc is run by individual app builds if needed via vite
 
-# Build frontend apps (they now build to their own dist/ folders)
-# Ensure build:all or individual build scripts are correct in package.json
-RUN bun run build:all 
+# Build frontend apps individually for better error isolation
+RUN bun run build:vibesynq
+RUN bun run build:admin
 
 # Compile backend
 RUN bun run compile
