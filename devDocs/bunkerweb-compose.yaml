@@ -1,0 +1,158 @@
+version: '3.8'
+
+# YAML anchor for common BunkerWeb environment variables
+# Sensitive values like DB_PASSWORD should be set in Railway's UI.
+x-bw-env: &bw-env
+  AUTOCONF_MODE: "yes"
+  # API_WHITELIST_IP: Configure this carefully. Start with Railway's internal network if known,
+  # or 127.0.0.1 and the bw-universe subnet. May need adjustment based on how Railway networks services.
+  # For services within the same Docker Compose on Railway, they should be able to communicate.
+  # The bw-autoconf, bw-scheduler will be on bw-universe.
+  API_WHITELIST_IP: "127.0.0.1 10.20.30.0/24" # Default from docs, review for Railway
+  # DATABASE_URI will use Railway environment variables for credentials
+  DATABASE_URI: "mariadb+pymysql://${DB_USER:-bunkerweb}:${DB_PASSWORD}@bw-db:3306/${DB_NAME:-db}"
+
+services:
+  bunkerweb:
+    image: bunkerity/bunkerweb:1.6.1 # Using a specific version is good practice
+    restart: unless-stopped
+    ports:
+      # Railway will pick this up. You'll expose it via Railway's networking settings.
+      # Maps host port (managed by Railway) to container port 8080 (HTTP) and 8443 (HTTPS/QUIC).
+      - "8080" # HTTP, Railway will map 80/443 to this
+      - "8443" # HTTPS/QUIC, Railway will map 80/443 to this
+    labels:
+      - "bunkerweb.INSTANCE=yes" # Mandatory for autoconf
+      # - "bunkerweb.NAMESPACE=my-production" # Optional: if using namespaces
+    environment:
+      <<: *bw-env
+      # REAL_IP_FROM: "TRUSTED_PROXY_IPS_FROM_RAILWAY" # See Note 1 below
+      # REAL_IP_HEADER: "X-Forwarded-For"             # See Note 1 below
+      # USE_REAL_IP: "yes"                            # See Note 1 below
+    networks:
+      - bw-universe
+      - bw-services
+    healthcheck: # Optional: Basic health check
+      test: ["CMD", "curl", "-f", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  bw-scheduler:
+    image: bunkerity/bunkerweb-scheduler:1.6.1
+    restart: unless-stopped
+    depends_on:
+      bunkerweb:
+        condition: service_healthy # Wait for bunkerweb to be healthy if healthcheck is defined
+      bw-db:
+        condition: service_started
+    environment:
+      <<: *bw-env
+      BUNKERWEB_INSTANCES: "" # Autoconf discovers instances
+      SERVER_NAME: ""         # Autoconf fills this from service labels
+      MULTISITE: "yes"        # Mandatory for autoconf
+      # REAL_IP_FROM, REAL_IP_HEADER, USE_REAL_IP as above if needed
+    volumes:
+      - bw-storage:/data # Railway will manage this persistent volume
+    networks:
+      - bw-universe
+      - bw-db
+
+  bw-autoconf:
+    image: bunkerity/bunkerweb-autoconf:1.6.1
+    restart: unless-stopped
+    depends_on:
+      bunkerweb:
+        condition: service_healthy
+      bw-docker-socket-proxy: # Depends on the Docker socket proxy
+        condition: service_started
+      bw-db:
+        condition: service_started
+    environment:
+      <<: *bw-env
+      DOCKER_HOST: "tcp://bw-docker-socket-proxy:2375"
+      # NAMESPACES: "my-production" # Optional: if using namespaces and want to restrict this autoconf
+    networks:
+      - bw-universe
+      - bw-docker
+      - bw-db
+
+  bw-docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:latest
+    restart: unless-stopped
+    volumes:
+      # CRITICAL for Railway: This direct host socket mount is highly unlikely to work
+      # or be permitted. If Railway offers a managed way to get Docker events, use that.
+      # Otherwise, autoconf via Docker events might not function.
+      # The $XDG_RUNTIME_DIR approach might be more relevant if Railway uses rootless.
+      - "/var/run/docker.sock:/var/run/docker.sock:ro"
+      # - "$XDG_RUNTIME_DIR/docker.sock:/var/run/docker.sock:ro" # Alternative for rootless
+    environment:
+      CONTAINERS: "1" # Allows access to /containers/json
+      EVENTS: "1"     # Allows access to /events
+      PING: "1"       # Allows access to /_ping
+      # NETWORKS: "1" # May be needed by autoconf to inspect networks
+      LOG_LEVEL: "info" # Set to warning or error in production
+    networks:
+      - bw-docker
+
+  bw-db:
+    image: mariadb:11
+    restart: unless-stopped
+    environment:
+      # THESE MUST BE SET IN RAILWAY SERVICE VARIABLES FOR SECURITY
+      MYSQL_DATABASE: ${DB_NAME:-db}
+      MYSQL_USER: ${DB_USER:-bunkerweb}
+      MYSQL_PASSWORD: ${DB_PASSWORD:-changeme} # Placeholder ONLY
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+    volumes:
+      - bw-data:/var/lib/mysql # Railway will manage this persistent volume
+    networks:
+      - bw-db
+    healthcheck: # Optional: Basic health check for MariaDB
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER:-bunkerweb}", "-p${DB_PASSWORD:-changeme}"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  # --- Example Application Service ---
+  my-nginx-app:
+    image: nginx:alpine
+    restart: unless-stopped
+    networks:
+      - bw-services # Connect to the network BunkerWeb uses for backends
+    labels:
+      # --- BunkerWeb Autoconf Labels ---
+      - "bunkerweb.INSTANCE_NAME=mynginx" # Unique name for this instance in BunkerWeb
+      - "bunkerweb.SERVER_NAME=nginx.yourdomain.com" # The domain BunkerWeb will listen for
+      - "bunkerweb.UPSTREAM_TYPE=http"
+      # 'my-nginx-app' is the service name, 80 is its internal port
+      - "bunkerweb.UPSTREAM_TARGET=http://my-nginx-app:80"
+      - "bunkerweb.SECURITY_LEVEL=medium" # Or low, high
+      - "bunkerweb.SSL_CERT_TYPE=letsencrypt" # For Let's Encrypt
+      # - "bunkerweb.NAMESPACE=my-production" # Optional: if using namespaces
+
+      # --- Standard Docker Labels (Optional) ---
+      - "com.example.description=My Nginx test application"
+    # No ports exposed here directly; BunkerWeb will proxy to it.
+    # If you needed to access it directly for testing (not via BunkerWeb),
+    # you could expose a port and map it via Railway.
+
+volumes:
+  bw-storage:
+  bw-data:
+
+networks:
+  bw-universe:
+    driver: bridge
+    # ipam for static subnet is illustrative for local Docker, Railway handles actual IPs.
+    # The key is that services on this network can resolve each other by name.
+    ipam:
+      config:
+        - subnet: 10.20.30.0/24
+  bw-services:
+    driver: bridge
+  bw-docker:
+    driver: bridge
+  bw-db:
+    driver: bridge

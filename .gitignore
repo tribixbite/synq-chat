@@ -10,6 +10,7 @@ public/beach
 **/dist/**
 public/apps/
 public/test/*
+gitignored/
 
 # Build artifacts that should not be committed
 # apps/*/public/

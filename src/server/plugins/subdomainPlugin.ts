@@ -2,7 +2,6 @@ import { AVAILABLE_APPS, Config, type AppKey } from "@shared/config";
 import Elysia from "elysia";
 import { existsSync } from "node:fs";
 import { resolve } from "node:path";
-import { appRouterPlugin } from "./appRouterPlugin";
 
 // Utility to get subdomain from host header
 export const getSubdomain = (hostHeader: string): string | null => {
@@ -101,6 +100,5 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 		status: "ok",
 		timestamp: new Date().toISOString(),
 		apps: Object.keys(AVAILABLE_APPS)
-	}))
-	// Use the dynamic app router plugin for all app routes
-	.use(appRouterPlugin);
+	}));
+// Note: App routing is now handled by the dynamic appRouterPlugin in main server

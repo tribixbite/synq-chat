@@ -1,0 +1,23 @@
+{
+  "name": "monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "dev:frontend": "bun run --cwd packages/frontend dev",
+    "dev:backend": "bun run --cwd packages/backend dev",
+    "dev:backend:types": "bun run --cwd packages/backend dev:types",
+    "dev": "bun run dev:backend & bun run dev:backend:types & bun run dev:frontend",
+    "build:frontend:bundle": "bun run --cwd packages/frontend build",
+    "build:backend:types": "bun run --cwd packages/backend build:types",
+    "build:frontend": "bun run build:backend:types && bun run build:frontend:bundle",
+    "build:backend": "bun run --cwd packages/backend build",
+    "build": "bun run build:backend && bun run build:frontend",
+    "start:backend": "./packages/backend/server"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.3"
+  }
+}

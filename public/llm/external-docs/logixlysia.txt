@@ -1,0 +1,1310 @@
+└── website
+    └── content
+        └── docs
+            ├── (general)
+                ├── contributing.mdx
+                ├── index.mdx
+                ├── meta.json
+                ├── screenshot.png
+                └── usage.mdx
+            └── features
+                ├── file-logging.mdx
+                ├── filtering.mdx
+                ├── index.mdx
+                ├── log-levels.mdx
+                ├── log-rotation.mdx
+                ├── meta.json
+                ├── metrics.mdx
+                ├── startup.mdx
+                └── transports.mdx
+
+
+/website/content/docs/(general)/contributing.mdx:
+--------------------------------------------------------------------------------
+  1 | ---
+  2 | title: Contributing
+  3 | description: How to run tests, add new providers, and contribute to Logixlysia.
+  4 | ---
+  5 | 
+  6 | Thank you for your interest in contributing to Logixlysia! This guide will help you get started with development, testing, and adding new providers.
+  7 | 
+  8 | ## Getting Started
+  9 | 
+ 10 | To get started with Logixlysia development, follow these steps:
+ 11 | 
+ 12 | <div className="fd-steps">
+ 13 |    <div className="fd-step">
+ 14 |       Fork the repository
+ 15 |    </div>
+ 16 | 
+ 17 |    <div className="fd-step">
+ 18 |       Clone your fork
+ 19 |    </div>
+ 20 |    ```bash
+ 21 |    git clone https://github.com/PunGrumpy/logixlysia.git
+ 22 |    cd logixlysia
+ 23 |    ```
+ 24 | 
+ 25 |    <div className="fd-step">
+ 26 |       Install dependencies
+ 27 |    </div>
+ 28 |    ```bash
+ 29 |    bun install
+ 30 |    ```
+ 31 | </div>
+ 32 | 
+ 33 | ## Development Setup
+ 34 | 
+ 35 | Logixlysia is built with:
+ 36 | - Bun as the runtime
+ 37 | - TypeScript for type safety
+ 38 | - ElysiaJS as the web framework
+ 39 | 
+ 40 | ### Project Structure
+ 41 | 
+ 42 | ```
+ 43 | src/
+ 44 | ├── logger/        # Core logging functionality
+ 45 | ├── output/        # Output handlers and formatters
+ 46 | ├── extensions/    # Additional features and extensions
+ 47 | ├── helpers/       # Utility functions
+ 48 | ├── interfaces/    # TypeScript interfaces
+ 49 | └── index.ts       # Main entry point
+ 50 | ```
+ 51 | 
+ 52 | ## Running Tests
+ 53 | 
+ 54 | To run the test suite:
+ 55 | 
+ 56 | ```bash
+ 57 | bun test
+ 58 | ```
+ 59 | 
+ 60 | For watching tests during development:
+ 61 | 
+ 62 | ```bash
+ 63 | bun test --watch
+ 64 | ```
+ 65 | 
+ 66 | ## Adding New Features
+ 67 | 
+ 68 | ### Adding a New Provider
+ 69 | 
+ 70 | 1. Create a new file in the `src/providers` directory
+ 71 | 2. Implement the provider interface
+ 72 | 3. Add tests for your provider
+ 73 | 4. Update the documentation
+ 74 | 
+ 75 | ### Code Style
+ 76 | 
+ 77 | - Follow TypeScript best practices
+ 78 | - Use meaningful variable and function names
+ 79 | - Add JSDoc comments for public APIs
+ 80 | - Keep functions small and focused
+ 81 | 
+ 82 | ## Pull Request Process
+ 83 | 
+ 84 | 1. Create a new branch for your feature/fix
+ 85 | 2. Make your changes
+ 86 | 3. Run tests and ensure they pass
+ 87 | 4. Update documentation if needed
+ 88 | 5. Submit a pull request with a clear description
+ 89 | 
+ 90 | ### PR Checklist
+ 91 | 
+ 92 | - [ ] Tests added/updated
+ 93 | - [ ] Documentation updated
+ 94 | - [ ] Code follows style guidelines
+ 95 | - [ ] Changes are backward compatible
+ 96 | 
+ 97 | ## Documentation
+ 98 | 
+ 99 | Documentation is written in MDX and located in the `website/content/docs` directory. When adding new features:
+100 | 
+101 | 1. Add relevant documentation
+102 | 2. Include code examples
+103 | 3. Update the API reference if needed
+104 | 
+105 | ## Questions?
+106 | 
+107 | Feel free to open an issue if you have any questions or need help getting started. We're happy to help!
+108 | 
+109 | 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/(general)/index.mdx:
+--------------------------------------------------------------------------------
+ 1 | ---
+ 2 | title: Introduction
+ 3 | description: What Logixlysia is and what it does.
+ 4 | ---
+ 5 | 
+ 6 | ![Preview](./screenshot.png)
+ 7 | 
+ 8 | Logixlysia is a logging plugin for [Elysia.js](https://elysiajs.com/) that provides a simple and flexible way to log requests and responses in your Elysia applications. It is designed to be easy to use and highly configurable, allowing you to customize the logging format, level, and output.
+ 9 | 
+10 | ## Why use Logixlysia?
+11 | 
+12 | Integrating logging into your Elysia application can help you monitor and debug your application more effectively. Logixlysia provides a simple and consistent way to log requests and responses, making it easier to track down issues and understand how your application is behaving.
+13 | It also allows you to customize the logging format and level, so you can focus on the information that is most important to you.
+14 | 
+15 | ## Community
+16 | 
+17 | Logixlysia is an [open source project](https://github.com/PunGrumpy/logixlysia) and we welcome contributions from the community. If you have any ideas or suggestions, please feel free to open an issue or submit a pull request. Check out our [contributing guide](/docs/contributing) for more information.
+18 | 
+19 | ## License
+20 | 
+21 | Logixlysia is licensed under the [MIT License](https://github.com/PunGrumpy/logixlysia/blob/main/LICENSE). This means you can use Logixlysia in your commercial and open-source projects.
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/(general)/meta.json:
+--------------------------------------------------------------------------------
+1 | {
+2 |   "root": true,
+3 |   "title": "General",
+4 |   "description": "General information about the project."
+5 | }
+6 | 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/(general)/screenshot.png:
+--------------------------------------------------------------------------------
+https://raw.githubusercontent.com/PunGrumpy/logixlysia/main/website/content/docs/(general)/screenshot.png
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/(general)/usage.mdx:
+--------------------------------------------------------------------------------
+  1 | ---
+  2 | title: Usage
+  3 | description: Learn how to use Logixlysia in your Elysia applications.
+  4 | ---
+  5 | 
+  6 | ## Installation
+  7 | 
+  8 | Logixlysia is available as an npm package. You can install it using Bun:
+  9 | 
+ 10 | ```package-install
+ 11 | logixlysia
+ 12 | ```
+ 13 | 
+ 14 | ## Basic Usage
+ 15 | 
+ 16 | After installing Logixlysia, you can import and use it in your Elysia application:
+ 17 | 
+ 18 | ```ts
+ 19 | import { Elysia } from 'elysia'
+ 20 | import logixlysia from 'logixlysia'
+ 21 | 
+ 22 | const app = new Elysia({
+ 23 |   name: 'My App'
+ 24 | }).use(
+ 25 |   logixlysia({
+ 26 |     config: {
+ 27 |       showStartupMessage: true,
+ 28 |       startupMessageFormat: 'simple',
+ 29 |       timestamp: {
+ 30 |         translateTime: 'yyyy-mm-dd HH:MM:ss'
+ 31 |       }
+ 32 |     }
+ 33 |   })
+ 34 | )
+ 35 | 
+ 36 | app.listen(3000)
+ 37 | ```
+ 38 | 
+ 39 | ## Configuration Options
+ 40 | 
+ 41 | Logixlysia provides various configuration options to customize your logging experience:
+ 42 | 
+ 43 | ### Basic Configuration
+ 44 | 
+ 45 | ```ts
+ 46 | logixlysia({
+ 47 |   config: {
+ 48 |     // Show startup message when server starts
+ 49 |     showStartupMessage: true,
+ 50 |     
+ 51 |     // Choose between 'banner' or 'simple' format
+ 52 |     startupMessageFormat: 'simple',
+ 53 |     
+ 54 |     // Customize timestamp format
+ 55 |     timestamp: {
+ 56 |       translateTime: 'yyyy-mm-dd HH:MM:ss'
+ 57 |     },
+ 58 |     
+ 59 |     // Show IP address in logs
+ 60 |     ip: true,
+ 61 |     
+ 62 |     // Specify log file path
+ 63 |     logFilePath: './logs/app.log'
+ 64 |   }
+ 65 | })
+ 66 | ```
+ 67 | 
+ 68 | ### Custom Log Format
+ 69 | 
+ 70 | You can customize the log message format using placeholders:
+ 71 | 
+ 72 | ```ts
+ 73 | logixlysia({
+ 74 |   config: {
+ 75 |     customLogFormat: '🦊 {now} {level} {duration} {method} {pathname} {status} {message} {ip}'
+ 76 |   }
+ 77 | })
+ 78 | ```
+ 79 | 
+ 80 | Available placeholders:
+ 81 | - `{now}` - Current date and time
+ 82 | - `{level}` - Log level (INFO, WARNING, ERROR)
+ 83 | - `{duration}` - Request duration in milliseconds
+ 84 | - `{method}` - HTTP method
+ 85 | - `{pathname}` - Request path
+ 86 | - `{status}` - Response status code
+ 87 | - `{message}` - Custom message
+ 88 | - `{ip}` - Client IP address
+ 89 | - `{epoch}` - Unix timestamp
+ 90 | 
+ 91 | ### Log Filtering
+ 92 | 
+ 93 | Filter logs based on level, status, or method:
+ 94 | 
+ 95 | ```ts
+ 96 | logixlysia({
+ 97 |   config: {
+ 98 |     logFilter: {
+ 99 |       level: ['ERROR', 'WARNING'],
+100 |       status: [500, 404],
+101 |       method: 'GET'
+102 |     }
+103 |   }
+104 | })
+105 | ```
+106 | 
+107 | ## Advanced Usage
+108 | 
+109 | ### Custom Log Handlers
+110 | 
+111 | You can extend Logixlysia by creating custom loggers:
+112 | 
+113 | ```ts
+114 | import { Logger, LogLevel, RequestInfo, LogData, StoreData, HttpError } from 'logixlysia'
+115 | 
+116 | class CustomLogger implements Logger {
+117 |   log(level: LogLevel, request: RequestInfo, data: LogData, store: StoreData) {
+118 |     // Custom log handling logic
+119 |   }
+120 | 
+121 |   handleHttpError(request: RequestInfo, error: HttpError, store: StoreData) {
+122 |     // Custom error handling logic
+123 |   }
+124 | }
+125 | 
+126 | logixlysia({
+127 |   config: {
+128 |     transports: [new CustomLogger()]
+129 |   }
+130 | })
+131 | ```
+132 | 
+133 | ### Error Handling
+134 | 
+135 | Logixlysia automatically captures and logs errors:
+136 | 
+137 | ```ts
+138 | app.get('/error', () => {
+139 |   throw new Error('Something went wrong!')
+140 | })
+141 | ```
+142 | 
+143 | This will automatically log the error with stack trace and request details.
+144 | 
+145 | ## Best Practices
+146 | 
+147 | 1. **Log Levels**
+148 |    - Use appropriate log levels (INFO, WARNING, ERROR)
+149 |    - Avoid excessive logging in production
+150 | 
+151 | 2. **Performance**
+152 |    - Use log filtering in production
+153 |    - Consider using file logging for important events
+154 | 
+155 | 3. **Security**
+156 |    - Be careful with logging sensitive information
+157 |    - Use log filtering to exclude sensitive routes
+158 | 
+159 | ## Examples
+160 | 
+161 | ### Basic API with Logging
+162 | 
+163 | ```ts
+164 | import { Elysia } from 'elysia'
+165 | import logixlysia from 'logixlysia'
+166 | 
+167 | const app = new Elysia()
+168 |   .use(logixlysia())
+169 |   .get('/', () => 'Hello World')
+170 |   .post('/users', ({ body }) => {
+171 |     // Create user logic
+172 |     return { success: true }
+173 |   })
+174 |   .listen(3000)
+175 | ```
+176 | 
+177 | ### Custom Error Handling
+178 | 
+179 | ```ts
+180 | app.onError(({ code, error, set }) => {
+181 |   // Custom error handling
+182 |   set.status = code
+183 |   return { error: error.message }
+184 | })
+185 | ```
+186 | 
+187 | ## Need Help?
+188 | 
+189 | If you have any questions or need help, feel free to open an issue on our GitHub repository or join our community on Discord.
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/file-logging.mdx:
+--------------------------------------------------------------------------------
+ 1 | ---
+ 2 | title: File Logging
+ 3 | description: Learn how to save logs to files in Logixlysia.
+ 4 | ---
+ 5 | 
+ 6 | Save your logs to files for persistence and analysis using Logixlysia's file logging system.
+ 7 | 
+ 8 | ## Basic Usage
+ 9 | 
+10 | ```ts
+11 | logixlysia({
+12 |   config: {
+13 |     logFilePath: './logs/app.log'
+14 |   }
+15 | })
+16 | ```
+17 | 
+18 | ## Configuration Options
+19 | 
+20 | | Option | Type | Description | Default |
+21 | |--------|------|-------------|---------|
+22 | | `logFilePath` | `string` | Path to the log file | `'./logs/elysia.log'` |
+23 | 
+24 | ## Multiple Log Files
+25 | 
+26 | Create separate log files for different purposes:
+27 | 
+28 | ```ts
+29 | logixlysia({
+30 |   config: {
+31 |     logFilePath: {
+32 |       error: './logs/error.log',
+33 |       access: './logs/access.log',
+34 |       debug: './logs/debug.log'
+35 |     }
+36 |   }
+37 | })
+38 | ```
+39 | 
+40 | ## File Format
+41 | 
+42 | Logs are written in a structured format:
+43 | 
+44 | ```
+45 | 🦊 2025-04-13 15:00:19.225 INFO  123.45ms GET /api/users 200 
+46 | 🦊 2025-04-13 15:00:20.225 ERROR 234.56ms POST /api/users 500 Error creating user
+47 | ```
+48 | 
+49 | ## Best Practices
+50 | 
+51 | 1. **File Organization**
+52 |    - Use descriptive file names
+53 |    - Organize logs by type/level
+54 |    - Consider using date-based directories
+55 | 
+56 | 2. **Performance**
+57 |    - Use async file writing
+58 |    - Consider buffering for high-volume logs
+59 |    - Monitor disk space usage
+60 | 
+61 | 3. **Security**
+62 |    - Set appropriate file permissions
+63 |    - Avoid logging sensitive data
+64 |    - Regular log review and cleanup
+65 | 
+66 | ## Example Configurations
+67 | 
+68 | ### Production Configuration
+69 | 
+70 | ```ts
+71 | logixlysia({
+72 |   config: {
+73 |     logFilePath: './logs/production.log'
+74 |   }
+75 | })
+76 | ```
+77 | 
+78 | ### Development Configuration
+79 | 
+80 | ```ts
+81 | logixlysia({
+82 |   config: {
+83 |     logFilePath: './logs/development.log'
+84 |   }
+85 | })
+86 | ``` 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/filtering.mdx:
+--------------------------------------------------------------------------------
+  1 | ---
+  2 | title: Log Filtering
+  3 | description: Learn how to filter logs in Logixlysia.
+  4 | ---
+  5 | 
+  6 | Filter logs based on various criteria using Logixlysia's flexible filtering system.
+  7 | 
+  8 | ## Basic Usage
+  9 | 
+ 10 | ```ts
+ 11 | logixlysia({
+ 12 |   config: {
+ 13 |     logFilter: {
+ 14 |       level: ['ERROR', 'WARNING'],
+ 15 |       status: [500, 404],
+ 16 |       method: 'GET'
+ 17 |     }
+ 18 |   }
+ 19 | })
+ 20 | ```
+ 21 | 
+ 22 | ## Filter Types
+ 23 | 
+ 24 | ### By Log Level
+ 25 | 
+ 26 | Filter logs based on their severity level:
+ 27 | 
+ 28 | ```ts
+ 29 | logFilter: {
+ 30 |   level: ['ERROR', 'WARNING'] // Only log ERROR and WARNING messages
+ 31 | }
+ 32 | ```
+ 33 | 
+ 34 | Available levels:
+ 35 | - `ERROR` - Error messages
+ 36 | - `WARNING` - Warning messages
+ 37 | - `INFO` - Information messages
+ 38 | 
+ 39 | ### By HTTP Status
+ 40 | 
+ 41 | Filter logs based on HTTP status codes:
+ 42 | 
+ 43 | ```ts
+ 44 | logFilter: {
+ 45 |   status: [500, 404] // Only log 500 and 404 responses
+ 46 | }
+ 47 | ```
+ 48 | 
+ 49 | ### By HTTP Method
+ 50 | 
+ 51 | Filter logs based on HTTP methods:
+ 52 | 
+ 53 | ```ts
+ 54 | logFilter: {
+ 55 |   method: 'GET' // Only log GET requests
+ 56 | }
+ 57 | ```
+ 58 | 
+ 59 | Available methods:
+ 60 | - `GET`
+ 61 | - `POST`
+ 62 | - `PUT`
+ 63 | - `DELETE`
+ 64 | - `PATCH`
+ 65 | - `HEAD`
+ 66 | - `OPTIONS`
+ 67 | 
+ 68 | ### Combined Filters
+ 69 | 
+ 70 | Combine multiple filter criteria:
+ 71 | 
+ 72 | ```ts
+ 73 | logFilter: {
+ 74 |   level: ['ERROR'],
+ 75 |   status: [500],
+ 76 |   method: ['POST', 'PUT']
+ 77 | }
+ 78 | ```
+ 79 | 
+ 80 | ## Advanced Filtering
+ 81 | 
+ 82 | ### Custom Filter Function
+ 83 | 
+ 84 | Create custom filter logic:
+ 85 | 
+ 86 | ```ts
+ 87 | logFilter: (log) => {
+ 88 |   // Custom filtering logic
+ 89 |   return log.status >= 400 || log.level === 'ERROR'
+ 90 | }
+ 91 | ```
+ 92 | 
+ 93 | ### Environment-Specific Filters
+ 94 | 
+ 95 | ```ts
+ 96 | logFilter: process.env.NODE_ENV === 'production' 
+ 97 |   ? { level: ['ERROR'] }
+ 98 |   : null // Log everything in development
+ 99 | ```
+100 | 
+101 | ## Best Practices
+102 | 
+103 | 1. **Production Environment**
+104 |    - Filter to essential logs only
+105 |    - Focus on errors and warnings
+106 |    - Consider performance impact
+107 | 
+108 | 2. **Development Environment**
+109 |    - Log everything for debugging
+110 |    - Use detailed filters for specific issues
+111 |    - Enable all log levels
+112 | 
+113 | 3. **Security**
+114 |    - Filter sensitive routes
+115 |    - Avoid logging sensitive data
+116 |    - Use appropriate log levels
+117 | 
+118 | 4. **Performance**
+119 |    - Use simple filters in production
+120 |    - Avoid complex filter functions
+121 |    - Consider using different filters for different environments 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/index.mdx:
+--------------------------------------------------------------------------------
+ 1 | ---
+ 2 | title: Features
+ 3 | description: Explore the powerful features of Logixlysia.
+ 4 | ---
+ 5 | 
+ 6 | Logixlysia comes packed with powerful features to enhance your logging experience in Elysia applications. Explore the features below to learn more about what Logixlysia can do for you.
+ 7 | 
+ 8 | ## 🚀 Basic Features
+ 9 | 
+10 | - [Startup Messages](/docs/features/startup) - Customize how your application announces its startup
+11 | - [Custom Log Formatting](/docs/features/formatting) - Create your own log message format
+12 | - [Log Filtering](/docs/features/filtering) - Filter logs based on various criteria
+13 | - [File Logging](/docs/features/file-logging) - Save logs to files for persistence
+14 | - [Log Rotation](/docs/features/log-rotation) - Manage log file sizes and retention
+15 | - [Log Levels](/docs/features/log-levels) - Control the verbosity of your logs
+16 | 
+17 | ## 📊 Advanced Features
+18 | 
+19 | - [Metrics Tracking](/docs/features/metrics) - Monitor system performance and resource usage
+20 | - [Custom Transports](/docs/features/transports) - Send logs to external services
+21 | - [Error Handling](/docs/features/error-handling) - Comprehensive error logging and handling
+22 | - [Context Data](/docs/features/context) - Add custom context to your logs
+23 | - [Security Logging](/docs/features/security) - Log security-related events and data
+24 | 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/log-levels.mdx:
+--------------------------------------------------------------------------------
+  1 | ---
+  2 | title: Log Levels
+  3 | description: Control the verbosity of your logs with Logixlysia.
+  4 | ---
+  5 | 
+  6 | Logixlysia provides multiple log levels to help you control the verbosity of your logging output.
+  7 | 
+  8 | ## Available Levels
+  9 | 
+ 10 | ### DEBUG
+ 11 | For detailed debugging information:
+ 12 | ```ts
+ 13 | logixlysia({
+ 14 |   config: {
+ 15 |     logFilter: {
+ 16 |       level: 'DEBUG'
+ 17 |     }
+ 18 |   }
+ 19 | })
+ 20 | ```
+ 21 | 
+ 22 | ### INFO
+ 23 | For general operational information:
+ 24 | ```ts
+ 25 | logixlysia({
+ 26 |   config: {
+ 27 |     logFilter: {
+ 28 |       level: 'INFO'
+ 29 |     }
+ 30 |   }
+ 31 | })
+ 32 | ```
+ 33 | 
+ 34 | ### WARNING
+ 35 | For warning messages:
+ 36 | ```ts
+ 37 | logixlysia({
+ 38 |   config: {
+ 39 |     logFilter: {
+ 40 |       level: 'WARNING'
+ 41 |     }
+ 42 |   }
+ 43 | })
+ 44 | ```
+ 45 | 
+ 46 | ### ERROR
+ 47 | For error conditions:
+ 48 | ```ts
+ 49 | logixlysia({
+ 50 |   config: {
+ 51 |     logFilter: {
+ 52 |       level: 'ERROR'
+ 53 |     }
+ 54 |   }
+ 55 | })
+ 56 | ```
+ 57 | 
+ 58 | ## Level Hierarchy
+ 59 | 
+ 60 | Log levels follow a hierarchy from most to least verbose:
+ 61 | ```
+ 62 | DEBUG > INFO > WARNING > ERROR
+ 63 | ```
+ 64 | 
+ 65 | When you set a log level, all higher levels will also be logged. For example, setting the level to `WARNING` will log both `WARNING` and `ERROR` messages.
+ 66 | 
+ 67 | ## Multiple Levels
+ 68 | 
+ 69 | You can specify multiple levels to log:
+ 70 | ```ts
+ 71 | logixlysia({
+ 72 |   config: {
+ 73 |     logFilter: {
+ 74 |       level: ['INFO', 'ERROR']
+ 75 |     }
+ 76 |   }
+ 77 | })
+ 78 | ```
+ 79 | 
+ 80 | ## Environment-based Levels
+ 81 | 
+ 82 | Configure different levels for different environments:
+ 83 | ```ts
+ 84 | logixlysia({
+ 85 |   config: {
+ 86 |     logFilter: {
+ 87 |       level: process.env.NODE_ENV === 'production' 
+ 88 |         ? ['ERROR', 'WARNING']
+ 89 |         : ['DEBUG', 'INFO', 'WARNING', 'ERROR']
+ 90 |     }
+ 91 |   }
+ 92 | })
+ 93 | ```
+ 94 | 
+ 95 | ## Best Practices
+ 96 | 
+ 97 | 1. **Development**
+ 98 |    - Use DEBUG level for detailed debugging
+ 99 |    - Log everything for troubleshooting
+100 |    - Include stack traces
+101 | 
+102 | 2. **Staging**
+103 |    - Use INFO level for normal operation
+104 |    - Log important events
+105 |    - Monitor warnings
+106 | 
+107 | 3. **Production**
+108 |    - Use WARNING level for normal operation
+109 |    - Log only important events
+110 |    - Focus on errors and warnings
+111 | 
+112 | 4. **Monitoring**
+113 |    - Set up alerts for ERROR level
+114 |    - Monitor WARNING trends
+115 |    - Review logs regularly
+116 | 
+117 | ## Example Configurations
+118 | 
+119 | ### Development Setup
+120 | ```ts
+121 | logixlysia({
+122 |   config: {
+123 |     logFilter: {
+124 |       level: ['DEBUG', 'INFO', 'WARNING', 'ERROR']
+125 |     }
+126 |   }
+127 | })
+128 | ```
+129 | 
+130 | ### Production Setup
+131 | ```ts
+132 | logixlysia({
+133 |   config: {
+134 |     logFilter: {
+135 |       level: ['WARNING', 'ERROR']
+136 |     }
+137 |   }
+138 | })
+139 | ```
+140 | 
+141 | ### Monitoring Setup
+142 | ```ts
+143 | logixlysia({
+144 |   config: {
+145 |     logFilter: {
+146 |       level: ['ERROR']
+147 |     }
+148 |   }
+149 | })
+150 | ``` 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/log-rotation.mdx:
+--------------------------------------------------------------------------------
+  1 | ---
+  2 | title: Log Rotation
+  3 | description: Manage log file sizes and retention with Logixlysia.
+  4 | ---
+  5 | 
+  6 | Logixlysia provides powerful log rotation capabilities to help you manage your log files efficiently.
+  7 | 
+  8 | ## Basic Configuration
+  9 | 
+ 10 | ```ts
+ 11 | logixlysia({
+ 12 |   config: {
+ 13 |     logFilePath: './logs/app.log',
+ 14 |     logRotation: {
+ 15 |       maxSize: '10m',    // Rotate when file reaches 10MB
+ 16 |       maxFiles: '7d',    // Keep logs for 7 days
+ 17 |       compress: true     // Compress rotated logs
+ 18 |     }
+ 19 |   }
+ 20 | })
+ 21 | ```
+ 22 | 
+ 23 | ## Rotation Options
+ 24 | 
+ 25 | ### Size-based Rotation
+ 26 | 
+ 27 | Rotate logs based on file size:
+ 28 | 
+ 29 | ```ts
+ 30 | logRotation: {
+ 31 |   maxSize: '10m',    // 10 megabytes
+ 32 |   // or
+ 33 |   maxSize: '1g',     // 1 gigabyte
+ 34 |   // or
+ 35 |   maxSize: 10485760  // 10MB in bytes
+ 36 | }
+ 37 | ```
+ 38 | 
+ 39 | ### Time-based Rotation
+ 40 | 
+ 41 | Rotate logs based on time intervals:
+ 42 | 
+ 43 | ```ts
+ 44 | logRotation: {
+ 45 |   interval: '1d',    // Rotate daily
+ 46 |   // or
+ 47 |   interval: '1h',    // Rotate hourly
+ 48 |   // or
+ 49 |   interval: '1w'     // Rotate weekly
+ 50 | }
+ 51 | ```
+ 52 | 
+ 53 | ### Retention Policy
+ 54 | 
+ 55 | Configure how long to keep rotated logs:
+ 56 | 
+ 57 | ```ts
+ 58 | logRotation: {
+ 59 |   maxFiles: '7d',    // Keep logs for 7 days
+ 60 |   // or
+ 61 |   maxFiles: '30d',   // Keep logs for 30 days
+ 62 |   // or
+ 63 |   maxFiles: 10       // Keep last 10 files
+ 64 | }
+ 65 | ```
+ 66 | 
+ 67 | ## Compression
+ 68 | 
+ 69 | Enable compression for rotated logs:
+ 70 | 
+ 71 | ```ts
+ 72 | logRotation: {
+ 73 |   compress: true,    // Enable compression
+ 74 |   compression: 'gzip' // Use gzip compression
+ 75 | }
+ 76 | ```
+ 77 | 
+ 78 | ## Multiple Rotation Strategies
+ 79 | 
+ 80 | Combine different rotation strategies:
+ 81 | 
+ 82 | ```ts
+ 83 | logRotation: {
+ 84 |   maxSize: '100m',   // Rotate when file reaches 100MB
+ 85 |   interval: '1d',    // Also rotate daily
+ 86 |   maxFiles: '30d',   // Keep logs for 30 days
+ 87 |   compress: true     // Compress rotated logs
+ 88 | }
+ 89 | ```
+ 90 | 
+ 91 | ## Best Practices
+ 92 | 
+ 93 | 1. **Size Management**
+ 94 |    - Set appropriate maxSize based on traffic
+ 95 |    - Consider disk space availability
+ 96 |    - Monitor log growth rate
+ 97 | 
+ 98 | 2. **Retention**
+ 99 |    - Configure retention based on requirements
+100 |    - Consider compliance needs
+101 |    - Balance storage costs
+102 | 
+103 | 3. **Compression**
+104 |    - Enable compression for space savings
+105 |    - Consider CPU impact
+106 |    - Choose appropriate compression level
+107 | 
+108 | 4. **Monitoring**
+109 |    - Monitor rotation success
+110 |    - Track disk space usage
+111 |    - Set up alerts for issues
+112 | 
+113 | ## Example Configurations
+114 | 
+115 | ### Production Setup
+116 | 
+117 | ```ts
+118 | logixlysia({
+119 |   config: {
+120 |     logFilePath: './logs/production.log',
+121 |     logRotation: {
+122 |       maxSize: '100m',
+123 |       interval: '1d',
+124 |       maxFiles: '30d',
+125 |       compress: true
+126 |     }
+127 |   }
+128 | })
+129 | ```
+130 | 
+131 | ### Development Setup
+132 | 
+133 | ```ts
+134 | logixlysia({
+135 |   config: {
+136 |     logFilePath: './logs/development.log',
+137 |     logRotation: {
+138 |       maxSize: '10m',
+139 |       maxFiles: '7d',
+140 |       compress: false
+141 |     }
+142 |   }
+143 | })
+144 | ```
+145 | 
+146 | ### High-Volume Setup
+147 | 
+148 | ```ts
+149 | logixlysia({
+150 |   config: {
+151 |     logFilePath: './logs/high-volume.log',
+152 |     logRotation: {
+153 |       maxSize: '1g',
+154 |       interval: '1h',
+155 |       maxFiles: '7d',
+156 |       compress: true
+157 |     }
+158 |   }
+159 | })
+160 | ``` 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/meta.json:
+--------------------------------------------------------------------------------
+ 1 | {
+ 2 |   "root": true,
+ 3 |   "title": "Features",
+ 4 |   "description": "Explore the powerful features of Logixlysia",
+ 5 |   "pages": [
+ 6 |     "index",
+ 7 |     "startup",
+ 8 |     "formatting",
+ 9 |     "filtering",
+10 |     "file-logging",
+11 |     "log-rotation",
+12 |     "log-levels",
+13 |     "metrics",
+14 |     "transports",
+15 |     "error-handling",
+16 |     "context"
+17 |   ]
+18 | }
+19 | 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/metrics.mdx:
+--------------------------------------------------------------------------------
+  1 | ---
+  2 | title: Metrics Tracking
+  3 | description: Monitor system performance and resource usage with Logixlysia.
+  4 | ---
+  5 | 
+  6 | Logixlysia provides built-in metrics tracking to help you monitor your application's performance and resource usage.
+  7 | 
+  8 | ## Available Metrics
+  9 | 
+ 10 | ### Memory Usage
+ 11 | 
+ 12 | Track heap memory usage in megabytes:
+ 13 | 
+ 14 | ```ts
+ 15 | logixlysia({
+ 16 |   config: {
+ 17 |     customLogFormat: '{level} {method} {path} {memoryUsage}MB'
+ 18 |   }
+ 19 | })
+ 20 | ```
+ 21 | 
+ 22 | ### CPU Usage
+ 23 | 
+ 24 | Monitor CPU usage in seconds:
+ 25 | 
+ 26 | ```ts
+ 27 | logixlysia({
+ 28 |   config: {
+ 29 |     customLogFormat: '{level} {method} {path} {cpuUsage}s'
+ 30 |   }
+ 31 | })
+ 32 | ```
+ 33 | 
+ 34 | ### Response Size
+ 35 | 
+ 36 | Track response sizes in bytes:
+ 37 | 
+ 38 | ```ts
+ 39 | logixlysia({
+ 40 |   config: {
+ 41 |     customLogFormat: '{level} {method} {path} {responseSize}B'
+ 42 |   }
+ 43 | })
+ 44 | ```
+ 45 | 
+ 46 | ## Configuration
+ 47 | 
+ 48 | Enable metrics tracking in your configuration:
+ 49 | 
+ 50 | ```ts
+ 51 | logixlysia({
+ 52 |   config: {
+ 53 |     metrics: {
+ 54 |       memory: true,
+ 55 |       cpu: true,
+ 56 |       responseSize: true
+ 57 |     }
+ 58 |   }
+ 59 | })
+ 60 | ```
+ 61 | 
+ 62 | ## Custom Metrics
+ 63 | 
+ 64 | Add your own custom metrics:
+ 65 | 
+ 66 | ```ts
+ 67 | app.use(logixlysia({
+ 68 |   config: {
+ 69 |     customLogFormat: '{level} {method} {path} {customMetric}'
+ 70 |   }
+ 71 | }))
+ 72 | 
+ 73 | app.derive(({ request }) => {
+ 74 |   const start = process.hrtime()
+ 75 |   
+ 76 |   return {
+ 77 |     beforeTime: start,
+ 78 |     customMetric: calculateCustomMetric()
+ 79 |   }
+ 80 | })
+ 81 | ```
+ 82 | 
+ 83 | ## Best Practices
+ 84 | 
+ 85 | 1. **Performance Impact**
+ 86 |    - Enable only necessary metrics
+ 87 |    - Consider sampling in high-traffic scenarios
+ 88 |    - Monitor metrics collection overhead
+ 89 | 
+ 90 | 2. **Storage**
+ 91 |    - Configure appropriate retention
+ 92 |    - Consider aggregation for long-term storage
+ 93 |    - Use appropriate storage backend
+ 94 | 
+ 95 | 3. **Analysis**
+ 96 |    - Set up alerts for critical metrics
+ 97 |    - Create dashboards for visualization
+ 98 |    - Regular review of metric trends
+ 99 | 
+100 | ## Example Configurations
+101 | 
+102 | ### Production Monitoring
+103 | 
+104 | ```ts
+105 | logixlysia({
+106 |   config: {
+107 |     metrics: {
+108 |       memory: true,
+109 |       cpu: true,
+110 |       responseSize: true
+111 |     },
+112 |     customLogFormat: '{level} {method} {path} {memoryUsage}MB {cpuUsage}s {responseSize}B'
+113 |   }
+114 | })
+115 | ```
+116 | 
+117 | ### Development Debugging
+118 | 
+119 | ```ts
+120 | logixlysia({
+121 |   config: {
+122 |     metrics: {
+123 |       memory: true,
+124 |       cpu: true
+125 |     },
+126 |     customLogFormat: '{level} {method} {path} {memoryUsage}MB {cpuUsage}s'
+127 |   }
+128 | })
+129 | ``` 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/startup.mdx:
+--------------------------------------------------------------------------------
+ 1 | ---
+ 2 | title: Startup Messages
+ 3 | description: Learn how to customize startup messages in Logixlysia.
+ 4 | ---
+ 5 | 
+ 6 | Customize how your application announces its startup with Logixlysia's flexible startup message system.
+ 7 | 
+ 8 | ## Basic Usage
+ 9 | 
+10 | ```ts
+11 | logixlysia({
+12 |   config: {
+13 |     showStartupMessage: true,
+14 |     startupMessageFormat: 'simple' // or 'banner'
+15 |   }
+16 | })
+17 | ```
+18 | 
+19 | ## Message Formats
+20 | 
+21 | ### Simple Format
+22 | 
+23 | A clean, minimal startup message:
+24 | 
+25 | ```
+26 | 🦊 Logixlysia is running on http://localhost:3000
+27 | ```
+28 | 
+29 | ### Banner Format
+30 | 
+31 | A beautiful ASCII art banner (default):
+32 | 
+33 | ```
+34 |     ┌─────────────────────────────────────────────────┐
+35 |     │                                                 │
+36 |     │                 Elysia v1.1.23                  │
+37 |     │                                                 │
+38 |     │  🦊 Elysia is running at http://localhost:3000  │
+39 |     │                                                 │
+40 |     └─────────────────────────────────────────────────┘
+41 | ```
+42 | 
+43 | ## Configuration Options
+44 | 
+45 | | Option | Type | Description | Default |
+46 | |--------|------|-------------|---------|
+47 | | `showStartupMessage` | `boolean` | Whether to show the startup message | `true` |
+48 | | `startupMessageFormat` | `'simple' \| 'banner'` | The format of the startup message | `'banner'` |
+49 | 
+50 | ## Customization
+51 | 
+52 | You can customize the startup message by:
+53 | 
+54 | 1. Setting `showStartupMessage` to `false` to disable it
+55 | 2. Choosing between `'simple'` and `'banner'` formats
+56 | 3. Extending the startup message system with custom formats
+57 | 
+58 | ## Best Practices
+59 | 
+60 | - Use `'banner'` format in development for better visibility
+61 | - Use `'simple'` format in production for cleaner logs
+62 | - Consider disabling startup messages in production if not needed 
+
+
+--------------------------------------------------------------------------------
+/website/content/docs/features/transports.mdx:
+--------------------------------------------------------------------------------
+  1 | ---
+  2 | title: Custom Transports
+  3 | description: Send logs to external services with custom transports.
+  4 | ---
+  5 | 
+  6 | Logixlysia allows you to send logs to external services using custom transports.
+  7 | 
+  8 | ## Basic Transport
+  9 | 
+ 10 | Create a basic transport:
+ 11 | 
+ 12 | ```ts
+ 13 | const consoleTransport = {
+ 14 |   log: (level, message, meta) => {
+ 15 |     console.log(`[${level}] ${message}`, meta)
+ 16 |   }
+ 17 | }
+ 18 | 
+ 19 | app.use(logixlysia({
+ 20 |   config: {
+ 21 |     transports: [consoleTransport]
+ 22 |   }
+ 23 | }))
+ 24 | ```
+ 25 | 
+ 26 | ## External Services
+ 27 | 
+ 28 | ### Elasticsearch Transport
+ 29 | 
+ 30 | ```ts
+ 31 | const elasticsearchTransport = {
+ 32 |   log: async (level, message, meta) => {
+ 33 |     await fetch('http://elasticsearch:9200/logs/_doc', {
+ 34 |       method: 'POST',
+ 35 |       headers: {
+ 36 |         'Content-Type': 'application/json'
+ 37 |       },
+ 38 |       body: JSON.stringify({
+ 39 |         level,
+ 40 |         message,
+ 41 |         ...meta,
+ 42 |         timestamp: new Date().toISOString()
+ 43 |       })
+ 44 |     })
+ 45 |   }
+ 46 | }
+ 47 | ```
+ 48 | 
+ 49 | ### MongoDB Transport
+ 50 | 
+ 51 | ```ts
+ 52 | const mongodbTransport = {
+ 53 |   log: async (level, message, meta) => {
+ 54 |     await db.collection('logs').insertOne({
+ 55 |       level,
+ 56 |       message,
+ 57 |       ...meta,
+ 58 |       timestamp: new Date()
+ 59 |     })
+ 60 |   }
+ 61 | }
+ 62 | ```
+ 63 | 
+ 64 | ### Slack Transport
+ 65 | 
+ 66 | ```ts
+ 67 | const slackTransport = {
+ 68 |   log: async (level, message, meta) => {
+ 69 |     if (level === 'ERROR') {
+ 70 |       await fetch('https://hooks.slack.com/services/...', {
+ 71 |         method: 'POST',
+ 72 |         headers: {
+ 73 |           'Content-Type': 'application/json'
+ 74 |         },
+ 75 |         body: JSON.stringify({
+ 76 |           text: `[${level}] ${message}\n${JSON.stringify(meta, null, 2)}`
+ 77 |         })
+ 78 |       })
+ 79 |     }
+ 80 |   }
+ 81 | }
+ 82 | ```
+ 83 | 
+ 84 | ## Multiple Transports
+ 85 | 
+ 86 | Use multiple transports together:
+ 87 | 
+ 88 | ```ts
+ 89 | app.use(logixlysia({
+ 90 |   config: {
+ 91 |     transports: [
+ 92 |       consoleTransport,
+ 93 |       elasticsearchTransport,
+ 94 |       slackTransport
+ 95 |     ]
+ 96 |   }
+ 97 | }))
+ 98 | ```
+ 99 | 
+100 | ## Best Practices
+101 | 
+102 | 1. **Error Handling**
+103 |    - Handle transport errors gracefully
+104 |    - Implement retry logic
+105 |    - Log transport failures
+106 | 
+107 | 2. **Performance**
+108 |    - Use async transports
+109 |    - Implement batching
+110 |    - Consider rate limiting
+111 | 
+112 | 3. **Security**
+113 |    - Secure transport credentials
+114 |    - Validate log data
+115 |    - Implement access control
+116 | 
+117 | ## Example Configurations
+118 | 
+119 | ### Production Setup
+120 | 
+121 | ```ts
+122 | app.use(logixlysia({
+123 |   config: {
+124 |     transports: [
+125 |       elasticsearchTransport,
+126 |       slackTransport
+127 |     ]
+128 |   }
+129 | }))
+130 | ```
+131 | 
+132 | ### Development Setup
+133 | 
+134 | ```ts
+135 | app.use(logixlysia({
+136 |   config: {
+137 |     transports: [
+138 |       consoleTransport,
+139 |       mongodbTransport
+140 |     ]
+141 |   }
+142 | })) 
+
+
+--------------------------------------------------------------------------------

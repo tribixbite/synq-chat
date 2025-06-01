@@ -1,0 +1,2051 @@
+# Directory Structure
+```
+docs/
+  css/
+    _variables_3.scss
+    _variables.scss
+  demos/
+    js/
+      basic.js
+      conditional-ui.js
+      debugger.js
+      playground.js
+    authenticators.html
+    basic.html
+    conditional-ui.html
+    debugger.html
+    playground.html
+  authentication.md
+  concepts.md
+  faq.md
+  index.md
+  registration.md
+  requirements.txt
+  ways.md
+```
+
+# Files
+
+## File: docs/css/_variables_3.scss
+````scss
+$primary: #7957d5;
+$enable-gradients: true;
+$enable-shadows: true;
+$headings-font-weight: 300;
+$headings-line-height: 1.5;
+$secondary: $gray-400;
+````
+
+## File: docs/css/_variables.scss
+````scss
+$primary: #7957d5;
+$headings-line-height: 2;
+$headings-font-weight: 400;
+$headings-margin-bottom: 0;
+````
+
+## File: docs/demos/js/basic.js
+````javascript
+import { client, parsers, server } from './webauthn.min.js'
+Vue.prototype.$buefy.config.setOptions({
+  defaultProgrammaticPromise : true
+})
+const app = new Vue({
+  el: '#app',
+  data: {
+    registrationParsed: null,
+    authenticationParsed: null
+  },
+  methods: {
+    clear() {
+      this.authenticationParsed = null
+      this.registrationParsed = null;
+    },
+    async register() {
+      this.clear();
+      const username = (await this.$buefy.dialog.prompt({message: "What's your name?"})).result;
+      console.log(username);
+      if(!username)
+        return;
+      try {
+          // 1. Get a challenge from the server
+          const challenge = server.randomChallenge(); // should be remotely fetched of course
+          // 2. Invoking WebAuthn in the browser
+          const registration = await client.register({
+            challenge,
+            user: {
+              id: `id-for-${username}`, // to override credential with same username, should be anonymous
+              name:username
+            },
+            discoverable: 'required', // this demo relies on discoverable credentials
+            debug: true
+          })
+          // 3. Send the payload to the server
+          console.log('Registration payload')
+          console.log(JSON.stringify(registration, null, 2))
+          // 4. The server can now verify the payload, but let's just parse it for the demo
+          this.registrationParsed = await parsers.parseRegistration(registration)
+          this.$buefy.toast.open({
+            message: 'Registered!',
+            type: 'is-success'
+          })
+      }
+      catch(e) {
+        // This might happen when there is something wrong or the user cancelled it
+        console.warn(e)
+        this.$buefy.toast.open({
+          message: e,
+          type: 'is-danger'
+        })
+      }
+    },
+    async authenticate() {
+      this.clear();
+      try {
+        // 1. Get a challenge from the server
+        const challenge = server.randomChallenge(); // should be remotely fetched of course
+        // 2. Invoking WebAuthn in the browser
+        const authentication = await client.authenticate({
+          challenge,
+          debug: true
+        })
+        // 3. Send the payload to the server
+        console.log('Authentication payload')
+        console.log(JSON.stringify(authentication, null, 2))
+        // 4. The server can now verify the payload, but let's just parse it for the demo
+        this.authenticationParsed = await parsers.parseAuthentication(authentication);
+        this.$buefy.toast.open({
+          message: 'Authenticated!',
+          type: 'is-success'
+        })
+      }
+      catch(e) {
+        // This might happen when there is something wrong or the user cancelled it
+        console.warn(e)
+        this.$buefy.toast.open({
+          message: e,
+          type: 'is-danger'
+        })
+      }
+    },
+    async logout() {
+      this.clear();
+      this.$buefy.toast.open({
+        message: 'Signed out!',
+        type: 'is-success'
+      });
+    }
+  }
+})
+````
+
+## File: docs/demos/js/conditional-ui.js
+````javascript
+import { client, parsers, server } from './webauthn.min.js'
+Vue.prototype.$buefy.config.setOptions({
+  defaultProgrammaticPromise : true
+})
+const app = new Vue({
+  el: '#app',
+  data: {
+    username: null,
+    registrationParsed: null,
+    authenticationParsed: null,
+    autocompleteAvailable: null
+  },
+  methods: {
+    clear() {
+      this.authenticationParsed = null
+      this.registrationParsed = null;
+    },
+    async register() {
+      this.clear();
+      const username = this.username;
+      console.log(username);
+      if(!username)
+        return;
+      try {
+          // 1. Get a challenge from the server
+          const challenge = server.randomChallenge(); // should be remotely fetched of course
+          // 2. Invoking WebAuthn in the browser
+          const registration = await client.register({
+            challenge,
+            user: {
+              id: `id-for-${username}`, // to override credential with same username, should be anonymous
+              name:username
+            },
+            discoverable: 'required', // Otherwise conditional UI does not work
+            debug: true
+          })
+          // 3. Send the payload to the server
+          console.log('Registration payload')
+          console.log(JSON.stringify(registration, null, 2))
+          // 4. The server can now verify the payload, but let's just parse it for the demo
+          this.registrationParsed = await parsers.parseRegistration(registration)
+          this.$buefy.toast.open({
+            message: 'Registered!',
+            type: 'is-success'
+          })
+      }
+      catch(e) {
+        // This might happen when there is something wrong or the user cancelled it
+        console.warn(e)
+        this.$buefy.toast.open({
+          message: e,
+          type: 'is-danger'
+        })
+      }
+    },
+    async authenticate() {
+      this.clear();
+      this.autocompleteAvailable = await client.isAutocompleteAvailable()
+      if(!this.autocompleteAvailable)
+        return
+      try {
+        // 1. Get a challenge from the server
+        const challenge = server.randomChallenge(); // should be remotely fetched of course
+        // 2. Invoking WebAuthn in the browser
+        const authentication = await client.authenticate({
+          challenge,
+          autocomplete: true,
+          debug: true
+        })
+        // 3. Send the payload to the server
+        console.log('Authentication payload')
+        console.log(JSON.stringify(authentication, null, 2))
+        // 4. The server can now verify the payload, but let's just parse it for the demo
+        this.authenticationParsed = await parsers.parseAuthentication(authentication);
+        this.$buefy.toast.open({
+          message: 'Authenticated!',
+          type: 'is-success'
+        })
+      }
+      catch(e) {
+        // This might happen when there is something wrong or the user cancelled it
+        console.warn(e)
+        this.$buefy.toast.open({
+          message: e,
+          type: 'is-danger'
+        })
+      }
+    },
+    async logout() {
+      this.clear();
+      this.$buefy.toast.open({
+        message: 'Signed out!',
+        type: 'is-success'
+      });
+      this.authenticate()
+    }
+  }
+})
+app.authenticate()
+````
+
+## File: docs/demos/js/debugger.js
+````javascript
+import webauthn from './webauthn.min.js'
+const app = new Vue({
+    el: '#app',
+    data: {
+        origin: document.location.origin,
+        isKeyValid: null,
+        verification: {
+            publicKey: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWyyMt1l16_1rzDP63Ayw9EFpn1VbSt4NSJ7BOsDzqed5Z3aTfQSvzPBPHb4uYQuuckOKRbdoH9S0fEnSvNxpRg==", // null, 
+                     //"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzXUir6UgELFeM9il6id2vgZ1sWbZTk4C5JLIiMpg7lywwTRdp0i+lPP9rEdzcmwKwRLh5QT8DlPFQuKrUc8eXb9r+RPq/CvVOxVCqdK6A9fg0PDnvA3k7c5Ax5V5n/HcSw/uXVAzwstxQsbV5pOk0JDtys7rKiPjdO+XH5TbANNJE7PsS5j90zHLKNQaSybgF8V0v4Oz4I9u7IjVQKEz2V56E4Qfj/D7g0PCu63M5mNz5bGsmUzg5XwSRIaG3J3kDTuyTTGjPYhTnYFyWYXuMu1ZQ7JCe5FUv9m4oj3jH33VQEW3sorea7UOBjnSsLWp8MyE08M4tlY2xgyFL59obQIDAQAB",
+            algorithm: "ES256",
+            authenticatorData: "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAQ==", // null, 
+                             //"SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MFAAAAAQ==",
+            clientData: "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiMjRkMjI0ZDMtMWQwZi00MzAxLTg3NTktMzk4ODcwNTg1ZTU1Iiwib3JpZ2luIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiY3Jvc3NPcmlnaW4iOmZhbHNlfQ==", // null, 
+                      //"eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWmpreE5URTBZVGN0TkRKa015MDBOMlU0TFdFME1HTXRZVFEyTkdRNVlqTmpNVGN3Iiwib3JpZ2luIjoiaHR0cDovL2xvY2FsaG9zdDo2MzM0MiIsImNyb3NzT3JpZ2luIjpmYWxzZSwib3RoZXJfa2V5c19jYW5fYmVfYWRkZWRfaGVyZSI6ImRvIG5vdCBjb21wYXJlIGNsaWVudERhdGFKU09OIGFnYWluc3QgYSB0ZW1wbGF0ZS4gU2VlIGh0dHBzOi8vZ29vLmdsL3lhYlBleCJ9",
+            signature: "MEYCIQDgSy1brw1UVCT4kzaZIiiihNuC7KvV2vm3gO5f1CSscQIhAM6-MihKO2jnF_BHeEJMYZ7jN-kz9TuWqYwJJzm4fOcl", //null, 
+                     //"E/XchoqDlSOanozr0o03DN++EEz5qVymtgiaLbepoysxgdxAz/uH/34wt7/YrUs7ESaH/3ni3/0mk71WRc9SP9GMRNYqKSeZkwAM+ZHMc7e3OEpOETWIBCO+aOKmKPflB/nVzXocNUHnhW/aw5UAOhU43qjjy1X9+5+t+60C6RyGaDXTz6Mk6rmgX3z21M8pOFw8VAAtUojX6ab+Lh48SaMN1Z2BK8Exh//pFjveMVngx4yuYRm6Tu7irRvGZVe7Wnii6GNUz56kT2Q4Fc8hR28c3+qufKWuaHLJUnsw6GILQNxemDzirlKBhXFjz7Ht7tyGaqUwFZr9q+93j/95Ag==",
+            isValid: null
+        }
+    },
+    computed: {
+        parsedAuthData() {
+            const authData = this.verification.authenticatorData
+            if(!authData)
+                return null
+            try {
+                return webauthn.parsers.parseAuthenticator(authData)
+            }
+            catch(e) {
+                console.warn(e)
+                return "ERROR: failed to parse authenticator data. See console logs for more details."
+            }
+        },
+        parsedClientData() {
+            const clientData = this.verification.clientData
+            if(!clientData)
+                return null
+            try {
+                return webauthn.parsers.parseClient(clientData)
+            }
+            catch(e) {
+                console.warn(e)
+                return "ERROR: failed to parse client data. See console logs for more details."
+            }
+        }
+    },
+    methods: {
+        async verifySignature() {
+            try {
+                this.verification.isValid = await webauthn.server.verifySignature(this.verification)
+            }
+            catch(e) {
+                console.warn(e)
+                this.$buefy.toast.open({
+                    message: e,
+                    type: 'is-danger'
+                })
+                this.verification.isValid = false
+            }
+        },
+        async verifyKey() {
+            try {
+                this.isKeyValid = null
+                const key = await webauthn.server.parseCryptoKey(this.verification.algorithm, this.verification.publicKey)
+                this.isKeyValid = true
+            }
+            catch(e) {
+                console.warn(e)
+                this.$buefy.toast.open({
+                    message: e,
+                    type: 'is-danger'
+                })
+                this.isKeyValid = false
+            }
+        }
+    }
+ })
+````
+
+## File: docs/demos/js/playground.js
+````javascript
+import webauthn from './webauthn.min.js'
+const app = new Vue({
+    el: '#app',
+    components: {
+        'b-collapse-card': {
+            props: {
+                title: String,
+                open: Boolean,
+            },
+            template: `
+            <b-collapse class="card my-4" :open="open">
+                <template #trigger="props">
+                    <div class="card-header">
+                        <a class="card-header-icon">
+                            <b-icon :icon="props.open ? 'menu-down' : 'menu-right'"></b-icon>
+                        </a>
+                        <p class="card-header-title">{{title}}</p>
+                    </div>
+                </template>
+                <slot></slot>   
+                </b-collapse>
+                `
+        }
+    },
+    data: {
+        origin: document.location.origin,
+        registration: {
+            options: {
+                user: "Arnaud",
+                challenge: webauthn.server.randomChallenge(),
+                hints: [],
+                userVerification: 'preferred',
+                discoverable: 'preferred',
+                timeout: 60000,
+                attestation: true
+            },
+            json: null,
+            result: null
+        },
+        authentication: {
+            credentialId: null,
+            options: {
+                challenge: webauthn.server.randomChallenge(),
+                hints: [],
+                authenticatorType: 'auto',
+                userVerification: 'required',
+                timeout: 60000,
+                allowCredentials: []
+            },
+            json: null,
+            result: null
+        },
+        verification: {
+            publicKey: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEWyyMt1l16_1rzDP63Ayw9EFpn1VbSt4NSJ7BOsDzqed5Z3aTfQSvzPBPHb4uYQuuckOKRbdoH9S0fEnSvNxpRg==", // null, 
+            //"MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAzXUir6UgELFeM9il6id2vgZ1sWbZTk4C5JLIiMpg7lywwTRdp0i+lPP9rEdzcmwKwRLh5QT8DlPFQuKrUc8eXb9r+RPq/CvVOxVCqdK6A9fg0PDnvA3k7c5Ax5V5n/HcSw/uXVAzwstxQsbV5pOk0JDtys7rKiPjdO+XH5TbANNJE7PsS5j90zHLKNQaSybgF8V0v4Oz4I9u7IjVQKEz2V56E4Qfj/D7g0PCu63M5mNz5bGsmUzg5XwSRIaG3J3kDTuyTTGjPYhTnYFyWYXuMu1ZQ7JCe5FUv9m4oj3jH33VQEW3sorea7UOBjnSsLWp8MyE08M4tlY2xgyFL59obQIDAQAB",
+            algorithm: "ES256",
+            authenticatorData: "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2MFAAAAAQ==", // null, 
+            //"SZYN5YgOjGh0NBcPZHZgW4/krrmihjLHmVzzuoMdl2MFAAAAAQ==",
+            clientData: "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiMjRkMjI0ZDMtMWQwZi00MzAxLTg3NTktMzk4ODcwNTg1ZTU1Iiwib3JpZ2luIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiY3Jvc3NPcmlnaW4iOmZhbHNlfQ==", // null, 
+            //"eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiWmpreE5URTBZVGN0TkRKa015MDBOMlU0TFdFME1HTXRZVFEyTkdRNVlqTmpNVGN3Iiwib3JpZ2luIjoiaHR0cDovL2xvY2FsaG9zdDo2MzM0MiIsImNyb3NzT3JpZ2luIjpmYWxzZSwib3RoZXJfa2V5c19jYW5fYmVfYWRkZWRfaGVyZSI6ImRvIG5vdCBjb21wYXJlIGNsaWVudERhdGFKU09OIGFnYWluc3QgYSB0ZW1wbGF0ZS4gU2VlIGh0dHBzOi8vZ29vLmdsL3lhYlBleCJ9",
+            signature: "MEYCIQDgSy1brw1UVCT4kzaZIiiihNuC7KvV2vm3gO5f1CSscQIhAM6-MihKO2jnF_BHeEJMYZ7jN-kz9TuWqYwJJzm4fOcl", //null, 
+            //"E/XchoqDlSOanozr0o03DN++EEz5qVymtgiaLbepoysxgdxAz/uH/34wt7/YrUs7ESaH/3ni3/0mk71WRc9SP9GMRNYqKSeZkwAM+ZHMc7e3OEpOETWIBCO+aOKmKPflB/nVzXocNUHnhW/aw5UAOhU43qjjy1X9+5+t+60C6RyGaDXTz6Mk6rmgX3z21M8pOFw8VAAtUojX6ab+Lh48SaMN1Z2BK8Exh//pFjveMVngx4yuYRm6Tu7irRvGZVe7Wnii6GNUz56kT2Q4Fc8hR28c3+qufKWuaHLJUnsw6GILQNxemDzirlKBhXFjz7Ht7tyGaqUwFZr9q+93j/95Ag==",
+            isValid: null
+        }
+    },
+    computed: {
+        parsedAuthData() {
+            const authData = this.verification.authenticatorData
+            if(!authData)
+                return null
+            try {
+                return webauthn.parsers.parseAuthenticator(authData)
+            }
+            catch(e) {
+                console.warn(e)
+                return "ERROR: failed to parse authenticator data. See console logs for more details."
+            }
+        },
+        parsedClientData() {
+            const clientData = this.verification.clientData
+            if(!clientData)
+                return null
+            try {
+                return webauthn.parsers.parseClient(clientData)
+            }
+            catch(e) {
+                console.warn(e)
+                return "ERROR: failed to parse client data. See console logs for more details."
+            }
+        }
+    },
+    methods: {
+        newChallenge() {
+            return webauthn.server.randomChallenge()
+        },
+        async register() {
+            try {
+                const json = await webauthn.client.register(this.registration.options)
+                console.log(json)
+                this.$buefy.toast.open({
+                    message: 'Registered!',
+                    type: 'is-success'
+                })
+                this.registration.json = json
+                const result = await webauthn.server.verifyRegistration(json, {
+                    challenge: this.registration.options.challenge,
+                    origin: this.origin,
+                })
+                console.log(result)
+                this.registration.result = result
+            }
+            catch (e) {
+                console.warn(e)
+                this.$buefy.toast.open({
+                    message: e,
+                    type: 'is-danger'
+                })
+                this.registration.result = {}
+            }
+        },
+        async login() {
+            this.authentication.result = null
+            this.authentication.json = null
+            try {
+                const json = await webauthn.client.authenticate(this.authentication.options)
+                console.log(json)
+                this.$buefy.toast.open({
+                    message: 'Authenticated!',
+                    type: 'is-success'
+                })
+                this.authentication.json = json
+                const credential = this.registration?.result?.credential
+                if (credential) {
+                    const result = await webauthn.server.verifyAuthentication(json, credential, {
+                        challenge: this.authentication.options.challenge,
+                        origin: this.origin,
+                        userVerified: this.authentication.userVerification === 'required',
+                        counter: -1 // Fixes #27 since counter is 0 on first auth with ios/macos
+                    })
+                    console.log(result)
+                    this.authentication.result = result
+                }
+            }
+            catch (e) {
+                console.warn(e)
+                this.$buefy.toast.open({
+                    message: e,
+                    type: 'is-danger'
+                })
+            }
+        },
+        async verifyPublicKey() {
+            const algorithm = this.verification.algorithm
+            const publicKey = this.verification.publicKey
+            if(!algorithm)
+                return window.alert('No algorithm defined!')
+            if(!publicKey)
+                return window.alert('Public key not defined!')
+            try {
+                const parsedKey = await webauthn.server.parseCryptoKey(algorithm, publicKey)
+                console.log(parsedKey)
+                return window.alert('Public key is VALID')
+            } catch (error) {
+                console.warn(error)
+                return window.alert('INVALID public key: see details in console logs')   
+            }
+        },
+        async verifySignature() {
+            try {
+                this.verification.isValid = await webauthn.server.verifySignature(this.verification)
+            }
+            catch (e) {
+                console.warn(e)
+                this.$buefy.toast.open({
+                    message: e,
+                    type: 'is-danger'
+                })
+                this.verification.isValid = false
+            }
+        }
+    }
+})
+````
+
+## File: docs/demos/authenticators.html
+````html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Passkeys authenticators list</title>
+    <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
+    <style>
+        code {
+            text-wrap: nowrap;
+        }
+        th {
+            text-align: center !important;
+        }
+        .table td {
+            vertical-align: middle;
+        }
+    </style>
+    <script defer src="https://unpkg.com/vue@2.7.14/dist/vue.min.js"></script>
+    <script defer src="https://unpkg.com/buefy@0.9.23/dist/buefy.min.js"></script>
+    <script defer type="module">
+        import { authenticatorMetadata } from './js/webauthn.min.js'
+        console.log(authenticatorMetadata)
+        const app = new Vue({
+        el: '#app',
+        data: {
+            authenticatorMetadata
+        }})
+    </script>
+</head>
+<body>
+    <a class="button is-primary" href="/">&larr; Back to docs</a>
+    <main id="app" class="section container has-text-centered">
+        <h1 class="title">Authenticators list</h1>
+        <p>This list includes both hardware and software authenticators and all icons are available as png 64x64.</p>
+        <ul>
+            <li><code>https://webauthn.passwordless.id/authenticators/{aaguid}-light.png</code></li>
+            <li><code>https://webauthn.passwordless.id/authenticators/{aaguid}-dark.png&nbsp;</code></li>
+        </ul>
+        <hr/>
+        <table class="authenticators table is-striped is-narrow is-hoverable is-fullwidth">
+            <thead>
+                <th>Light</th>
+                <th>Dark</th>
+                <th>AAGUID</th>
+                <th>Name</th>
+            </thead>
+            <tbody>
+                <tr v-for="(name, aaguid) in authenticatorMetadata">
+                    <td class="has-background-light">
+                        <img :src="'/authenticators/' + aaguid + '-light.png'" />
+                    </td>
+                    <td class="has-background-dark">
+                        <img :src="'/authenticators/' + aaguid + '-dark.png'" />
+                    </td>
+                    <td style="font-family: monospace">
+                        <code>{{aaguid}}</code>
+                    </td>
+                    <td>
+                        {{name}}
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </main>
+</body>
+</html>
+````
+
+## File: docs/demos/basic.html
+````html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Passkeys demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
+  <script defer src="https://unpkg.com/vue@2.7.14/dist/vue.min.js"></script>
+  <script defer src="https://unpkg.com/buefy@0.9.23/dist/buefy.min.js"></script>
+  <script defer type="module" src="js/basic.js"></script>
+</head>
+<body>
+<a class="button is-primary" href="/">&larr; Back to docs</a>
+<main id="app" class="container has-text-centered">
+  <section>
+    <img src="/img/banner-biometric-auth.svg" style="max-width: 600px;"/>
+    <p><b-tag>Please note: this is a demo. Nothing is stored server side, only locally.</b-tag></p>
+    <br/>
+    <br/>
+    <div>
+      <b-button type="is-primary" @click="register()" :disabled="!!registrationParsed">Register</b-button>
+      <b-button type="is-primary" @click="authenticate()" :disabled="!!authenticationParsed">Authenticate</b-button>
+      <b-button type="is-primary" @click="logout()" :disabled="!registrationParsed && !authenticationParsed">Sign Out</b-button>
+    </div>
+  </section>
+  <section v-if="registrationParsed" class="has-text-left">
+    <p>
+      <b>Authenticator:</b>
+      <img style="vertical-align: middle;" :src="registrationParsed.authenticator.icon_light" />
+      <span>{{registrationParsed.authenticator.name}}</span>
+    </p>
+    <p>
+      <b>Synced?</b>
+      <b-tag type="is-primary" v-if="registrationParsed.synced === true">Synced / multi-device credential</b-tag>
+      <b-tag type="is-primary" v-if="registrationParsed.synced === false">Device-bound credential</b-tag>
+    </p>
+    <p>
+      <b>User verified?</b>
+      <b-tag type="is-success" v-if="registrationParsed.userVerified === true">Yes</b-tag>
+      <b-tag type="is-danger" v-if="registrationParsed.userVerified === false">No</b-tag>
+    </p>
+    <hr/>
+    <p><b>Credential ID:</b> {{registrationParsed.credential.id}}</p>
+    <p><b>Public Key:</b> {{registrationParsed.credential.publicKey}}</p>
+    <p><b>Algorithm:</b> {{registrationParsed.credential.algorithm}}</p>
+  </section>
+  <section v-if="authenticationParsed" class="has-text-left">
+    <p>
+      <b>User verified?</b>
+      <b-tag type="is-success" v-if="authenticationParsed.userVerified === true">Yes</b-tag>
+      <b-tag type="is-danger" v-if="authenticationParsed.userVerified === false">No</b-tag>
+    </p>
+    <p><b>Credential ID:</b> {{authenticationParsed.credentialId}}</p>
+    <p><b>Counter:</b> {{authenticationParsed.counter}}</p>
+  </section>
+  <hr/>
+  <p>Check out the <a href="playground.html">playground</a> for more detailed usage and options.</p>
+</main>
+</body>
+</html>
+````
+
+## File: docs/demos/conditional-ui.html
+````html
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Passkeys autocomplete / conditional mediation demo</title>
+  <link rel="stylesheet" href="https://unpkg.com/buefy/dist/buefy.min.css">
+  <script defer src="https://unpkg.com/vue@2.7.14/dist/vue.min.js"></script>
+  <script defer src="https://unpkg.com/buefy@0.9.23/dist/buefy.min.js"></script>
+  <script defer type="module" src="js/conditional-ui.js"></script>
+</head>
+<body>
+<a class="button is-primary" href="/">&larr; Back to docs</a>
+<main id="app" class="section container has-text-centered">
+  <section>
+    <img src="/img/banner-biometric-auth.svg" style="max-width: 600px;"/>
+    <p><b-tag>Please note: this is a demo. Nothing is stored server side, only locally.</b-tag></p>
+    <br/>
+    <article class="message is-warning has-text-left">
+      <div class="message-body">
+        Passkeys autocomplete, also known as "conditional mediation" triggers authentication when selecting a username from the autocomplete.<br>
+        However, note that it does not work "smoothly" (or at all) on every browser / platform / authenticators. <br>
+        Therefore, it is recommended to provide a fallback to trigger authentication without <code>autocomplete: true</code> too.
+      </div>
+    </article>  
+    <p>
+      <code>isAutocompleteAvailable()</code> ?
+      <b-tag type="is-success" v-if="autocompleteAvailable === true">true</b-tag>
+      <b-tag type="is-danger" v-if="autocompleteAvailable === false">false</b-tag>
+    </p>
+    <br/>
+    <b-input v-model="username" placeholder="Username" autocomplete="username webauthn"></b-input>
+    <div class="my-3">
+      <b-button type="is-primary" @click="register()" :disabled="!username">Register</b-button>
+      <b-button type="is-primary" @click="logout()" :disabled="!registrationParsed && !authenticationParsed">Sign Out</b-button>
+    </div>
+  </section>
+  <section v-if="registrationParsed" class="has-text-left">
+    <p>
+      <b>Authenticator:</b>
+      <img style="vertical-align: middle;" :src="registrationParsed.authenticator.icon_light" />
+      <span>{{registrationParsed.authenticator.name}}</span>
+    </p>
+    <p>
+      <b>Synced?</b>
+      <template v-if="registrationParsed.authenticator">
+        <b-tag type="is-primary" v-if="registrationParsed.synced === true">Synced / multi-device credential</b-tag>
+        <b-tag type="is-primary" v-if="registrationParsed.synced === false">Device-bound credential</b-tag>
+      </template>
+    </p>
+    <hr/>
+    <p><b>Credential ID:</b> {{registrationParsed.credential.id}}</p>
+    <p><b>Public Key:</b> {{registrationParsed.credential.publicKey}}</p>
+    <p><b>Algorithm:</b> {{registrationParsed.credential.algorithm}}</p>
+  </section>
+  <section v-if="authenticationParsed" style="text-align: left;">
+    <p><b>Credential ID:</b> {{authenticationParsed.credentialId}}</p>
+    <p><b>Counter:</b> {{authenticationParsed.counter}}</p>
+  </section>
+  <hr/>
+  <p>Check out the <a href="playground.html">playground</a> for more detailed usage and options.</p>
+</main>
+</body>
+</html>
+````
+
+## File: docs/demos/debugger.html
+````html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Passkeys debugger / verifier</title>
+    <link rel="stylesheet" href="https://unpkg.com/buefy@0.9.23/dist/buefy.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@5.8.55/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="theme.css">
+    <script defer src="https://unpkg.com/vue@2.7.14/dist/vue.min.js"></script>
+    <script defer src="https://unpkg.com/buefy@0.9.23/dist/buefy.min.js"></script>
+    <script defer type="module" src="js/debugger.js"></script>
+</head>
+<body>
+<a class="button is-primary" href="/">&larr; Back to docs</a>
+<main id="app" class="container">
+    <header class="m-3" style="display:flex; justify-content: center; flex-wrap: wrap;">
+        <img src="img/banner-playground.svg" alt="banner" style="max-height: 300px" />
+        <div class="col p-3">
+            <h1 class="title">JSON Payloads Debugger</h1>
+        </div>
+    </header>
+    <section>
+        <header class="with-big-icon">
+            <img src="img/icon_validate.svg"/>
+            <h2 class="title">Signature validation</h2>
+        </header>
+        <p>This part is mainly for debugging purposes or validation.</p>
+        <hr/>
+        <b-field label="Algorithm" horizontal>
+            <b-select v-model="verification.algorithm" expanded>
+                <option>RS256</option>
+                <option>ES256</option>
+            </b-select>
+            <div class="hint">The algorithm used for the public key created during registration.</div>
+        </b-field>
+        <b-field label="PublicKey" horizontal>
+            <b-input v-model="verification.publicKey" type="textarea" @input="isKeyValid = null"></b-input>
+            <div class="hint">
+                <b-button @click="verifyKey()">Verify key</b-button>
+                <b-message type="is-success" v-if="isKeyValid === true">Valid {{verification.algorithm}} key</b-message>
+                <b-message type="is-danger" v-if="isKeyValid === false">Invalid {{verification.algorithm}} key</b-message>
+            </div>
+        </b-field>
+        <hr/>
+        <b-field label="AuthenticatorData" horizontal>
+            <b-input v-model="verification.authenticatorData" type="textarea"></b-input>
+            <div class="hint"><pre v-if="verification.authenticatorData">{{parsedAuthData}}</pre></div>
+        </b-field>
+        <b-field label="ClientData" horizontal>
+            <b-input v-model="verification.clientData" type="textarea"></b-input>
+            <div class="hint"><pre v-if="verification.clientData">{{parsedClientData}}</pre></div>
+        </b-field>
+        <b-field label="Signature" horizontal>
+            <b-input v-model="verification.signature" type="textarea"></b-input>
+            <div class="hint">
+                <p>signature = sign(algorithm, publicKey, authenticatorData + sha256(clientData))</p>
+            </div>
+        </b-field>
+        <b-field horizontal>
+            <b-button type="is-primary" @click="verifySignature()">Verify</b-button>
+            <div class="hint message" :class="{'is-success': verification.isValid, 'is-danger': !verification.isValid}"
+            v-if="verification.isValid !== null">
+            <div class="message-body">
+                Signature is {{verification.isValid ? 'valid' : 'invalid'}}
+            </div>
+        </div>
+        </b-field>
+    </section>
+</main>
+</body>
+</html>
+````
+
+## File: docs/demos/playground.html
+````html
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Passkeys playground</title>
+    <link rel="stylesheet" href="https://unpkg.com/buefy@0.9.23/dist/buefy.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdi/font@5.8.55/css/materialdesignicons.min.css">
+    <link rel="stylesheet" href="theme.css">
+    <script defer src="https://unpkg.com/vue@2.7.14/dist/vue.min.js"></script>
+    <script defer src="https://unpkg.com/buefy@0.9.23/dist/buefy.min.js"></script>
+    <script defer type="module" src="js/playground.js"></script>
+</head>
+<body>
+<a class="button is-primary" href="/">&larr; Back to docs</a>
+<main id="app" class="container">
+    <header class="m-3" style="display:flex; justify-content: center; flex-wrap: wrap;">
+        <img src="img/banner-playground.svg" alt="banner" style="max-height: 300px" />
+        <div class="col p-3">
+            <h1 class="title">Passkeys Playground</h1>
+        </div>
+    </header>
+    <p class="mt-5 has-text-centered">This is a playground for <a href="https://www.npmjs.com/package/@passwordless-id/webauthn">the webauthn wrapper library</a>. Nothing here is sent to any server, everything runs locally.</p>
+    <section id="register-browser">
+        <header class="with-big-icon">
+            <img src="img/icon_register.svg"/>
+            <h2 class="title">Registration</h2>
+        </header>
+        <b-field label="Challenge" horizontal custom-class="required">
+            <b-field>
+                <b-input v-model="registration.options.challenge" placeholder="Challenge" expanded></b-input>
+                <p class="control">
+                    <b-button type="is-primary" label="&#x21bb;" @click="registration.options.challenge = newChallenge()"/>
+                </p>
+            </b-field>
+            <div class="hint">A server-side randomly generated nonce, base64url encoded.</div>
+        </b-field>
+        <b-field label="Username" horizontal custom-class="required">
+            <b-input v-model="registration.options.user" placeholder="User name"></b-input>
+            <div class="hint">A username, email or other identifier</div>
+        </b-field>
+        <b-field label="Hints" horizontal>
+            <b-taginput expanded
+                v-model="registration.options.hints"
+                :data="['client-device', 'hybrid', 'security-key']"
+                autocomplete
+                allow-new
+                open-on-focus
+                icon="label"
+                placeholder="Add a hint">
+            </b-taginput>
+            <div class="hint">Which device to use as authenticator.</div>
+        </b-field>
+        <b-field label="userVerification" horizontal>
+            <b-select v-model="registration.options.userVerification" expanded>
+                <option>required</option>
+                <option>preferred</option>
+                <option>discouraged</option>
+            </b-select>
+            <div class="hint">Whether a biometric/PIN check is required or not. This filters out security keys not having this capability.</div>
+        </b-field>
+        <b-field label="discoverable" horizontal>
+            <b-select v-model="registration.options.discoverable" expanded>
+                <option>required</option>
+                <option>preferred</option>
+                <option>discouraged</option>
+            </b-select>
+            <div class="hint">
+                A "discoverable" credential can be selected using `authenticate(...)` without providing credential IDs.
+                Instead, a native pop-up will appear for user selection.
+                This may have an impact on the "passkeys" user experience and syncing behavior of the key.
+            </div>
+        </b-field>
+        <b-field label="Timeout" horizontal>
+            <b-input v-model="registration.options.timeout" placeholder="60000" expanded></b-input>
+            <div class="hint">Number of milliseconds the user has to respond to the biometric/PIN check.</div>
+        </b-field>
+        <b-field label="attestation" horizontal>
+            <b-checkbox v-model="registration.options.attestation" expanded></b-checkbox>
+            <div class="hint">
+                <p>If enabled, the device attestation and clientData will be provided as base64 encoded binary data.
+                    Note that this may impact the authenticator information available or the UX depending on the platform.</p>
+            </div>
+        </b-field>
+        <b-field horizontal>
+            <b-button type="is-primary" @click="register()" expanded>Register device</b-button>
+            <div></div>
+        </b-field>
+        <b-collapse-card title="Browser-side registration">
+            <div class="card-content content">
+                <p>Browser-side registration code:</p>
+                <pre>await client.register({{registration.options}})</pre>
+                <p>Will result in the following JSON to be sent to the server.</p>
+                <pre>{{registration.json ?? '...'}}</pre>
+            </div>
+        </b-collapse-card>
+        <b-collapse-card title="Server-side verification">
+            <div class="card-content content">
+                <p>Server-side verification code:</p>
+                <pre>await server.verifyRegistration(registration, {challenge: "{{registration.options.challenge}}", origin: "{{origin}}"})</pre>
+                <p>Resulting into:</p>
+                <pre>{{registration.result ?? '...'}}</pre>
+            </div>
+        </b-collapse-card>
+        <div class="notification is-warning" v-if="registration.verified">
+            <p>At this point, you should store the `credential` and associate it with the user account. You will need it later to verify authentication attempts.</p>
+        </div>
+    </section>
+    <section>
+        <header class="with-big-icon">
+            <img src="img/icon_authenticate.svg"/>
+            <h2 class="title">Authentication</h2>
+        </header>
+        <b-field label="challenge" horizontal custom-class="required">
+            <b-field>
+                <b-input v-model="authentication.options.challenge" placeholder="Challenge" expanded></b-input>
+                <p class="control">
+                    <b-button type="is-primary" label="&#x21bb;" @click="authentication.options.challenge = newChallenge()"/>
+                </p>
+            </b-field>
+            <div class="hint">A server-side randomly generated nonce, base64url encoded.</div>
+        </b-field>
+        <b-field label="hints" horizontal>
+            <b-taginput expanded
+                v-model="authentication.options.hints"
+                :data="['client-device', 'hybrid', 'security-key']"
+                autocomplete
+                allow-new
+                open-on-focus
+                icon="label"
+                placeholder="Add a hint">
+            </b-taginput>
+            <div class="hint">Which devices to use as authenticator. Browser support varies.</div>
+        </b-field>
+        <b-field label="timeout" horizontal>
+            <b-input v-model="authentication.options.timeout" placeholder="60000" expanded></b-input>
+            <div class="hint">Number of milliseconds the user has to respond to the biometric/PIN check.</div>
+        </b-field>
+        <b-field label="userVerification" horizontal>
+            <b-select v-model="authentication.options.userVerification" expanded>
+                <option>required</option>
+                <option>preferred</option>
+                <option>discouraged</option>
+            </b-select>
+            <div class="hint">Whether a biometric/PIN check is required or not. This filters out security keys not having this capability.</div>
+        </b-field>
+        <b-field label="allowCredentials" horizontal >
+            <b-taginput v-model="authentication.options.allowCredentials"></b-taginput>
+            <div>Here, you can place a list of allowed credentials. This can be used to skip the credentials selection process if the credntial IDs are known.</div>
+        </b-field>
+        <b-field horizontal>
+            <b-button type="is-primary" @click="login()" expanded>Login</b-button>
+            <div></div>
+        </b-field>
+        <b-collapse-card title="Browser-side authentication">
+            <div class="card-content content">
+                <p>Browser-side authentication code:</p>
+                <pre>webauthn.authenticate({{authentication.options}})</pre>
+                <p>Will result in the following JSON to be sent to the server.</p>
+                <pre>{{authentication.json ?? '...'}}</pre>
+            </div>
+        </b-collapse-card>
+        <b-collapse-card title="Server-side verification">
+            <div class="card-content content">
+                <p>Server-side code to verify the authentication:</p>
+                <pre>
+const credentialKey = {
+    id: "{{registration?.result?.credential?.id ?? '...'}}",
+    publicKey: "{{registration?.result?.credential?.publicKey ?? '...'}}",
+    algorithm: "{{registration?.result?.credential?.algorithm ?? '...'}}"
+}
+const expected = {
+    challenge: "{{authentication?.options.challenge ?? '...'}}",
+    origin: "{{origin}}",
+    userVerified: {{authentication?.options?.userVerification === 'required'}},
+    counter: -1
+}
+const verified = await server.verifyAuthentication(res, credentialKey, expected)
+                </pre>
+                <div class="notification is-warning" v-if="!registration?.result?.credential">
+                    <p>⚠️ In this demo, verification will only work if the same passkey as the one previoulsy registered is used.
+                        Information is not persisted.</p>
+                </div>
+                <div v-if="registration?.result?.credential">
+                    <p>Resulting into:</p>
+                    <pre>{{authentication.result ?? '...'}}</pre>
+                </div>
+            </div>
+        </b-collapse-card>
+    </section>
+    <section>
+        <header class="with-big-icon">
+            <img src="img/icon_validate.svg"/>
+            <h2 class="title">Signature validation</h2>
+        </header>
+        <p>This part is mainly for debugging purposes or validation.</p>
+        <hr/>
+        <b-field label="Algorithm" horizontal>
+            <b-select v-model="verification.algorithm" expanded>
+                <option>RS256</option>
+                <option>ES256</option>
+            </b-select>
+            <div class="hint">The algorithm used for the public key created during registration.</div>
+        </b-field>
+        <b-field label="PublicKey" horizontal>
+            <b-input v-model="verification.publicKey" type="textarea"></b-input>
+            <div class="hint">
+                <p>The public key created during registration.</p>
+                <p><b-button @click="verifyPublicKey()">Verify public key</b-button></p>
+            </div>
+        </b-field>
+        <hr/>
+        <b-field label="AuthenticatorData" horizontal>
+            <b-input v-model="verification.authenticatorData" type="textarea"></b-input>
+            <div class="hint"><pre v-if="verification.authenticatorData">{{parsedAuthData}}</pre></div>
+        </b-field>
+        <b-field label="ClientData" horizontal>
+            <b-input v-model="verification.clientData" type="textarea"></b-input>
+            <div class="hint"><pre v-if="verification.clientData">{{parsedClientData}}</pre></div>
+        </b-field>
+        <b-field label="Signature" horizontal>
+            <b-input v-model="verification.signature" type="textarea"></b-input>
+            <div class="hint">
+                <p>signature = sign(algorithm, publicKey, authenticatorData + sha256(clientData))</p>
+            </div>
+        </b-field>
+        <b-field horizontal>
+            <b-button type="is-primary" @click="verifySignature()">Verify</b-button>
+            <div class="hint message" :class="{'is-success': verification.isValid, 'is-danger': !verification.isValid}"
+            v-if="verification.isValid !== null">
+            <div class="message-body">
+                Signature is {{verification.isValid ? 'valid' : 'invalid'}}
+            </div>
+        </div>
+        </b-field>
+    </section>
+</main>
+</body>
+</html>
+````
+
+## File: docs/authentication.md
+````markdown
+Authentication
+==============
+
+Overview
+--------
+
+The authentication procedure is similar to the procedure and divided in four steps.
+
+```mermaid
+sequenceDiagram
+  actor User as User/Authenticator
+  participant Browser
+  participant Server
+
+  Browser->>Server: I want to login!
+  Server->>Browser: Please sign this challenge
+  Browser->>User: `webauthn.authenticate(...)`
+  User->>User: Local authentication <br> using device PIN, biometrics...
+  User->>Browser: Challenge signed with private key
+  Browser->>Server: Send signed challenge
+  Server->>Server: Verify signature using public key
+  Server->>Browser: Welcome!
+```
+
+
+1. The browser requests a challenge from the server
+2. The browser triggers `client.authenticate(...)` and sends the result to the server
+3. The server loads the credential key used for authentication
+4. The server parses and verifies the authentication payload
+
+
+1️⃣ Requesting a challenge from the server
+-----------------------------------------
+
+The challenge is basically a [nonce](https://en.wikipedia.org/wiki/nonce) to avoid replay attacks.
+It must be a truly random and non-deterministic byte buffer encoded as *byte64url*.
+
+```js
+import { server } from '@passwordless-id/webauthn'
+
+const challenge = server.randomChallenge()
+```
+
+Remember it on the server side during a certain amount of time and "consume" it once used.
+
+2️⃣ Trigger authentication in browser
+-------------------------------------
+
+Example call:
+
+```js
+import { client } from '@passwordless-id/webauthn'
+
+const authentication = await client.authenticate({
+  /* Required */
+  challenge: "A server-side randomly generated byte array as base64url encoded",
+  /* Optional */
+  allowCredentials: [{id:'my-credential-id', transports:['internal']}, ...],
+  timeout: 60000
+})
+```
+
+If you already know the supported passkeys for the account, passkey selection can be skipped with `allowCredentials`.
+Without, the platform's default passkey slection dialog will be triggered.
+
+The following options are available.
+
+| option | default | description |
+|--------|---------|-------------|
+| `challenge` | - | Random byte array as *base64url* encoded.
+| `timeout` | - | Number of milliseconds the user has to respond to the biometric/PIN check.
+| `userVerification`| `preferred` | Whether the user verification (using local authentication like fingerprint, PIN, etc.) is `required`, `preferred` or `discouraged`.
+| `hints` | `[]` | Which device to use as authenticator, by order of preference. Possible values: `client-device`, `security-key`, `hybrid` (delegate to smartphone).
+| `domain` | `window.location.hostname` | By default, the current domain name is used. Also known as "relying party id". You may want to customize it for ...
+| `allowedCredentials` | The list of credentials and the transports it supports. Used to skip passkey selection. Either a list of credential ids (discouraged) or list of credential objects with `id` and supported `transports` (recommended).
+| `autocomplete` | `false` | See concepts
+| `customProperties` | `{}` | An object of additional properties that will be merged into the WebAuthn authenticate options. This can be used to explicitly set fields such as `extensions`.
+
+
+3️⃣ Send the payload to the server
+---------------------------------
+
+The authentication payload will look like this:
+
+```json
+{
+  "clientExtensionResults": {},
+  "id": "XZg7VBiVGFZzHmC4OrTXNQ",
+  "rawId": "XZg7VBiVGFZzHmC4OrTXNQ==",
+  "type": "public-key",
+  "authenticatorAttachment": "platform",
+  "response": {
+    "authenticatorData": "T7IIVvJKaufa_CeBCQrIR3rm4r0HJmAjbMYUxvt8LqAdAAAAAA==",
+    "clientDataJSON": "eyJ0eXBlIjoid2ViYXV0aG4uZ2V0IiwiY2hhbGxlbmdlIjoiYmYxOWQ3ZjktZjk3ZS00NjEyLTg0MjYtNDYwZTExZmExOTBmIiwib3JpZ2luIjoiaHR0cHM6Ly93ZWJhdXRobi5wYXNzd29yZGxlc3MuaWQiLCJjcm9zc09yaWdpbiI6ZmFsc2V9",
+    "signature": "MEYCIQC1FA7k7j7zf50ar9STzkanna16IkZdIYHwLNeWYWxCRwIhAITEOUcqnMC9_EHmjRxzoq3K-Titr3nWSZKY9n1yC_cL",
+    "userHandle": "ZDUzMGYxMGQtZmI2ZS00ZjdkLTgzMTMtZWQ5N2QzYTU2ZDQ4"
+  }
+}
+```
+
+
+4️⃣ In the server, load the credential key
+------------------------------------------
+
+```js
+import { server } from '@passwordless-id/webauthn' 
+
+const credentialKey = { // obtained from database by looking up `authentication.id`
+    id: "3924HhJdJMy_svnUowT8eoXrOOO6NLP8SK85q2RPxdU",
+    publicKey: "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgyYqQmUAmDn9J7dR5xl-HlyAA0R2XV5sgQRnSGXbLt_xCrEdD1IVvvkyTmRD16y9p3C2O4PTZ0OF_ZYD2JgTVA==",
+    algorithm: "ES256",
+    transports: ['internal']
+} as const
+
+const expected = {
+    challenge: "Whatever was randomly generated by the server",
+    origin: "http://localhost:8080",
+    userVerified: true, // should be set if `userVerification` was set to `required` in the authentication options (default)
+    counter: 123 // Optional. You should verify the authenticator "usage" counter increased since last time.
+}
+```
+
+Regarding the `counter`, it might or might not be implemented by the authenticator.
+Typically, it's implemented by hardware-bound keys to detect and avoid the risk of cloning the authenticator and starts with 1 during registration.
+On the opposite, for password managers syncing keys in the cloud, the counter is typically always 0 since in that case cloning is a "feature".
+For example, device-bound keys on Android and Windows do have an increasing `counter`, USB security keys also, while MacOS/iOS do not.
+Lastly, please note that the specs do not mandate "+1" increases, it could theoretically increase by any amount.
+
+Often, it might also be more practical to use functions to verify challenge or origin. This is possible too:
+
+```js
+const expected = {
+    challenge: async (challenge) => { /* async call to DB for example */ return true },
+    origin: (origin) => listOfAllowedOrigins.includes(origin),
+    userVerified: true, // no function allowed here
+    counter: 123,  // optional, no function allowed here
+    verbose: true, // optional, enables debug logs containing sensitive information
+}
+```
+
+5️⃣ Verify the authentication
+-----------------------------
+
+```js
+const authenticationParsed = await server.verifyAuthentication(authentication, credentialKey, expected)
+```
+
+Either this operation fails and throws an Error, or the verification is successful and returns the parsed authentication payload.
+
+Please note that this parsed result `authenticationParsed` has no real use. It is solely returned for the sake of completeness. The `verifyAuthentication` already verifies the payload, including the signature.
+
+
+
+
+Remarks
+-------
+
+Sadly, there are a few things you cannot do.
+
+- ❌ You cannot know if a user already registered a passkey
+- ❌ You cannot decide if the passkey should be hardware-bound or synced
+- ❌ You cannot delete a passkey
+
+> *And beware of platform/browser quirks!*
+
+The specification is complex, areas like UX are left to platform's discretion and browser vendors have their own quirks. As such, I would highly recommend one thing: **test it out with a variety of browsers/platforms**. It's far from a consitent experience.
+
+Moreover, options like `hints`, `allowCredentials`, `userVerification` and `discoverable` may interact with each other and provide different UX depending on their combination and the time of the year. The protocol evolved dramatically in the last years, with changes to the UX every couple of months.
+````
+
+## File: docs/concepts.md
+````markdown
+Concepts
+========
+
+📖 Fundamentals
+----------------
+
+Passkeys and the WebAuthn protocol are not purely client side or server side.
+It relies on [asymmetric cryptography](https://en.wikipedia.org/wiki/Public-key_cryptography) involving both sides.
+
+Asymmetric cryptography's foundation is based on a "key pair", but a more suitable layman analogy would be an key and a lock. The private key 🔑 is used to encrypt a message, while the corresponding public key 🔒 is used to decrypt the message.
+
+Upon registration, a cryptographic key pair (🔑+🔒) is created by the authenticator, for the given domain and user. The public key (🔒) is then sent to the server while the private key (🔑) is safely stored by the authenticator. 
+
+> This private key can either be hardware-bound (if a security key is used for example) or synced in the cloud (if a password manager is used for example). It can also require local user verification or not, depending on the authenticator and the options. Check out the [F.A.Q.](/faq) for more information.
+
+During authentication, the authenticator will *sign* a payload using its private key (🔑). Then, the server can verify the signature using the previously stored public key (🔒) and confirm the user is the rightful owner of that key pair.
+
+
+
+⛖ Flow
+-------
+
+The logical flow which can be summarized as follows.
+
+```mermaid
+sequenceDiagram
+  actor User as User / Authenticator
+  Browser ->> Server: Get challenge
+  Server ->> Browser: Here you go
+  Browser ->> User: Register or authenticate<br> with WebAuthn
+  User ->> User: If user verification is enabled:<br> confirm with biometrics, PIN code... 
+  User ->> Browser: Some binary object containing...<br> ...key pair for registration<br> ...signature for authentication
+  Browser ->> Server: Here is the JSON payload
+  Server ->> Server: Verify the payload,<br> including the challenge
+  Server ->> Browser: Welcome!
+```
+
+The challenge must be a "truly" random value (a cryptographic nonce) generated by the server.
+This is a cornerstone of the security model, to avoid replay attacks.
+
+
+👆 User experience
+-------------------
+
+
+There are actually *three* possible way to trigger authentication.
+
+### Using the platform's passkey selector
+
+This is the default authentication, without any options.
+
+```js
+client.authenticate({
+  challenge: ...
+})
+```
+
+It will trigger a native UI, which allows the user to select any "discoverable" passkey registered for that domain.
+
+![screenshot-small](screenshots/windows-passkeys-selection.png)
+
+Above is the windows example. Of course it varies according to the platform.
+
+*✅ Works in most platforms and browsers.*
+
+
+### Invoking authentication with known credential IDs
+
+If you know the credential ID(s), either by polling the server or storing it locally as a "remember me" feature, you can provide it as parameter.
+
+```js
+client.authenticate({
+  challenge: ...,
+  allowCredentials: [{id:'my-credential-id', transports:['internal']}, ...]
+})
+```
+
+This way, the passkey selection process is skipped and it goes straight to the user verification or direct authentication, depending on `userVerification` preference and authenticator.
+
+![screenshot-small](screenshots/windows-passkeys-touch.png)
+
+Moreover, another benefit is that non-discoverable credentials can also be used, which is especially handy for security keys.
+
+*✅ Works in most platforms and browsers.*
+
+
+### Using the input autocomplete feature
+
+...also known as *Conditional mediation*.
+
+![screenshot-small](screenshots/windows-passkeys-autocomplete.png)
+
+Unlike the previous methods, which invokes the protocol "directly", this one is triggered during page load.
+It activates autocomplete of passkey for input fields having the attribute `autocomplete="username webauthn"`.
+
+```js
+client.authenticate({
+  challenge: ...,
+  autocomplete: true
+})
+```
+
+Since there is no way to programmatically know if the user has credentials/passkeys already registered for this domain,
+it offers an alternative by skipping the "authenticate" button click. Once selected, the promise will return with the authentication result.
+Calling the registration or authentication afterwards will abord the previous pending one.
+
+*⚠️ While this feature is present in Chrome and Safari, it is still very experimental and not available on all browsers.*
+
+Therefore, the usage of `await client.isAutocompleteAvailable()` is advised.
+
+
+🛡️ Security considerations
+---------------------------
+
+> For a better understanding of "public key credentials", we recommend reading the [F.A.Q.](/faq) first.
+
+### The `challenge` is crucial!
+
+It must be:
+
+- "truly" *randomly generated on each call*. 
+- "consumed" upon use
+- "expire" if unused (after a few minutes for example)
+
+This is very important to ensure protection against replay attacks. Such an attack consists of eavesdropping the authentication payload somehow, and reusing it again in an attempt to re-authenticate the user that way.
+ 
+By verifying server-side, that the signed authentication payload contains the freshly generated challenge, it ensures a copied and reused payload will not work since the challenge.
+
+You can use `server.randomChallenge()` to generate a cryptographically strong password.
+
+
+### Device-bound vs synced
+
+Whether "platform" passkeys are stored on the device's hardware or "synced" to the platform's user account.
+While device-bound keys offer a higher security level, synced software-based keys are more convinient.
+
+| Platform | Hardware-bound | Synced |
+|----------|--------------------|---------------|
+| Android  | ❌                  | ✅              |
+| iOS      | ❌                  | ✅             |
+| Linux    | ?                  | ?             |
+| macOS    | ❌                  | ✅             |
+| Security keys | ✅              | ❌             |
+| Password managers | ❌           | ✅             |
+| Windows  | ✅[1]               | ✅[1]             |
+
+*Notes:*
+
+[1] Might vary depending on Windows version, Browser and options.
+I'm not quite sure of all factors that might affect this, but I had both kind of keys in Windows. 
+
+
+## `userVerification` behavior depends on platform
+
+| **iCloud Keychain**      | `discouraged` | `preferred` |	`required` |
+|--------------------------|---------------|-------------|-------------|
+| Biometrics available	   | ✅ | ✅ | ✅
+| Biometrics not available | ❌ | ❌ | ✅
+
+| **Google password manager (desktop)** | `discouraged` | `preferred` |	`required` |
+|--------------------------------------|---------------|-------------|-------------|
+| Biometrics available                  | ❌ | ✅	| ✅	
+| Biometrics not available              | ❌ | ❌ | ✅	
+
+| **Windows Hello**        | `discouraged` | `preferred` |	`required` |
+|--------------------------|---------------|-------------|-------------|
+| Biometrics available	   | ✅	| ✅	| ✅
+| Biometrics not available | ✅	| ✅	| ✅
+
+> ⚠️ Be warry of most password managers. As you will see below, most of them even lie about the `userVerified` flag in the response.
+
+
+
+🪳 Compatibility and bugs
+-------------------------
+
+> While passkeys roughly works well, there are some combinations of platforms, browsers, authenticators and features which do not.
+>
+> Take into account that this might change at any time and contain outdated information. If so, please contact us to rectify it.
+
+
+### Non-compliant password managers
+
+The following list of passkey providers have a wrong *User Verification* behavior.
+
+| Provider	| Architecture (\*)	| UV Required Behavior |	UV Flag |
+|-----------|-------------------|--------------------|---------|
+| 1Password   |	Extension	| ❌ Handles request without UV	| ❌ Always replies True
+| 1Password	  | Native	  | ✅ Performs UV	                | ✅ UV flag accurate
+| Bitwarden	  | Extension	| ❌ Handles request without UV	| ❌ Always replies True
+| KeepassXC	  | Extension	| ❌ Handles request without UV	| ❌ Always replies True
+| Proton Pass	| Extension	| ❌ Handles request without UV	| ❌ Always replies True
+| Proton Pass	| Native	  | ❌ Handles request without UV	| ❌ Always replies True
+| Strongbox	  | Native    | ❌ Handles request without UV	| ❌ Always replies True
+
+*Source: [passkeys.dev known issues](https://passkeys.dev/docs/reference/known-issues/)*
+
+(\*) Architecture: *Extension* = web browser extension, *Native* = OS native app using provider APIs
+
+
+
+### Local / roaming authenticators
+
+Whether the platform can create or use a Passkey using the local device or a roaming device.
+
+| Platform | Local authenticator | Roaming authenticator |
+|---------|---------------------|-----------------------|
+| Android | ✅                   | ❌                     |
+| iOS     | ✅                   | ✅                     |
+| Linux   | ?                   | ?                     |
+| macOS   | ✅                   | ✅                     |
+| Windows | ✅[1]                | ✅                     |
+
+*Notes:*
+
+[1] Not supported on all browsers, for example FireFox can only use security keys.
+
+
+
+### autocomplete with "conditional mediation"
+
+- ✅ Chrome
+- ✅/❌ Edge: kind of buggy!
+- ❌ Firefox
+- ? Safari
+
+> The website https://passkeys.dev/device-support/ offers different results, however my personal experience begs to differ.
+
+
+### `toJSON()` support
+
+- ❌ Chrome
+- ❌ Edge
+- ✅ Firefox
+- ❌ Safari
+````
+
+## File: docs/faq.md
+````markdown
+F.A.Q.
+======
+
+> The WebAuthn protocol is more than 200 pages long, it's complex and gets constantly tweaked.
+> Moreover, the reality of browsers and authenticators have their own quirks and deviate from the official RFC. As such, all information on the web should be taken with a grain of salt.
+> 
+> Also, there is some confusion regarding where passkeys are stored because the protocol evolved quite a bit in the past few years.
+> In the beginning, "public key credentials" were hardware-bound. Then, major vendors pushed their agenda with "passkeys" synced with the user account in the cloud. Then, even password managers joined in with synced accounts shared with the whole family for example.
+> 
+> How the protocol works, and its security implications, became fuzzier and more nuanced.
+
+
+## What *is* a passkey?
+
+Depending on who you ask, the answer may vary. According to the W3C specifications, it's a **discoverable** public key credential. 
+
+However, if you ask me, that's a pretty dumb definition. Calling **any** public key credential a passkey would have been more straightforward.
+
+> *In this documentation, the term passkey will be (ab)used as synonym of a public key credential, discoverable or not!*
+
+
+## What is an authenticator?
+
+The authenticator is the hardware or software that issues public key credentials and signs the authentication payloads.
+
+Hardware authenticators are typically security keys or the device itself using a dedicated chip.
+Software authenticators are password managers, either built-in in the platform or as dedicated app.
+
+
+
+## Is the passkey hardware-bound or synced in the cloud?
+
+It depends. It can be either and it's up to the *authenticator* to decide.
+
+In the past, where security keys pioneered the field, hardware-bound keys were the norm. However, now that the big three (Apple, Google, Microsoft) built it in directly in their platform, software-bound keys, synced with the platform's user account in the cloud became the norm. These are sometimes also dubbed "multi-device" credentials.
+
+During registration, the `credential.synced` flag informs you if it's a synced credential or a hardware-bound one.
+
+
+## Can I decide if the created credential should be hardware-bound or synced?
+
+Sadly, that is something only the authenticator can decide.
+You cannot influence whether the passkey should be synced or not, nor can you filter the authenticators that can be used.
+
+> Concerns have been raised many times in the RFC, see [issue #1714](https://github.com/w3c/webauthn/issues/1714), [issue #1739](https://github.com/w3c/webauthn/issues/1739) and [issue #1688](https://github.com/w3c/webauthn/issues/1688) among others (and voice your opinion!).
+
+
+## Are passkeys a form of 2FA?
+
+Not by default. Passkeys are a single step 2FA only if:
+
+- The credential is hardware-bound, not `synced`. Then this first factor is "something you possess".
+- The flag `userVerification` is `required`. Then this second factor is "something you are" (biometrics) or "something you know" (PIN code).
+
+> Note that this library uses `userVerification` as `required` by default, while the native WebAuthn protocol uses `preferred` by default. However, this restricts the security keys being usable to only those providing a form of user verification like fingerprint or PIN code.
+
+
+## Are hardware-bound credentials more secure than synced ones?
+
+*Yes*. When the credential is hardware-bound, the security guarantees are straightforward. You must possess the device. Extremely simple and effective.
+
+When using synced "multi-device" passkeys, the "cloud" has the key, your devices have the key, and the key is in-transit over the wire. While vendors go to great length to secure every aspect, it is still exposed to more risk. All security guarantees are hereby delegated to the software authenticator, whether it's built-in in the platform or a password manager. At best, these passkeys are as safe as the main account itself. If the account is hacked, whether it's by a stolen password, temporary access to your device or a lax recovery procedure, all the passkeys would come along with the hacked account. While it offers convenience, the security guarantees are not as strong as with hardware bound authenticators.
+
+The privacy concerns are similar. It is a matter of trust with the vendor.
+
+
+## How to deal with recovery when using hardware-bound credentials?
+
+A device can be lost, broken, or stolen. You must deal with it. The most straightforward way is to offer the user a way to register multiple passkeys, so that losing one device does not imply locking oneself out.
+
+Another alternative is to provide a recovery procedure per SMS or some other trusted means.
+Relying on solely a password as recovery is discouraged, since the recovery per password then becomes the "weakest link" of the authentication system.
+
+
+## Discoverable vs non-discoverable?
+
+There are two ways to trigger authentication. By providing a list of allowed credential ids for the user or not.
+
+If no list is provided, the default, an OS native popup will appear to let the user pick a passkey. One of the *discoverable* credential registered for the website. However, if the credential is *not discoverable*, it will not be listed.
+
+Another way is to first prompt the user for its username, then the list of allowed credential IDs for this user from the server. Then, calling the authentication with `allowCredentials: [...]`. This usually avoids a native popup and goes straight to user verification. 
+
+> There is also another indirect consequence for "security keys" (USB sticks like a Yubikey). Discoverable credentials need the ability to be listed, and as such require some storage on the security key, also named a "slot", which are typically fairly limited. On the other hand, non-discoverable credential do not need such storage, so unlimited non-discoverable keys can be used.
+There is an interesting article about it [here](https://fy.blackhats.net.au/blog/2023-02-02-how-hype-will-turn-your-security-key-into-junk/).
+
+
+
+## Can I know if a passkey is already registered?
+
+No, the underlying WebAuthn protocol does not support it.
+
+> A request to add an `exists()` method to guide user experience has been brought up by me, but was ignored so far. See [issue #1749](https://github.com/w3c/webauthn/issues/1749) (and voice your opinion!).
+
+As an alternative to the problem of not being able to detect the existence of passkeys, major vendors pushed for an alternative called "conditional UI" which in turn pushes discoverable synced credentials.
+
+
+## What is conditional UI and mediation?
+
+This mechanism leverages the browser's input field autocomplete feature to provide public key credentials in the list.
+Instead of invoking the WebAuthn authentication on a button click directly, it will be called when loading the page with "conditional mediation". That way, the credential selection and user verification will be triggered when the user selects an entry in the input field autocomplete.
+
+> Note that the input field *must* have `autocomplete="username webauthn"` to work. Using with lib, you will have to call `authenticate(...)` with `mediation: true` as option.
+
+
+## What is attestation?
+
+The attestation is a proof of the authenticator model.
+
+> Note that several platforms and password managers do not provide this information.
+> Moreover, some browsers allow replacing it with a generic attestation to increase privacy.
+ 
+
+## Do I need attestation?
+
+Unless you have stringent security requirements where you want only specific hardware devices to be allowed, you won't need it.
+Furthermore, the UX is deteriorated because the user first creates the credential client-side, which is then rejected server-side.
+
+> There was a feature request sent to the RFC to allow/exlude authenticators in the registration call, but it never landed in the specs.
+
+
+## Usernameless authentication?
+
+While it is in theory possible, it faces a very practical issue: how do you identify the credential ID to be used?
+Browsers do not allow having a unique identifier for the device, it would be a privacy issue. Also, things like local storage or cookies could be cleared at any moment. But *if* you have a way to identify the user, in a way or another, then you can also deduct the credential ID and trigger the authentication flow directly.
+
+
+## What about the security aspects?
+
+The security aspects are vastly different depending on:
+
+1. Synced or hardware-bound
+2. User verification or not
+3. Discoverable or not
+
+A hardware-bound key is a "factor", since you have to possess the device.
+The other factor would be "user verification", since it is something that you know (device PIN or password) or are (biometrics like fingerprint).
+
+Many implementations favor *synced credentials without user verification* though, for the sake of *convinience*, combined with discoverable credentials. This is even the default in the WebAuthn protocol and what many guides recommend.
+
+In that case, the security guarantee becomes: *"the user has access to the software authenticator account"*. It's a delegated guarantee. It is obvious that having the software authenticator compromised (platform account or password manager), would leak all passkeys since they are synced.
+
+
+## What about privacy aspects?
+
+Well, if the passkeys are synced, it's like handing over the keys to your buddy, the software authenticator, in good faith. That's all. If the software authenticator has bad intents, gets hacked or the NSA/police knocks on their door, your keys may be given over.
+
+> Note that if a password manager has an "account recovery" or "sharing" feature, it also means it is able to decrypt your (hopefully encrypted) keys / passwords. On the opposite, password managers without recovery feature usually encrypt your data with your main password. This is the more secure/private option, since that way, even they cannot decrypt your data.
+
+
+## Can I use passkeys in an IFrame?
+
+**TODO**
+
+## How to delete a passkey?
+
+> There were some requests to the RFC to provide that an API to delete passkeys, but as far as I know, it was rejected.
+
+In other words, it depends on the platform / password manager. Some do not even support it.
+````
+
+## File: docs/index.md
+````markdown
+@passwordless-id/webauthn
+=========================
+
+<center>
+
+[![NPM Version](https://img.shields.io/npm/v/%40passwordless-id%2Fwebauthn)](https://www.npmjs.com/package/@passwordless-id/webauthn)
+[![npm bundle size](https://img.shields.io/bundlephobia/minzip/@passwordless-id/webauthn)](https://bundlephobia.com/package/@passwordless-id/webauthn)
+[![NPM Downloads](https://img.shields.io/npm/dm/%40passwordless-id%2Fwebauthn)](https://www.npmjs.com/package/@passwordless-id/webauthn)
+[![GitHub Repo stars](https://img.shields.io/github/stars/passwordless-id/webauthn)](https://github.com/passwordless-id/webauthn)
+[![GitHub Sponsors](https://img.shields.io/github/sponsors/passwordless-id?style=social&logo=githubsponsors)](https://github.com/sponsors/passwordless-id)
+
+</center>
+
+![banner](img/banner-biometric-auth.svg)
+
+<div style="margin: -1rem 0 3rem; display: flex; justify-content: space-evenly;">
+  <a href="/demos/basic.html"      class="btn btn-primary btn-lg px-5">&#x27A4; Demo</a>
+  <a href="/demos/playground.html" class="btn btn-primary btn-lg px-4">&#x27A4; Playground</a>
+</div>
+
+> This library greatly simplifies the usage of **passkeys** by invoking the [WebAuthn protocol](https://w3c.github.io/webauthn/) more conveniently. It is [open source](https://github.com/passwordless-id/webauthn), opinionated, dependency-free and minimalistic.
+>
+> This library is provided by [Passwordless.ID](https://passwordless.id), a free public identity provider.
+
+
+👀 Demos
+---------
+
+- [Basic Demo](/demos/basic.html)
+- [Autocomplete with conditional mediation](/demos/conditional-ui.html)
+- [Testing Playground](/demos/playground.html)
+- [Authenticators list](/demos/authenticators.html)
+  
+These demos are plain HTML/JS, not minimized. Just open the sources in your browser if you are curious.
+
+
+
+📦 Installation
+----------------
+
+### Modules (recommended)
+
+```bash
+npm install @passwordless-id/webauthn
+```
+
+The base package contains both client and server side modules. You can import the `client` submodule or the `server` depending on your needs.
+
+```js
+import {client} from '@passwordless-id/webauthn'
+import {server} from '@passwordless-id/webauthn'
+```
+
+*Note: the brackets in the import are important!*
+
+### Alternatives
+
+For **browsers**, it can be imported using a CDN link in the page, or even inside the script itself.
+
+```html
+<script type="module">
+  import {client} from src="https://cdn.jsdelivr.net/npm/@passwordless-id/webauthn@2.0.0/dist/webauthn.min.js"
+</script>
+```
+
+Lastly, a **CommonJS** variant is also available for old Node stacks, to be imported using `require('@passwordless-id/webauthn')`. It's usage is discouraged though, in favor of the default ES modules.
+
+Note that at least NodeJS **19+** is necessary. (The reason is that previous Node versions had no `WebCrypto` being globally available, making it impossible to have a "universal build")
+
+
+🚀 Getting started
+-------------------
+
+There are multiple ways to use and invoke the WebAuthn protocol.
+What follows is just an example of the most straightforward use case. 
+
+### Registration
+
+```
+import {client} from '@passwordless-id/webauthn'
+await client.register({
+  challenge: 'a random string generated by the server',
+  user: 'John Doe'
+})
+```
+
+By default, this registers a passkey on any authenticator (local or roaming) with `preferred` user verification. For further options, see [&rarr; Registration docs](/registration/)
+
+
+### Authentication
+
+```
+import {client} from '@passwordless-id/webauthn'
+await client.authenticate({
+  challenge: 'a random string generated by the server'
+})
+```
+
+By default, this triggers the native passkey selection dialog, for any authenticator (local or roaming) and with  `preferred` user verification. For further options, see [&rarr; Authentication docs](/authentication/)
+
+
+### Verification
+
+```
+import {server} from '@passwordless-id/webauthn'
+await server.verifyRegistration(registration, expected)
+await server.verifyAuthentication(authentication, expected)
+```
+Look at the docs for [registration](/registration/) and [authentication](/authentication/) for the corresponding verification examples.
+Or simply interact with real-life examples in the [Testing Playground](/demos/playground.html).
+
+<!--
+
+🛠️ A tool vs a solution
+------------------------
+
+This library is a tool to implement passkeys for your website. Whether it is the main mechanism or to improve an existing authentication system, it is flexible enough to do both. However, you may also need to...
+
+- Register multiple authenticators per account
+- Verify e-mail address upon registration
+- Have account recovery mechanisms
+- Detect suspicious activity
+- Upload a user portrait
+- Manage the user profile
+- ...and so on
+
+Basically, this library is just a tool to realize something bigger. If you just want to "register" and "authenticate" users without dealing with the intricacies, a "solution" like [Passwordless.ID](https://passwordless.id) would be more suited. It's free and (soon) open source too, so there is no need for you to re-invent the wheel.
+
+-->
+
+📃 Changelog
+-------------
+
+The version 2 introduced breaking changes, different default behavior and different intermediate format. Basically, it's a complete overhaul and to understand "why" this version 2 was made, I recommend reading this [blog post](https://blog.passwordless.id/passkeys-webauthn-library-v20-is-there#heading-why-a-version-2). In a very summarized way, it is to enhance support for security keys by default, reflect latest changes in the underlying specs and improve cross-compatibility with other server side libraries.
+
+Some core changes are:
+
+- Use platform authenticator by default => authenticator selection pops up by default
+- `authenticatorType` was removed => use `hints` instead
+- User verification default: `required` => `preferred`
+- Timeout: 1 minute => no timeout
+- Response format changed
+- Transports as part of `allowCredentials`
+
+The docs for the legacy version 1.x are found [here](/version-1)
+````
+
+## File: docs/registration.md
+````markdown
+Registration
+============
+
+Overview
+--------
+
+```mermaid
+sequenceDiagram
+  actor User as User/Authenticator
+  participant Browser
+  participant Server
+  
+  Browser->>Server: I want to register!
+  Server->>Browser: Please send me a public key, <br>here is a challenge (nonce)
+  Browser->>User: `webauthn.register(...)`
+  User->>User: Local authentication <br> using device PIN, biometrics...
+  User->>Browser: New key pair created
+  Browser->>Server: Send JSON payload
+  Server->>Server: Verify payload and challenge
+  Server->>Server: Store credential with public key for later
+  Server->>Browser: Account created
+```
+
+
+1️⃣ Requesting a challenge from the server
+-----------------------------------------
+
+The challenge is basically a [nonce](https://en.wikipedia.org/wiki/nonce) to avoid replay attacks.
+It must be a truly random and non-deterministic byte buffer encoded as *byte64url*.
+
+```js
+import { server } from '@passwordless-id/webauthn'
+
+const challenge = server.randomChallenge()
+```
+
+Remember the challenge on the server side during a certain amount of time and "consume" it once used.
+
+> There are two ways to deal with remembering the challenge. Either store it in a global cache containing all challenges, or by creating a (cookie based) session directly and storing it as part of the session data.
+
+
+2️⃣ Trigger the registration in browser
+--------------------------------------
+
+Example call:
+
+```js
+import { client } from '@passwordless-id/webauthn' 
+
+const registration = await client.register({
+  user: "Arnaud Dagnelies",
+  challenge: "A server-side randomly generated string",
+  /* possibly other options */
+})
+```
+
+Besides the required `user` and `challenge`, it has following options.
+
+| option | default | description |
+|--------|---------|-------------|
+| `hints` | `[]` | Which device to use as authenticator, by order of preference. Possible values: `client-device`, `security-key`, `hybrid` (delegate to smartphone).
+| `userVerification` | `preferred` | Whether the user verification (using local authentication like fingerprint, PIN, etc.) is `required`, `preferred` or `discouraged`.
+| `discoverable` | `preferred` | If the credential is "discoverable", it can be selected using `authenticate` without providing credential IDs. In that case, a native pop-up will appear for user selection. This may have an impact on the "passkeys" user experience and syncing behavior of the key. Possible values are `required`, `preferred` and `discouraged`.
+| `timeout` | - |  How long the native authentication popup stays open before aborting the authentication process.
+| `attestation` | `true` | Whether or not to provide "attestation" in the result. The attestation can be used to prove the authenticator device model's authenticity. Note that not all authenticators provide this (looking at you apple), it might be anonymized, and its verification is complex.
+| `domain` | `window.location.hostname` | This can be set to a parent domain, to have the passkey valid for all subdomains.
+| `customProperties` | `{}` | An object of additional properties that will be merged into the WebAuthn create options. This can be used to explicitly set fields such as `extensions`.
+
+
+
+3️⃣ Send the payload to the server
+---------------------------------
+
+> By default, the native WebAuthn protocol does not result in a serializable object. The protocol in its third iteration provided a `toJSON()` function but its support is [not widespread](https://developer.mozilla.org/en-US/docs/Web/API/PublicKeyCredential/toJSON#browser_compatibility). This library results in the same format, with the addition of a `user` property for more comfort.
+
+
+The result `registration` object looks like this:
+
+```json
+{
+  "user": {
+    "id": "7f26f9ab-4fbc-4103-807f-ed145acb7ecc",
+    "name": "Arnaud",
+    "displayName": "Arnaud"
+  },
+  "credential": {
+    "id": "3924HhJdJMy_svnUowT8eoXrOOO6NLP8SK85q2RPxdU",
+    "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgyYqQmUAmDn9J7dR5xl-HlyAA0R2XV5sgQRnSGXbLt_xCrEdD1IVvvkyTmRD16y9p3C2O4PTZ0OF_ZYD2JgTVA==",
+    "algorithm": "ES256",
+    "transports": ["internal", "hybrid"]
+  },
+  "authenticatorData": "SZYN5YgOjGh0NBcPZHZgW4_krrmihjLHmVzzuoMdl2NFAAAAAAiYcFjK3EuBtuEw3lDcvpYAIN_duB4SXSTMv7L51KME_HqF6zjjujSz_EivOatkT8XVpQECAyYgASFYIIMmKkJlAJg5_Se3UecZfh5cgANEdl1ebIEEZ0hl2y7fIlgg8QqxHQ9SFb75Mk5kQ9esvadwtjuD02dDhf2WA9iYE1Q=",
+  "clientData": "eyJ0eXBlIjoid2ViYXV0aG4uY3JlYXRlIiwiY2hhbGxlbmdlIjoiYTdjNjFlZjktZGMyMy00ODA2LWI0ODYtMjQyODkzOGE1NDdlIiwib3JpZ2luIjoiaHR0cDovL2xvY2FsaG9zdDo4MDgwIiwiY3Jvc3NPcmlnaW4iOmZhbHNlfQ=="
+}
+```
+
+Then simply send this object as JSON to the server.
+
+> The JSON payload may seem strange and complex. That's because it is mirroring the native WebAuthn API's result. That way, it is also compatible with most other WebAuthn server libraries also "consuming" this format. In other words, while you can use this library for server-side verification, other libraries should work fine too.
+
+
+4️⃣ Verifying the registration on the server
+-------------------------------------------
+
+To verify it server side, call the `verifyRegistration(...)` function. While registration is basically "trust on first use", some basic checks are necessary. The most important one is to check if it matches the expected `challenge` used when initiating the registration procedure, and if the `origin` is the expected one.
+
+```js
+import { server } from '@passwordless-id/webauthn' 
+
+const expected = {
+    challenge: "Whatever was randomly generated by the server",
+    origin: "http://localhost:8080",
+}
+const registrationParsed = await server.verifyRegistration(registration, expected)
+```
+
+While this is the minimal verification, further verifications are possible.
+
+| Verification options | Description |
+|-------|-------------|
+| `userVerified` | To ensure that the user has been verified by the authenticator.
+| `counter` | This should be an incrementing value on each authentication, but it was made optional according to https://github.com/passwordless-id/webauthn/issues/38 since some authenticators (like Apple) do not increment it! 
+| `domain` | In the case you used a specific domain (relying party id) during registration/authentication, you need this too during verification.
+| `verbose` | Prints more details to the console if enabled
+
+Either this operation fails and throws an Error, or the verification is successful and returns the parsed registration.
+Example result:
+
+```json
+{
+  "user": {
+    "id": "7f26f9ab-4fbc-4103-807f-ed145acb7ecc",
+    "name": "Arnaud",
+    "displayName": "Arnaud"
+  },
+  "credential": {
+    "id": "3924HhJdJMy_svnUowT8eoXrOOO6NLP8SK85q2RPxdU",
+    "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgyYqQmUAmDn9J7dR5xl-HlyAA0R2XV5sgQRnSGXbLt_xCrEdD1IVvvkyTmRD16y9p3C2O4PTZ0OF_ZYD2JgTVA==",
+    "algorithm": "ES256",
+    "transports": ["internal", "hybrid"]
+  },
+  "authenticator": {
+    ...
+    "name": "Windows Hello",
+    "icon_dark": "https://webauthn.passwordless.id/authenticators/08987058-cadc-4b81-b6e1-30de50dcbe96-dark.png",
+    "icon_light": "https://webauthn.passwordless.id/authenticators/08987058-cadc-4b81-b6e1-30de50dcbe96-light.png"
+  },
+  synced: true,
+  ...
+}
+```
+
+Using that call, the JSON payload is verified and parsed. 
+
+> **NOTE:** Currently, the *attestation* that proves the exact model type of the authenticator is *not verified*. [Do I need attestation?](https://medium.com/webauthnworks/webauthn-fido2-demystifying-attestation-and-mds-efc3b3cb3651). While accepting any authenticator is the generic use case, relying parties that want to only allow specific authenticators would need another library to perform the *attestation* verification. Note that authenticators using synced passkeys, like Apple or Google, do not provide *attestation* at all.
+
+
+5️⃣ Store the credential / key
+-----------------------------
+
+The credential containing the public key is the most important part. It should be stored in a database for later since it will be used to verify the authentication signature.
+
+```json
+"credential": {
+  "id": "3924HhJdJMy_svnUowT8eoXrOOO6NLP8SK85q2RPxdU",
+  "publicKey": "MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEgyYqQmUAmDn9J7dR5xl-HlyAA0R2XV5sgQRnSGXbLt_xCrEdD1IVvvkyTmRD16y9p3C2O4PTZ0OF_ZYD2JgTVA==",
+  "algorithm": "ES256",
+  "transports": ["internal", "hybrid"]
+},
+```
+
+*Please note that unlike traditional systems, you might allow a user to have multiple credential keys.
+For example, if you allow the user to use multiple device-bound keys and/or registering keys for multiple platforms.*
+
+
+
+
+
+Remarks
+-------
+
+### Register one or multiple passkeys per account?
+Note that unlike traditional authentication, it is often useful for a single user account to register multiple credentials passkeys.
+While it is not strictly required, it is often more convenient for users with devices using different platforms or hardware-bound authenticators like security keys.
+
+### What's the use of `user.id`?
+
+Replacing a credential or updating the user name.
+
+Regarding the `user`, you can either provide a name as string, or an object like `{id: '...', name: '...', displayName: '...'}`. By default, `name` and `displayName` will be the same. The `id` should not disclose personal information as it can be exposed. Providing the ID can be used to override a credential with a new one, including an updated `name`/`username`.
+````
+
+## File: docs/requirements.txt
+````
+mkdocs
+mkdocs-mermaid2-plugin
+````
+
+## File: docs/ways.md
+````markdown
+Ways
+====
+
+Even with such a simplified library, the foundation is filled with subtelties.
+This leads to different ways one can use to trigger authentication.
+
+
+Per discoverable
+----------------
+
+Triggers an intermediate native dialog to let the user select a passkey.
+This is an overall simple and effective way.
+
+### How?
+
+- Use `discoverable: 'required'` during registration.
+
+### Advantages
+
+- Easy
+- No need for a "username" input field
+
+### Drawbacks
+
+- Does not work with every security key
+- Fills up the security key "slots"
+
+
+
+Per allow list
+--------------
+
+User enters username and requests allowed credential IDs from server.
+
+### How?
+
+- Use `allowCredentials:["id-1", "id-2", ...]` during authentication
+
+### Advantages
+
+- No intermediate account selection dialog
+- Works with everything, including non-discoverable credentials
+
+### Drawbacks
+
+- User needs to remember username(s)
+- Possibly confusing user experience because it is impossible to know if credential(s) exist on the device.
+
+
+
+
+Per autocomplete (a.k.a. conditional mediation)
+-------------------------------------------
+
+### How?
+
+- Use `discoverable: 'required'` during registration.
+- Call authentication with `autocomplete: true` when input is mounted in DOM.
+
+### Advantages
+
+- In theory, no need for distinct "Register" and "Login" buttons because the authentication is triggered upon selecting a user in the input field autocomplete
+
+### Drawbacks
+
+- It doesn't work in every browser (Firefox, Opera & many more smaller browsers)
+- Therefore a normal login button is actually still recommended
+- It is more complex to use
+- Not cross platfrom/device/browser friendly
+- Does not work with every security key
+- Fills up the security key "slots"
+
+
+
+Hybrid
+------
+
+Depending on the situation and the favored UX, one or the other approach might be more appropriate.
+
+Moreover, nothing hinders you to use a mix of approaches.
+Actually, several combinations do make sense.
+
+- allow list + discovery: one for "remember me" and the other for "sign in with an alternate account".
+- conditional UI + allow list: useful to support all browsers & security keys. 
+- discovery + allow list: good as fallback to support all security keys.
+
+Ideal:
+
+- Sign in as...
+  - Stored user/crendential 1 <-- locally stored credential Id
+  - Stored user/crendential 2 <-- locally stored credential Id
+- Use another account
+  - Use conditional UI + fetch from server as fallback
+  - Or use discovery
+````
