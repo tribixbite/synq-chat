@@ -104,12 +104,3 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 	}))
 	// Use the dynamic app router plugin for all app routes
 	.use(appRouterPlugin);
-// Static file serving from root public directory (for specific files like moto.html, etc.)
-// .get("/:file.:ext", ({ params }: { params: { file: string; ext: string } }) => {
-// 	const fileName = `${params.file}.${params.ext}`;
-// 	const filePath = resolve(`./public/${fileName}`);
-// 	if (existsSync(filePath)) {
-// 		return file(filePath);
-// 	}
-// 	throw new Error(`File not found: ${fileName}`);
-// });

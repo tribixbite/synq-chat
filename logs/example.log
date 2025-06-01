@@ -98,3 +98,7 @@
 🦊 2025-05-31 16:18:20 ERROR        5ms         HEAD    /multisynq-react.txt 200   1748722700
 🦊 2025-05-31 16:18:50 ERROR        3ms         HEAD    /favicon.ico 200   1748722730
 🦊 2025-05-31 16:19:07 ERROR        4ms         HEAD    /favicon.ico 200   1748722747
+🦊 2025-05-31 16:19:45 ERROR        2ms         HEAD    /favicon.ico 200   1748722785
+🦊 2025-05-31 21:08:07 ERROR        3ms         GET     /.well-known/appspecific/com.chrome.devtools.json 200   1748740087
+🦊 2025-05-31 21:28:02 ERROR       12ms         GET     /.well-known/appspecific/com.chrome.devtools.json 200   1748741282
+🦊 2025-05-31 21:28:06 ERROR        1ms         GET     /.well-known/appspecific/com.chrome.devtools.json 200   1748741286

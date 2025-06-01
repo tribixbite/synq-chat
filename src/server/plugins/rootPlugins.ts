@@ -45,9 +45,9 @@ export const rootPlugins = new Elysia()
 						"https://cdn.jsdelivr.net/",
 						"blob:"
 					],
-					styleSrc: ["'self'", "'unsafe-inline'"],
+					styleSrc: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net/"],
 					styleSrcAttr: ["'self'", "'unsafe-inline'"],
-					styleSrcElem: ["'self'", "'unsafe-inline'"],
+					styleSrcElem: ["'self'", "'unsafe-inline'", "https://cdn.jsdelivr.net/"],
 					upgradeInsecureRequests: [],
 					workerSrc: ["'self'", "blob:"]
 				}

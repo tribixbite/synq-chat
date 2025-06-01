@@ -8,26 +8,30 @@ import { rootPlugins } from "@src/server/plugins/rootPlugins";
 import { subdomainPlugin } from "@src/server/plugins/subdomainPlugin";
 import Elysia from "elysia";
 import logixlysia from "logixlysia";
+import { resolve } from "node:path";
 import { vibesynqAiPlugin } from "./plugins/vibesynqAiPlugin";
 
 const { PORT, HOST } = Config;
 
+// Helper function to resolve public file paths
+const publicFile = (filename: string) => Bun.file(resolve(process.cwd(), "public", filename));
+
 // Main Elysia server following best practices
 export const app = new Elysia({ name: "synq-chat-server" })
-	// Root redirect to default app (highest priority)
-	.get("/", () => {
-		return { message: "Root route works!", redirect: `/apps/${Config.DEFAULT_APP}/` };
-	})
-	// Alternative root route
-	.get("/index", () => {
-		const redirectUrl = `/apps/${Config.DEFAULT_APP}/`;
-		return new Response(null, {
-			status: 302,
-			headers: {
-				Location: redirectUrl
-			}
-		});
-	})
+	// Static files served directly (highest priority)
+	.get("/favicon.ico", () => publicFile("favicon.ico"))
+	.head("/favicon.ico", () => publicFile("favicon.ico"))
+	.get("/favicon.svg", () => publicFile("favicon.svg"))
+	.head("/favicon.svg", () => publicFile("favicon.svg"))
+	.get("/logo.svg", () => publicFile("logo.svg"))
+	.head("/logo.svg", () => publicFile("logo.svg"))
+	.get("/logo.png", () => publicFile("logo.png"))
+	.head("/logo.png", () => publicFile("logo.png"))
+	.get("/moto.html", () => publicFile("moto.html"))
+	.head("/moto.html", () => publicFile("moto.html"))
+	.get("/site.webmanifest", () => publicFile("site.webmanifest"))
+	.head("/site.webmanifest", () => publicFile("site.webmanifest"))
+
 	// Test route to debug routing issues
 	.get("/test", () => ({ message: "Test route works!" }))
 	.use(
@@ -54,9 +58,9 @@ export const app = new Elysia({ name: "synq-chat-server" })
 	.onBeforeHandle(onBeforeHandle)
 
 	// MultiSynq manual routes (keep these as requested)
-	.get("/multisynq-react.txt", () => Bun.file("./public/multisynq-react.txt"))
-	.get("/multisynq-threejs.txt", () => Bun.file("./public/multisynq-js.txt"))
-	.get("/multisynq-js.txt", () => Bun.file("./public/multisynq-js.txt"))
+	.get("/multisynq-react.txt", () => publicFile("multisynq-react.txt"))
+	.get("/multisynq-threejs.txt", () => publicFile("multisynq-js.txt"))
+	.get("/multisynq-js.txt", () => publicFile("multisynq-js.txt"))
 
 	// Root plugins and API
 	.use(rootPlugins)
@@ -68,17 +72,6 @@ export const app = new Elysia({ name: "synq-chat-server" })
 	// Subdomain and app routing (this includes app-specific static serving)
 	.use(subdomainPlugin)
 	.onError(c => onError(c))
-
-	// Root-level static file serving for files like moto.html, index.html, etc.
-	// Commented out as it interferes with subdomain plugin's root route handling
-	// .use(
-	// 	staticPlugin({
-	// 		assets: "./public",
-	// 		prefix: "/"
-	// 		// alwaysStatic: true,
-	// 		// noCache: !Config.IS_PROD
-	// 	})
-	// )
 
 	// Health check endpoint (removed duplicate - it's now in subdomainPlugin)
 	.listen(PORT, () => {
