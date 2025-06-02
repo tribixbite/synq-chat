@@ -7,6 +7,103 @@ type ServerLike = {
 	requestIP?(request: Request): { address: string } | null;
 } | null;
 
+// Blocked IPs - commonly seen attack sources
+const BLOCKED_IPS = new Set([
+	"52.164.122.222", // Known attacker from logs
+	"182.44.8.254", // Known attacker from logs
+	"185.247.137.231" // Additional attacker from logs
+]);
+
+// WordPress-specific paths that should be blocked
+const WORDPRESS_ATTACK_PATTERNS = [
+	"/wp-admin/",
+	"/wp-includes/",
+	"/wp-content/",
+	"/wp-login.php",
+	"/wp-config.php",
+	"/function.php",
+	"/date.php",
+	"/PHPMailer/",
+	"/.well-known/",
+	"/xmlrpc.php",
+	"/wp-cron.php"
+];
+
+// Helper function to extract real IP
+function getRealIP(request: Request, server: ServerLike): string {
+	const realIp = request.headers.get("x-real-ip");
+	const forwarded = request.headers.get("x-forwarded-for");
+	const cfConnectingIp = request.headers.get("cf-connecting-ip");
+	const directIp = server?.requestIP?.(request)?.address;
+
+	return (
+		realIp ||
+		cfConnectingIp ||
+		(forwarded ? forwarded.split(",")[0].trim() : null) ||
+		directIp ||
+		"unknown"
+	);
+}
+
+// Helper function to check if request should be blocked
+function shouldBlockRequest(request: Request, server: ServerLike): boolean {
+	const url = new URL(request.url);
+	const pathname = url.pathname;
+	const ip = getRealIP(request, server);
+
+	// Block known malicious IPs
+	if (BLOCKED_IPS.has(ip)) {
+		console.warn("[SECURITY] Blocked request from known malicious IP", {
+			ip,
+			pathname,
+			method: request.method,
+			userAgent: request.headers.get("user-agent")
+		});
+		return true;
+	}
+
+	// Block WordPress attack patterns
+	if (WORDPRESS_ATTACK_PATTERNS.some(pattern => pathname.includes(pattern))) {
+		console.warn("[SECURITY] Blocked WordPress attack pattern", {
+			ip,
+			pathname,
+			method: request.method,
+			userAgent: request.headers.get("user-agent")
+		});
+		// Add IP to blocked list if it's making WordPress requests
+		BLOCKED_IPS.add(ip);
+		return true;
+	}
+
+	return false;
+}
+
+// IP blocking middleware
+export const ipBlockingMiddleware = new Elysia({ name: "ipBlocking" }).onBeforeHandle(
+	({ request, server }) => {
+		if (shouldBlockRequest(request, server)) {
+			// Return 403 Forbidden for blocked requests
+			return new Response(
+				JSON.stringify({
+					success: false,
+					error: {
+						code: "IP_BLOCKED",
+						message: "Access denied from this IP address",
+						timestamp: new Date().toISOString()
+					}
+				}),
+				{
+					status: 403,
+					headers: {
+						"Content-Type": "application/json",
+						"X-Blocked-Reason": "Malicious activity detected"
+					}
+				}
+			);
+		}
+	}
+);
+
 // Rate limiting configuration with best practices from elysia-rate-limit documentation
 const rateLimitConfigs = {
 	// General API rate limit - 60 requests per minute
@@ -36,20 +133,7 @@ const rateLimitConfigs = {
 			);
 		},
 		generator: (request: Request, server: ServerLike) => {
-			// Smart IP detection with proxy support following best practices
-			const realIp = request.headers.get("x-real-ip");
-			const forwarded = request.headers.get("x-forwarded-for");
-			const cfConnectingIp = request.headers.get("cf-connecting-ip"); // Cloudflare support
-			const directIp = server?.requestIP?.(request)?.address;
-
-			// Priority: Real-IP > CF-Connecting-IP > X-Forwarded-For (first) > Direct IP
-			return (
-				realIp ||
-				cfConnectingIp ||
-				(forwarded ? forwarded.split(",")[0].trim() : null) ||
-				directIp ||
-				"unknown"
-			);
+			return getRealIP(request, server);
 		}
 	},
 
@@ -61,18 +145,7 @@ const rateLimitConfigs = {
 		headers: true,
 		errorResponse: new RateLimitError("AI API rate limit exceeded, please try again later", 60),
 		generator: (request: Request, server: ServerLike) => {
-			const realIp = request.headers.get("x-real-ip");
-			const forwarded = request.headers.get("x-forwarded-for");
-			const cfConnectingIp = request.headers.get("cf-connecting-ip");
-			const directIp = server?.requestIP?.(request)?.address;
-
-			return (
-				realIp ||
-				cfConnectingIp ||
-				(forwarded ? forwarded.split(",")[0].trim() : null) ||
-				directIp ||
-				"unknown"
-			);
+			return getRealIP(request, server);
 		}
 	},
 
@@ -87,18 +160,7 @@ const rateLimitConfigs = {
 			300
 		),
 		generator: (request: Request, server: ServerLike) => {
-			const realIp = request.headers.get("x-real-ip");
-			const forwarded = request.headers.get("x-forwarded-for");
-			const cfConnectingIp = request.headers.get("cf-connecting-ip");
-			const directIp = server?.requestIP?.(request)?.address;
-
-			return (
-				realIp ||
-				cfConnectingIp ||
-				(forwarded ? forwarded.split(",")[0].trim() : null) ||
-				directIp ||
-				"unknown"
-			);
+			return getRealIP(request, server);
 		}
 	}
 };
@@ -164,10 +226,11 @@ export const rateLimitStatus = new Elysia({ name: "rateLimitStatus" }).get(
 					? new Date(Number.parseInt(reset as string) * 1000).toISOString()
 					: null
 			},
+			blockedIPs: Array.from(BLOCKED_IPS),
 			timestamp: new Date().toISOString()
 		};
 	}
 );
 
 // Export configuration for reference
-export { rateLimitConfigs };
+export { BLOCKED_IPS, rateLimitConfigs, WORDPRESS_ATTACK_PATTERNS };

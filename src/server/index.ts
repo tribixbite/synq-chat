@@ -11,7 +11,7 @@ import { subdomainPlugin } from "@src/server/plugins/subdomainPlugin";
 import Elysia from "elysia";
 import logixlysia from "logixlysia";
 import { resolve } from "node:path";
-import { generalRateLimit, rateLimitStatus } from "./plugins/rateLimitPlugin";
+import { generalRateLimit, ipBlockingMiddleware, rateLimitStatus } from "./plugins/rateLimitPlugin";
 import { vibesynqAiPlugin } from "./plugins/vibesynqAiPlugin";
 
 const { PORT, HOST } = Config;
@@ -35,6 +35,9 @@ const errorNotificationTransport = {
 
 // Main Elysia server with enhanced logixlysia logging
 export const app = new Elysia({ name: "synq-chat-server" })
+	// 🛡️ IP blocking middleware - FIRST to block malicious IPs immediately
+	.use(ipBlockingMiddleware)
+
 	// Advanced logixlysia configuration with production-ready features
 	.use(
 		logixlysia({
