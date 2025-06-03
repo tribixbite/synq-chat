@@ -1,0 +1,765 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piranesi - Infinite Halls</title>
+    <script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/p5.js/1.7.0/p5.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            background: #1a1a1a;
+            font-family: 'Courier New', monospace;
+            overflow: hidden;
+        }
+        
+        #ui {
+            position: fixed;
+            top: 20px;
+            left: 20px;
+            z-index: 1000;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        
+        #visitors {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1000;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+            max-width: 200px;
+        }
+        
+        #controls {
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 1000;
+            color: white;
+            background: rgba(0,0,0,0.7);
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #444;
+        }
+        
+        .visitor {
+            margin: 5px 0;
+            padding: 3px 0;
+            border-bottom: 1px solid #333;
+        }
+        
+        .visitor:last-child {
+            border-bottom: none;
+        }
+        
+        canvas {
+            display: block;
+        }
+    </style>
+</head>
+<body>
+    <div id="ui">
+        <h3>🏛️ Piranesi</h3>
+        <div>Explorer: <span id="myId">...</span></div>
+        <div>Position: <span id="position">0, 0, 0</span></div>
+        <div>Hall: <span id="currentHall">Central</span></div>
+    </div>
+    
+    <div id="visitors">
+        <h4>Other Explorers</h4>
+        <div id="visitorList"></div>
+    </div>
+    
+    <div id="controls">
+        <div><strong>Controls:</strong></div>
+        <div>WASD / Arrow Keys: Move</div>
+        <div>Mouse: Look around</div>
+        <div>Space: Jump/Float up</div>
+        <div>Shift: Descend</div>
+        <div>Click: Focus/Unlock mouse</div>
+    </div>
+
+    <script>
+        // Multisynq Constants - architectural parameters for the infinite halls
+        const C = Multisynq.Constants;
+        C.roomSize = 800;
+        C.hallWidth = 120;
+        C.wallHeight = 300;
+        C.pillarRadius = 40;
+        C.moveSpeed = 3;
+        C.mouseSensitivity = 0.003;
+        C.jumpSpeed = 2;
+        C.gravity = 0.1;
+        C.maxVisitors = 20;
+        
+        // Shared model representing the infinite halls of Piranesi
+        class PiranesiHalls extends Multisynq.Model {
+            init() {
+                this.visitors = new Map();
+                this.messages = [];
+                this.subscribe(this.sessionId, "view-join", this.onVisitorJoin);
+                this.subscribe(this.sessionId, "view-exit", this.onVisitorExit);
+                
+                // Create the architectural structure
+                this.halls = this.generateHalls();
+                this.pillars = this.generatePillars();
+                this.statues = this.generateStatues();
+                
+                console.log(`Piranesi halls initialized at ${this.now()}`);
+            }
+            
+            onVisitorJoin({viewId, viewData}) {
+                const visitor = Visitor.create({
+                    viewId,
+                    name: viewData.name || `Explorer ${this.visitors.size + 1}`,
+                    color: viewData.color || this.generateVisitorColor()
+                });
+                this.visitors.set(viewId, visitor);
+                this.addMessage(`${visitor.name} has entered the halls`);
+                console.log(`Visitor ${visitor.name} joined`);
+            }
+            
+            onVisitorExit({viewId}) {
+                const visitor = this.visitors.get(viewId);
+                if (visitor) {
+                    this.addMessage(`${visitor.name} has left the halls`);
+                    this.visitors.delete(viewId);
+                    visitor.destroy();
+                }
+            }
+            
+            generateVisitorColor() {
+                const colors = [
+                    '#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', 
+                    '#feca57', '#ff9ff3', '#54a0ff', '#5f27cd'
+                ];
+                return colors[Math.floor(this.random() * colors.length)];
+            }
+            
+            generateHalls() {
+                const halls = [];
+                const gridSize = 5;
+                
+                for (let x = -gridSize; x <= gridSize; x++) {
+                    for (let z = -gridSize; z <= gridSize; z++) {
+                        halls.push({
+                            x: x * C.roomSize,
+                            z: z * C.roomSize,
+                            type: this.getHallType(x, z),
+                            connections: this.getConnections(x, z)
+                        });
+                    }
+                }
+                return halls;
+            }
+            
+            getHallType(x, z) {
+                const hash = Math.abs(x * 73 + z * 137) % 7;
+                const types = ['grand', 'narrow', 'circular', 'pillared', 'vaulted', 'stepped', 'ruined'];
+                return types[hash];
+            }
+            
+            getConnections(x, z) {
+                return {
+                    north: true,
+                    south: true,
+                    east: true,
+                    west: true
+                };
+            }
+            
+            generatePillars() {
+                const pillars = [];
+                const halls = this.halls;
+                
+                for (const hall of halls) {
+                    if (hall.type === 'pillared' || hall.type === 'grand') {
+                        const numPillars = hall.type === 'grand' ? 12 : 8;
+                        for (let i = 0; i < numPillars; i++) {
+                            const angle = (i / numPillars) * Math.PI * 2;
+                            const radius = C.roomSize * 0.3;
+                            pillars.push({
+                                x: hall.x + Math.cos(angle) * radius,
+                                y: 0,
+                                z: hall.z + Math.sin(angle) * radius,
+                                radius: C.pillarRadius,
+                                height: C.wallHeight * (1.2 + this.random() * 0.5)
+                            });
+                        }
+                    }
+                }
+                return pillars;
+            }
+            
+            generateStatues() {
+                const statues = [];
+                const numStatues = 50;
+                
+                for (let i = 0; i < numStatues; i++) {
+                    const hall = this.halls[Math.floor(this.random() * this.halls.length)];
+                    statues.push({
+                        x: hall.x + (this.random() - 0.5) * C.roomSize * 0.6,
+                        y: 0,
+                        z: hall.z + (this.random() - 0.5) * C.roomSize * 0.6,
+                        type: Math.floor(this.random() * 3),
+                        scale: 0.5 + this.random() * 1.0
+                    });
+                }
+                return statues;
+            }
+            
+            addMessage(text) {
+                this.messages.push({
+                    text,
+                    time: this.now(),
+                    id: this.random()
+                });
+                
+                // Keep only last 10 messages
+                if (this.messages.length > 10) {
+                    this.messages.shift();
+                }
+            }
+            
+            getCurrentHall(x, z) {
+                const hallX = Math.round(x / C.roomSize);
+                const hallZ = Math.round(z / C.roomSize);
+                
+                if (hallX === 0 && hallZ === 0) return "Central Atrium";
+                if (Math.abs(hallX) + Math.abs(hallZ) === 1) return "Inner Circle";
+                if (Math.abs(hallX) + Math.abs(hallZ) === 2) return "Outer Ring";
+                return `Hall ${hallX},${hallZ}`;
+            }
+        }
+        PiranesiHalls.register("PiranesiHalls");
+        
+        // Individual visitor in the halls
+        class Visitor extends Multisynq.Model {
+            init({viewId, name, color}) {
+                this.viewId = viewId;
+                this.name = name;
+                this.color = color;
+                
+                // Starting position in central hall
+                this.pos = {
+                    x: (this.random() - 0.5) * 100,
+                    y: 0,
+                    z: (this.random() - 0.5) * 100
+                };
+                
+                this.vel = { x: 0, y: 0, z: 0 };
+                this.rotation = { x: 0, y: 0 };
+                this.isGrounded = true;
+                
+                // Subscribe to movement events from this visitor's view
+                this.subscribe(this.id, "move", this.onMove);
+                this.subscribe(this.id, "look", this.onLook);
+                this.subscribe(this.id, "jump", this.onJump);
+                
+                // Physics update loop
+                this.update();
+            }
+            
+            onMove({direction, intensity}) {
+                const speed = C.moveSpeed * intensity;
+                const cos = Math.cos(this.rotation.y);
+                const sin = Math.sin(this.rotation.y);
+                
+                switch(direction) {
+                    case 'forward':
+                        this.vel.x += sin * speed;
+                        this.vel.z += cos * speed;
+                        break;
+                    case 'backward':
+                        this.vel.x -= sin * speed;
+                        this.vel.z -= cos * speed;
+                        break;
+                    case 'left':
+                        this.vel.x += cos * speed;
+                        this.vel.z -= sin * speed;
+                        break;
+                    case 'right':
+                        this.vel.x -= cos * speed;
+                        this.vel.z += sin * speed;
+                        break;
+                    case 'up':
+                        if (this.isGrounded) {
+                            this.vel.y = C.jumpSpeed;
+                            this.isGrounded = false;
+                        }
+                        break;
+                    case 'down':
+                        this.vel.y -= speed;
+                        break;
+                }
+            }
+            
+            onLook({deltaX, deltaY}) {
+                this.rotation.y += deltaX * C.mouseSensitivity;
+                this.rotation.x += deltaY * C.mouseSensitivity;
+                this.rotation.x = Math.max(-Math.PI/2, Math.min(Math.PI/2, this.rotation.x));
+            }
+            
+            onJump() {
+                if (this.isGrounded) {
+                    this.vel.y = C.jumpSpeed;
+                    this.isGrounded = false;
+                }
+            }
+            
+            update() {
+                // Apply physics
+                this.pos.x += this.vel.x;
+                this.pos.y += this.vel.y;
+                this.pos.z += this.vel.z;
+                
+                // Gravity
+                this.vel.y -= C.gravity;
+                
+                // Ground collision
+                if (this.pos.y <= 0) {
+                    this.pos.y = 0;
+                    this.vel.y = 0;
+                    this.isGrounded = true;
+                }
+                
+                // Damping
+                this.vel.x *= 0.9;
+                this.vel.z *= 0.9;
+                if (this.isGrounded) this.vel.y *= 0.8;
+                
+                // Continue physics loop
+                this.future(16).update(); // ~60fps physics
+            }
+            
+            get halls() {
+                return this.wellKnownModel("modelRoot");
+            }
+        }
+        Visitor.register("Visitor");
+        
+        // p5.js view for rendering the 3D halls
+        class PiranesiView extends Multisynq.View {
+            constructor(halls) {
+                super(halls);
+                this.halls = halls;
+                this.myVisitor = null;
+                this.camera = { x: 0, y: 50, z: 0 };
+                this.mouseLockedX = 0;
+                this.mouseLockedY = 0;
+                this.isMouseLocked = false;
+                this.keys = {};
+                
+                // Find our visitor
+                this.updateMyVisitor();
+                
+                // Subscribe to hall events
+                this.subscribe("halls", "message", this.onMessage);
+                
+                console.log("PiranesiView initialized");
+            }
+            
+            updateMyVisitor() {
+                if (!this.myVisitor) {
+                    this.myVisitor = this.halls.visitors.get(this.viewId);
+                }
+            }
+            
+            onMessage(message) {
+                console.log(`Hall message: ${message.text}`);
+            }
+            
+            update() {
+                this.updateMyVisitor();
+                if (this.myVisitor) {
+                    this.handleInput();
+                    this.updateCamera();
+                    this.updateUI();
+                }
+            }
+            
+            handleInput() {
+                if (!this.myVisitor) return;
+                
+                const intensity = 0.1;
+                
+                if (this.keys['w'] || this.keys['ArrowUp']) {
+                    this.publish(this.myVisitor.id, "move", {direction: 'forward', intensity});
+                }
+                if (this.keys['s'] || this.keys['ArrowDown']) {
+                    this.publish(this.myVisitor.id, "move", {direction: 'backward', intensity});
+                }
+                if (this.keys['a'] || this.keys['ArrowLeft']) {
+                    this.publish(this.myVisitor.id, "move", {direction: 'left', intensity});
+                }
+                if (this.keys['d'] || this.keys['ArrowRight']) {
+                    this.publish(this.myVisitor.id, "move", {direction: 'right', intensity});
+                }
+                if (this.keys[' ']) {
+                    this.publish(this.myVisitor.id, "move", {direction: 'up', intensity});
+                }
+                if (this.keys['Shift']) {
+                    this.publish(this.myVisitor.id, "move", {direction: 'down', intensity});
+                }
+            }
+            
+            updateCamera() {
+                if (!this.myVisitor) return;
+                
+                this.camera.x = this.myVisitor.pos.x;
+                this.camera.y = this.myVisitor.pos.y + 60;
+                this.camera.z = this.myVisitor.pos.z;
+            }
+            
+            updateUI() {
+                if (!this.myVisitor) return;
+                
+                document.getElementById('myId').textContent = this.myVisitor.name;
+                document.getElementById('position').textContent = 
+                    `${Math.round(this.myVisitor.pos.x)}, ${Math.round(this.myVisitor.pos.y)}, ${Math.round(this.myVisitor.pos.z)}`;
+                document.getElementById('currentHall').textContent = 
+                    this.halls.getCurrentHall(this.myVisitor.pos.x, this.myVisitor.pos.z);
+                
+                // Update visitor list
+                const visitorList = document.getElementById('visitorList');
+                visitorList.innerHTML = '';
+                for (const visitor of this.halls.visitors.values()) {
+                    if (visitor.viewId !== this.viewId) {
+                        const div = document.createElement('div');
+                        div.className = 'visitor';
+                        div.style.color = visitor.color;
+                        div.textContent = visitor.name;
+                        visitorList.appendChild(div);
+                    }
+                }
+            }
+        }
+        
+        // p5.js global variables
+        let piranesiView;
+        let font;
+        
+        function preload() {
+            // Could load fonts or textures here
+        }
+        
+        function setup() {
+            createCanvas(windowWidth, windowHeight, WEBGL);
+            
+            // Setup event listeners
+            document.addEventListener('keydown', (e) => {
+                if (piranesiView) piranesiView.keys[e.key] = true;
+                if (e.key === ' ') e.preventDefault();
+            });
+            
+            document.addEventListener('keyup', (e) => {
+                if (piranesiView) piranesiView.keys[e.key] = false;
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (piranesiView && piranesiView.myVisitor && piranesiView.isMouseLocked) {
+                    const deltaX = e.movementX || e.webkitMovementX || 0;
+                    const deltaY = e.movementY || e.webkitMovementY || 0;
+                    piranesiView.publish(piranesiView.myVisitor.id, "look", {deltaX, deltaY});
+                }
+            });
+            
+            document.addEventListener('click', () => {
+                if (piranesiView) {
+                    piranesiView.isMouseLocked = !piranesiView.isMouseLocked;
+                    if (piranesiView.isMouseLocked) {
+                        canvas.requestPointerLock();
+                    } else {
+                        document.exitPointerLock();
+                    }
+                }
+            });
+        }
+        
+        function draw() {
+            background(20, 15, 30); // Deep purple-black for mystery
+            
+            if (!piranesiView || !piranesiView.myVisitor) {
+                // Show loading
+                fill(255);
+                textAlign(CENTER, CENTER);
+                textSize(24);
+                text("Entering the Halls of Piranesi...", 0, 0);
+                return;
+            }
+            
+            const visitor = piranesiView.myVisitor;
+            
+            // Set up camera based on visitor position and rotation
+            camera(
+                visitor.pos.x, visitor.pos.y + 60, visitor.pos.z,
+                visitor.pos.x + sin(visitor.rotation.y) * cos(visitor.rotation.x),
+                visitor.pos.y + 60 + sin(visitor.rotation.x),
+                visitor.pos.z + cos(visitor.rotation.y) * cos(visitor.rotation.x),
+                0, 1, 0
+            );
+            
+            // Atmospheric lighting
+            ambientLight(60, 50, 80);
+            directionalLight(200, 180, 150, -0.5, 1, -0.3);
+            pointLight(255, 200, 100, visitor.pos.x, visitor.pos.y + 100, visitor.pos.z);
+            
+            // Draw the halls
+            drawHalls();
+            drawPillars();
+            drawStatues();
+            drawVisitors();
+            
+            // Add fog effect by darkening distant objects
+            noStroke();
+        }
+        
+        function drawHalls() {
+            const halls = piranesiView.halls.halls;
+            fill(180, 170, 160); // Stone color
+            stroke(100, 90, 80);
+            strokeWeight(2);
+            
+            for (const hall of halls) {
+                const dist = Math.sqrt(
+                    Math.pow(hall.x - piranesiView.myVisitor.pos.x, 2) + 
+                    Math.pow(hall.z - piranesiView.myVisitor.pos.z, 2)
+                );
+                
+                if (dist < C.roomSize * 2) { // Only draw nearby halls
+                    push();
+                    translate(hall.x, -C.wallHeight/2, hall.z);
+                    
+                    // Floor
+                    push();
+                    rotateX(PI/2);
+                    fill(120, 110, 100);
+                    noStroke();
+                    rect(-C.roomSize/2, -C.roomSize/2, C.roomSize, C.roomSize);
+                    pop();
+                    
+                    // Walls - create openings for passages
+                    fill(160, 150, 140);
+                    stroke(80, 70, 60);
+                    
+                    if (hall.connections.north) {
+                        // North wall with opening
+                        push();
+                        translate(0, 0, -C.roomSize/2);
+                        drawWallWithOpening(C.roomSize, C.wallHeight, C.hallWidth);
+                        pop();
+                    }
+                    
+                    if (hall.connections.south) {
+                        // South wall with opening
+                        push();
+                        translate(0, 0, C.roomSize/2);
+                        rotateY(PI);
+                        drawWallWithOpening(C.roomSize, C.wallHeight, C.hallWidth);
+                        pop();
+                    }
+                    
+                    if (hall.connections.east) {
+                        // East wall with opening
+                        push();
+                        translate(C.roomSize/2, 0, 0);
+                        rotateY(PI/2);
+                        drawWallWithOpening(C.roomSize, C.wallHeight, C.hallWidth);
+                        pop();
+                    }
+                    
+                    if (hall.connections.west) {
+                        // West wall with opening
+                        push();
+                        translate(-C.roomSize/2, 0, 0);
+                        rotateY(-PI/2);
+                        drawWallWithOpening(C.roomSize, C.wallHeight, C.hallWidth);
+                        pop();
+                    }
+                    
+                    pop();
+                }
+            }
+        }
+        
+        function drawWallWithOpening(width, height, openingWidth) {
+            const sideWidth = (width - openingWidth) / 2;
+            
+            // Left side of wall
+            push();
+            translate(-width/2 + sideWidth/2, 0, 0);
+            box(sideWidth, height, 20);
+            pop();
+            
+            // Right side of wall
+            push();
+            translate(width/2 - sideWidth/2, 0, 0);
+            box(sideWidth, height, 20);
+            pop();
+            
+            // Top of opening (arch)
+            push();
+            translate(0, -height/4, 0);
+            box(openingWidth, height/2, 20);
+            pop();
+        }
+        
+        function drawPillars() {
+            const pillars = piranesiView.halls.pillars;
+            fill(200, 190, 180);
+            stroke(120, 110, 100);
+            strokeWeight(1);
+            
+            for (const pillar of pillars) {
+                const dist = Math.sqrt(
+                    Math.pow(pillar.x - piranesiView.myVisitor.pos.x, 2) + 
+                    Math.pow(pillar.z - piranesiView.myVisitor.pos.z, 2)
+                );
+                
+                if (dist < C.roomSize * 1.5) {
+                    push();
+                    translate(pillar.x, -pillar.height/2, pillar.z);
+                    cylinder(pillar.radius, pillar.height, 12);
+                    
+                    // Capital
+                    push();
+                    translate(0, -pillar.height/2 - 20, 0);
+                    cylinder(pillar.radius * 1.3, 40, 8);
+                    pop();
+                    
+                    pop();
+                }
+            }
+        }
+        
+        function drawStatues() {
+            const statues = piranesiView.halls.statues;
+            
+            for (const statue of statues) {
+                const dist = Math.sqrt(
+                    Math.pow(statue.x - piranesiView.myVisitor.pos.x, 2) + 
+                    Math.pow(statue.z - piranesiView.myVisitor.pos.z, 2)
+                );
+                
+                if (dist < C.roomSize) {
+                    push();
+                    translate(statue.x, -80 * statue.scale, statue.z);
+                    scale(statue.scale);
+                    
+                    fill(150, 140, 130);
+                    stroke(100, 90, 80);
+                    strokeWeight(1);
+                    
+                    // Simple statue shapes based on type
+                    switch(statue.type) {
+                        case 0: // Standing figure
+                            // Base
+                            push();
+                            translate(0, 60, 0);
+                            box(60, 120, 40);
+                            // Head
+                            translate(0, -80, 0);
+                            sphere(25);
+                            pop();
+                            break;
+                        case 1: // Seated figure
+                            // Base
+                            push();
+                            translate(0, 40, 0);
+                            box(80, 80, 60);
+                            // Head
+                            translate(0, -60, 0);
+                            sphere(20);
+                            pop();
+                            break;
+                        case 2: // Abstract form
+                            push();
+                            translate(0, 30, 0);
+                            rotateY(frameCount * 0.01);
+                            for (let i = 0; i < 3; i++) {
+                                rotateY(TWO_PI / 3);
+                                translate(0, 0, 20);
+                                box(30, 100, 20);
+                                translate(0, 0, -20);
+                            }
+                            pop();
+                            break;
+                    }
+                    
+                    pop();
+                }
+            }
+        }
+        
+        function drawVisitors() {
+            if (!piranesiView.halls.visitors) return;
+            
+            for (const visitor of piranesiView.halls.visitors.values()) {
+                if (visitor.viewId === piranesiView.viewId) continue; // Don't draw ourselves
+                
+                const dist = Math.sqrt(
+                    Math.pow(visitor.pos.x - piranesiView.myVisitor.pos.x, 2) + 
+                    Math.pow(visitor.pos.z - piranesiView.myVisitor.pos.z, 2)
+                );
+                
+                if (dist < C.roomSize) {
+                    push();
+                    translate(visitor.pos.x, visitor.pos.y - 40, visitor.pos.z);
+                    
+                    // Visitor as a colored orb with name
+                    fill(visitor.color);
+                    noStroke();
+                    sphere(15);
+                    
+                    // Floating name
+                    push();
+                    translate(0, -50, 0);
+                    fill(255, 200);
+                    textAlign(CENTER, CENTER);
+                    textSize(12);
+                    text(visitor.name, 0, 0);
+                    pop();
+                    
+                    pop();
+                }
+            }
+        }
+        
+        function windowResized() {
+            resizeCanvas(windowWidth, windowHeight);
+        }
+        
+        // Initialize Multisynq session
+        const visitorColor = `hsl(${Math.random() * 360}, 70%, 60%)`;
+        const visitorName = `Explorer ${Math.floor(Math.random() * 1000)}`;
+        
+        Multisynq.App.makeWidgetDock();
+        
+        Multisynq.Session.join({
+            apiKey: "2gseQMIyS1heIRWhVyKNXyGH7j1WARH02cobPAmjq9",
+            appId: "io.multisynq.piranesi",
+            model: PiranesiHalls,
+            view: PiranesiView,
+            viewData: {
+                name: visitorName,
+                color: visitorColor
+            }
+        }).then(session => {
+            piranesiView = session.view;
+            console.log("Connected to Piranesi halls");
+        }).catch(err => {
+            console.error("Failed to join Piranesi halls:", err);
+        });
+    </script>
+</body>
+</html>

@@ -8,7 +8,7 @@ node_modules/
 public/llm/test/*
 public/beach
 **/dist/**
-public/apps/
+# public/apps/
 public/test/*
 gitignored/
 
