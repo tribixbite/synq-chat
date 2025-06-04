@@ -1,15 +1,27 @@
 import { DefaultConfig, Env } from "@shared/constants";
 import type { TConfig } from "@shared/types";
 
-const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : DefaultConfig.PORT;
+// Declare Bun environment interface for TypeScript autocompletion and type safety
+declare module "bun" {
+	interface Env {
+		PORT?: string;
+		HOST?: string;
+		NODE_ENV?: string;
+		DEFAULT_APP?: string;
+		APPS_DIR?: string;
+	}
+}
 
-const HOST = process.env.HOST ?? DefaultConfig.HOST;
+// Use Bun.env instead of process.env for better security and Bun compatibility
+const PORT = Bun.env.PORT ? Number.parseInt(Bun.env.PORT) : DefaultConfig.PORT;
 
-const IS_PROD = process.env.NODE_ENV === Env.Production;
+const HOST = Bun.env.HOST ?? DefaultConfig.HOST;
+
+const IS_PROD = Bun.env.NODE_ENV === Env.Production;
 
 // App routing configuration
-const DEFAULT_APP = process.env.DEFAULT_APP ?? "vibesynq";
-const APPS_DIR = process.env.APPS_DIR ?? "./public/apps";
+const DEFAULT_APP = Bun.env.DEFAULT_APP ?? "vibesynq";
+const APPS_DIR = Bun.env.APPS_DIR ?? "./public/apps";
 
 export const Config: TConfig = {
 	PORT,

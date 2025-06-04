@@ -55,7 +55,7 @@ export const app = new Elysia({ name: "synq-chat-server" })
 				ip: true,
 
 				// File logging
-				logFilePath: "./logs/access.log",
+				// logFilePath: "./logs/access.log",
 
 				// Custom log format with available placeholders
 				customLogFormat:
@@ -72,31 +72,31 @@ export const app = new Elysia({ name: "synq-chat-server" })
 							// Development: Log everything for debugging
 							level: ["INFO", "WARNING", "ERROR"],
 							method: ["GET", "POST", "PUT", "DELETE", "PATCH"]
-						},
+						}
 
 				// Custom transports for error notifications and file logging
-				transports: Config.IS_PROD
-					? [
-							errorNotificationTransport,
-							// File transport for errors only
-							{
-								log: async (
-									level: string,
-									message: string,
-									meta: Record<string, unknown>
-								) => {
-									if (level === "ERROR") {
-										const errorLog = `${new Date().toISOString()} [ERROR] ${message} ${JSON.stringify(meta)}\n`;
-										await Bun.write("./logs/errors.log", errorLog, {
-											createPath: true
-										});
-									}
-								}
-							}
-						]
-					: [
-							// Development: just console output (default)
-						]
+				// transports: Config.IS_PROD
+				// 	? [
+				// 			errorNotificationTransport,
+				// 			// File transport for errors only
+				// 			{
+				// 				log: async (
+				// 					level: string,
+				// 					message: string,
+				// 					meta: Record<string, unknown>
+				// 				) => {
+				// 					if (level === "ERROR") {
+				// 						const errorLog = `${new Date().toISOString()} [ERROR] ${message} ${JSON.stringify(meta)}\n`;
+				// 						await Bun.write("./logs/errors.log", errorLog, {
+				// 							createPath: true
+				// 						});
+				// 					}
+				// 				}
+				// 			}
+				// 		]
+				// 	: [
+				// 			// Development: just console output (default)
+				// 		]
 			}
 		})
 	)
