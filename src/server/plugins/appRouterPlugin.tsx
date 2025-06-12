@@ -5,6 +5,10 @@ import Elysia, { t, file, error } from "elysia";
 import { join } from "node:path";
 import type { Children } from "@kitajs/html";
 import { getIP } from "../helpers/elysia";
+import staticPlugin from "@elysiajs/static";
+import { mkdtemp } from "node:fs/promises";
+import { writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 
 export const appRouterPlugin = new Elysia({
 	name: "appRouter"
@@ -85,7 +89,14 @@ async function compileTsx(tsxPath: string, appName: string) {
 		}
 		console.log(await result.outputs[0].text());
 		const js = await result.outputs[0].text();
+		const tmp = await mkdtemp(join(tmpdir(), `${appName}-`));
+		const filePath = join(tmp, "component.mjs");
 
+		await writeFile(filePath, js);
+
+		const mod = await import(`file://${filePath}`);
+
+		const default1 = mod.default;
 		// Create a modern, styled HTML wrapper
 
 		return (
@@ -186,8 +197,8 @@ async function compileTsx(tsxPath: string, appName: string) {
 
 // Auto-mount React component
 						const root = document.getElementById('root');
-						if (typeof default !== 'undefined') {
-							ReactDOM.render(React.createElement(default), root);
+						if (typeof default1 !== 'undefined') {
+							ReactDOM.render(React.createElement(default1), root);
 } else {
 const components = Object.keys(window).filter(key =>
 						typeof window[key] === 'function' &&
@@ -789,10 +800,36 @@ appRouterPlugin.get("/apps", async ({ request }) => {
 		);
 	}
 });
-
+const publicApp = (filename: string) => file(`${filename}`);
+appRouterPlugin.use(
+	staticPlugin({
+		assets: "public/apps",
+		prefix: "/apps",
+		// indexHTML: true,
+		noCache: true,
+		directive: "no-cache",
+		maxAge: 0,
+		// Ignore app directories since they're handled by appRouterPlugin
+		ignorePatterns: [
+			"apps/html/*",
+			"apps/tsx/*",
+			"apps/folder/*",
+			"external-docs/**/*",
+			"llm/**/*",
+			"test/**/*"
+		]
+		// headers: {
+		// 	"Cache-Control": "public, max-age=31536000, immutable"
+		// }
+	})
+);
 // Individual app routing with priority: folder apps > HTML files > TSX files
 appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
 	const { name } = params;
+	if (name.includes(".")) {
+		// then exit plugin
+		return;
+	}
 	const { htmlApps, folderApps, tsxApps } = await discoverApps();
 
 	console.log(`[APP_ROUTER] Routing request for app: ${name}`);
@@ -801,21 +838,22 @@ appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
 	if (folderApps.has(name)) {
 		const folderPath = folderApps.get(name);
 		console.log(`[APP_ROUTER] Serving folder app: ${folderPath}`);
-		return file(folderPath as string);
+		// return Response.redirect(`${folderPath?.split('public')[1].slice(1)}`);
+		return publicApp(folderPath as string);
 	}
 
 	// Priority 2: HTML files (standalone experiences)
 	if (htmlApps.has(name)) {
 		const htmlPath = htmlApps.get(name);
 		console.log(`[APP_ROUTER] Serving HTML file: ${htmlPath}`);
-		return file(htmlPath as string);
+		return publicApp(htmlPath as string);
 	}
 
 	// Priority 3: TSX apps (compiled React components)
 	if (tsxApps.has(name)) {
 		const tsxPath = tsxApps.get(name);
 		console.log(`[APP_ROUTER] Compiling TSX app: ${tsxPath}`);
-		return compileTsx(tsxPath as string, name);
+		return await compileTsx(tsxPath as string, name);
 		// const app = (await Bun.file(tsxPath as string).text()) as JSX.Element;
 		// return (<Base title={name} version="1.0.0" ip={getIP(request, server) || 'localhost'}>
 		// 	{app}

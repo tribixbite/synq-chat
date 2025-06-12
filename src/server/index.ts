@@ -7,7 +7,6 @@ import Elysia, { file } from "elysia";
 
 const { PORT, HOST } = Config;
 
-import staticPlugin from "@elysiajs/static";
 import { onAfterHandle, onBeforeHandle } from "./helpers/elysia";
 import { appRouterPlugin } from "./plugins/appRouterPlugin";
 console.log(`📍 Environment: ${Config.IS_PROD ? "Production" : "Development"}`);
@@ -77,21 +76,21 @@ app.get(
 	.onBeforeHandle(onBeforeHandle)
 	.onAfterHandle(onAfterHandle)
 	.use(appRouterPlugin)
-	.use(
-		staticPlugin({
-			assets: "public",
-			prefix: "/",
-			indexHTML: false,
-			noCache: true,
-			directive: "no-cache",
-			maxAge: 0,
-			// Ignore app directories since they're handled by appRouterPlugin
-			ignorePatterns: ["apps/**/*", "external-docs/**/*", "llm/**/*", "test/**/*"]
-			// headers: {
-			// 	"Cache-Control": "public, max-age=31536000, immutable"
-			// }
-		})
-	)
+	// .use(
+	// 	staticPlugin({
+	// 		assets: "public",
+	// 		prefix: "/",
+	// 		indexHTML: false,
+	// 		noCache: true,
+	// 		directive: "no-cache",
+	// 		maxAge: 0,
+	// 		// Ignore app directories since they're handled by appRouterPlugin
+	// 		ignorePatterns: ["apps/**/*", "external-docs/**/*", "llm/**/*", "test/**/*"]
+	// 		// headers: {
+	// 		// 	"Cache-Control": "public, max-age=31536000, immutable"
+	// 		// }
+	// 	})
+	// )
 	// Enhanced request/response handling (now logixlysia handles most logging)
 
 	// General rate limiting for all API endpoints
@@ -139,7 +138,7 @@ app.get(
 		// }
 
 		// For other unmatched routes, redirect to app gallery as the main hub
-		return Response.redirect("/apps", 302);
+		// return Response.redirect("/apps", 302);
 	})
 
 	// Start server with logixlysia handling startup message

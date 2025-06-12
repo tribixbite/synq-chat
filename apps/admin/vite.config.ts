@@ -1,11 +1,11 @@
 // apps/admin/vite.config.ts
-import { Env, Route } from "@shared/constants";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
 import { viteStaticCopy } from "vite-plugin-static-copy";
 // import svgr from "vite-plugin-svgr";
 import tsconfigPaths from "vite-tsconfig-paths";
+import { Env, Route } from "../../src/shared/constants";
 
 // App configuration
 const AppInfo = {

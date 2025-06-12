@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Html } from '@elysiajs/html'
+import React from 'react';
 export default function SimpleCalculator() {
   const [display, setDisplay] = useState('0');
   const [previousValue, setPreviousValue] = useState<number | null>(null);
