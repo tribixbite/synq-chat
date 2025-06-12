@@ -800,36 +800,79 @@ appRouterPlugin.get("/apps", async ({ request }) => {
 		);
 	}
 });
-const publicApp = (filename: string) => file(`${filename}`);
+
+// Helper function to resolve public file paths for static content optimization - Fixed for deployment
+const publicApp = async (filename: string) => {
+	try {
+		const file = Bun.file(filename);
+		const exists = await file.exists();
+
+		if (!exists) {
+			console.log(`[APP_ROUTER] File not found: ${filename}`);
+			return new Response("File not found", { status: 404 });
+		}
+
+		const content = await file.text();
+		const mimeType = file.type || "text/html";
+
+		return new Response(content, {
+			headers: {
+				"Content-Type": mimeType,
+				"Cache-Control": "no-cache"
+			}
+		});
+	} catch (error) {
+		console.error(`[APP_ROUTER] Error serving file ${filename}:`, error);
+		return new Response("Error reading file", { status: 500 });
+	}
+};
+
+// Static plugins for serving assets
 appRouterPlugin.use(
 	staticPlugin({
 		assets: "public/apps",
 		prefix: "/apps",
-		// indexHTML: true,
 		noCache: true,
 		directive: "no-cache",
-		maxAge: 0,
-		// Ignore app directories since they're handled by appRouterPlugin
-		ignorePatterns: [
-			"apps/html/*",
-			"apps/tsx/*",
-			"apps/folder/*",
-			"external-docs/**/*",
-			"llm/**/*",
-			"test/**/*"
-		]
-		// headers: {
-		// 	"Cache-Control": "public, max-age=31536000, immutable"
-		// }
+		maxAge: 0
 	})
 );
+
+// Explicit asset route handling (fallback if static plugin doesn't work)
+appRouterPlugin.get("/apps/:name/assets/*", async ({ params, request }) => {
+	const url = new URL(request.url);
+	const assetPath = url.pathname.replace("/apps/", "public/apps/");
+
+	console.log(`[APP_ROUTER] Serving asset: ${assetPath}`);
+
+	try {
+		const file = Bun.file(assetPath);
+		if (await file.exists()) {
+			const content = await file.arrayBuffer();
+			return new Response(content, {
+				headers: {
+					"Content-Type": file.type || "application/octet-stream",
+					"Cache-Control": "no-cache"
+				}
+			});
+		}
+	} catch (error) {
+		console.error(`[APP_ROUTER] Error serving asset ${assetPath}:`, error);
+	}
+
+	return new Response("Asset not found", { status: 404 });
+});
+
 // Individual app routing with priority: folder apps > HTML files > TSX files
 appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
 	const { name } = params;
-	if (name.includes(".")) {
-		// then exit plugin
+
+	// Skip if this is an asset request or contains a file extension
+	if (name.includes(".") || name.includes("/")) {
+		// Let static plugin handle assets and other file requests
 		return;
 	}
+
 	const { htmlApps, folderApps, tsxApps } = await discoverApps();
 
 	console.log(`[APP_ROUTER] Routing request for app: ${name}`);
@@ -838,15 +881,26 @@ appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
 	if (folderApps.has(name)) {
 		const folderPath = folderApps.get(name);
 		console.log(`[APP_ROUTER] Serving folder app: ${folderPath}`);
+
+		// Special handling for vibesynq to serve from built public version
+		if (name === "vibesynq") {
+			const publicPath = join("public", "apps", "vibesynq", "index.html");
+			const publicFile = Bun.file(publicPath);
+			if (await publicFile.exists()) {
+				console.log(`[APP_ROUTER] Serving vibesynq from public: ${publicPath}`);
+				return await publicApp(publicPath);
+			}
+		}
+
 		// return Response.redirect(`${folderPath?.split('public')[1].slice(1)}`);
-		return publicApp(folderPath as string);
+		return await publicApp(folderPath as string);
 	}
 
 	// Priority 2: HTML files (standalone experiences)
 	if (htmlApps.has(name)) {
 		const htmlPath = htmlApps.get(name);
 		console.log(`[APP_ROUTER] Serving HTML file: ${htmlPath}`);
-		return publicApp(htmlPath as string);
+		return await publicApp(htmlPath as string);
 	}
 
 	// Priority 3: TSX apps (compiled React components)

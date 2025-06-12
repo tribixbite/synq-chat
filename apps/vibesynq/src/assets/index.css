@@ -1,9 +1,9 @@
 @import "tailwindcss";
 
 * {
-	font-family: "Noto Sans";
+	font-family: "Noto Sans", sans-serif;
 }
 
 .font-code {
-	font-family: "Source Code Pro";
+	font-family: "Source Code Pro", monospace;
 }

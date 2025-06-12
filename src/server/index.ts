@@ -138,7 +138,7 @@ app.get(
 		// }
 
 		// For other unmatched routes, redirect to app gallery as the main hub
-		// return Response.redirect("/apps", 302);
+		return Response.redirect("/apps", 302);
 	})
 
 	// Start server with logixlysia handling startup message
