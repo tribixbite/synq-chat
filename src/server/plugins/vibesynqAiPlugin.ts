@@ -1,11 +1,10 @@
-import { PROVIDERS } from "@src/utils/providers";
+import { PROVIDERS } from "@/utils/providers";
 import { Elysia, t } from "elysia";
-import { strictRateLimit } from "./rateLimitPlugin";
 
 // VibeSynq AI endpoint plugin with strict rate limiting
 export const vibesynqAiPlugin = new Elysia({ name: "vibesynq-ai" })
 	// Apply strict rate limiting to AI endpoints
-	.use(strictRateLimit)
+	// .use(strictRateLimit)
 	.post(
 		"/api/ask-ai",
 		async ({

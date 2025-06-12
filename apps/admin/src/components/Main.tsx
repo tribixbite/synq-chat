@@ -1,8 +1,9 @@
 import bunSvg from "../assets/bun.svg";
 
-import { useState } from "react";
+import { type JSX, useState } from "react";
 import { useAppContext } from "../client/hooks/useAppContext";
 import { Admin } from "./Admin";
+import { Html } from "@elysiajs/html";
 
 export const Main = () => {
 	const { count, setCount } = useAppContext();

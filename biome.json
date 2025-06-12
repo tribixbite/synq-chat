@@ -7,7 +7,7 @@
     "useIgnoreFile": true
   },
   "files": {
-    "ignore": ["public/**", "**/dist/**"]
+    "ignore": ["public/**", "**/dist/**", "apps/bunApp/**"]
   },
   "linter": {
     "enabled": true,

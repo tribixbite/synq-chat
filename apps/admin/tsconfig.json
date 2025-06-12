@@ -1,18 +1,18 @@
 {
-  "extends": "../../tsconfig.json",
+  "extends": "../../tsconfig.base.json",
   "compilerOptions": {
+    "jsxImportSource": "react",
+    "lib": ["webworker", "dom", "dom.iterable", "esnext"],
     "outDir": "dist",
-    "rootDir": "src/client",
+    "rootDir": "src",
     "baseUrl": ".",
     "paths": {
       "@/*": ["src/client/*"],
       "@shared/*": ["../../src/shared/*"],
       "@api/*": ["../../src/server/api/*"],
-      "@components/*": ["src/client/components/*"]
-    },
-    "lib": ["dom", "dom.iterable", "esnext", "webworker"],
-    "types": ["vite/client"]
+      "@components/*": ["src/components/*"]
+    }
   },
-  "include": ["src/client"],
+  "include": ["src"],
   "exclude": ["node_modules", "dist"]
 }

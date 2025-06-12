@@ -3,7 +3,7 @@
     "short_name": "synq.chat",
     "icons": [
         {
-            "src": "/favicon.ico",
+            "src": "/icons/favicon.ico",
             "sizes": "32x32",
             "type": "image/x-icon"
         },

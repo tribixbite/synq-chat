@@ -15,3 +15,4 @@ gitignored/
 # Build artifacts that should not be committed
 # apps/*/public/
 # apps/public/*/
+apps/bunApp/

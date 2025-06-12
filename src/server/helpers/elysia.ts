@@ -1,5 +1,6 @@
-import { type ErrorHandler, type Handler, ValidationError as ElysiaValidationError } from "elysia";
+import { ValidationError as ElysiaValidationError, type ErrorHandler, type Handler } from "elysia";
 
+import type { Server } from "bun";
 import { ErrorMessage } from "../../shared/constants";
 import {
 	BaseApiError,
@@ -10,6 +11,17 @@ import {
 import type { ApiResponse, RequestContext } from "../../shared/types";
 import { ErrorCode } from "../../shared/types";
 
+export function getIP(request: Request, server: Server | null): string {
+	return toIPv4(
+		request.headers.get("x-forwarded-for") || server?.requestIP(request)?.address || "unknown"
+	);
+}
+
+export function toIPv4(ip: string): string {
+	const prefix = "::ffff:";
+	if (ip.startsWith(prefix)) return ip.slice(prefix.length);
+	return ip;
+}
 // Helper function to generate request ID (now simplified since logixlysia handles request tracking)
 function generateRequestId(): string {
 	return `req_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;

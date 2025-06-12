@@ -1,0 +1,13 @@
+{
+  "compilerOptions": {
+    // Bundler mode
+    "module": "preserve",
+    "verbatimModuleSyntax": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"]
+    }
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["dist", "node_modules"]
+}

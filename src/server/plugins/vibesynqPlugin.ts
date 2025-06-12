@@ -1,5 +1,5 @@
+import { PROVIDERS } from "@/utils/providers";
 import { staticPlugin } from "@elysiajs/static";
-import { PROVIDERS } from "@src/utils/providers";
 import { Elysia, t } from "elysia";
 
 // Plugin for the Vibesynq app

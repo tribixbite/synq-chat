@@ -37,11 +37,11 @@
 		Load MultiSynq either in the HTML head:
 		```html
 		<meta charset="utf-8">
-		<script src="https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.2/bundled/multisynq-client.min.js"></script>
+		<script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
 		```
 		or directly in the javascript function:
 		```javascript
-		import * as Multisynq from "https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.2/bundled/multisynq-client.esm.js";
+		import * as Multisynq from "https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.esm.js";
 		```
 		Do not modify these URLs under any circumstances.
 		In local agent mode ONLY (when package.json is present), you may
@@ -51,7 +51,7 @@
 		If you are running a sandboxed environment Canvas that restricts imports, load Multisynq exactly as follows:
 		```html
 		<script>
-			fetch('https://unpkg.com/@multisynq/client@1.0.2/bundled/multisynq-client.min.js')
+			fetch('https://unpkg.com/@multisynq/client@latest/bundled/multisynq-client.min.js')
 				.then(r => r.text())
 				.then(js => {
 				const blob = new Blob([js], { type: 'application/javascript' });
@@ -1238,7 +1238,7 @@
 						border: none; color: #000; text-align: center; font-size: 1.2em;
 					}
 				</style>
-				<script src="https://cdn.jsdelivr.net/npm/@multisynq/client@1.0.2/bundled/multisynq-client.min.js"></script>
+				<script src="https://cdn.jsdelivr.net/npm/@multisynq/client@latest/bundled/multisynq-client.min.js"></script>
 			</head>
 			<body>
 				<canvas id="canvas" width="1000" height="1000"></canvas>

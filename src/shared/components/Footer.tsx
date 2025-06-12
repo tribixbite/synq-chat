@@ -1,5 +1,5 @@
 import type React from "react";
-
+import { Html } from "@elysiajs/html";
 interface FooterProps {
 	appName: string;
 }

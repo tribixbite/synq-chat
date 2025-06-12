@@ -1,35 +1,28 @@
 {
+  "extends": "./tsconfig.base.json",
   "compilerOptions": {
-    "lib": ["esnext", "dom", "DOM.Iterable"],
-    "target": "esnext",
-    "module": "ESNext",
-    "types": ["@types/bun", "vite/client"],
-    "moduleResolution": "bundler",
-    "moduleDetection": "force",
-    "noEmit": true,
-    "allowImportingTsExtensions": true,
-    "resolveJsonModule": true,
-    "allowJs": true,
-    "checkJs": true,
-    "esModuleInterop": true,
-    "allowSyntheticDefaultImports": true,
-    "forceConsistentCasingInFileNames": true,
-    "skipLibCheck": true,
-    "jsx": "react-jsx",
-    "strict": true,
+    "jsxImportSource": "@kitajs/html",
+    "rootDir": ".",
     "baseUrl": ".",
-    "incremental": false,
     "paths": {
-      "@/*": ["./*"],
-      "@src/*": ["src/*"],
-      "@plugins": ["src/server/plugins/*"],
+      "@/*": ["./src/*"],
+      "@plugins": ["./src/server/plugins/*"],
       "@vibesynq/*": ["apps/vibesynq/src/*"],
       "@admin/*": ["apps/admin/src/*"],
       "@shared/*": ["./src/shared/*"],
-      "@server/*": ["src/server/*"],
-      "@helpers/*": ["src/server/helpers/*"]
+      "@server/*": ["./src/server/*"],
+      "@helpers/*": ["./src/server/helpers/*"]
     }
   },
-  "exclude": ["node_modules", "**/public", "**/dist", "main"],
-  "include": ["src", "apps"]
+  "exclude": [
+    "node_modules",
+    "**/public",
+    "**/dist",
+    "main",
+    "apps/vibesynq/**/*",
+    "apps/admin/**/*",
+    "apps/bunApp/**/*",
+    "apps/gallery/**/*"
+  ],
+  "include": ["src/**/*.ts", "src/**/*.tsx"]
 }

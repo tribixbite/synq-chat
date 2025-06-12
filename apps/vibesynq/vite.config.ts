@@ -1,9 +1,7 @@
-// apps/vibesynq/vite.config.ts
 import { Env, Route } from "@shared/constants";
 import react from "@vitejs/plugin-react-swc";
 import { resolve } from "node:path";
 import { defineConfig } from "vite";
-// import svgr from "vite-plugin-svgr";
 import tsconfigPaths from "vite-tsconfig-paths";
 
 // App configuration
@@ -17,7 +15,7 @@ const AppInfo = {
 	}
 };
 
-// Define paths following the root template structure
+// Define paths
 const appRoot = __dirname; // apps/vibesynq
 const outDir = resolve(__dirname, "../../public/apps/vibesynq"); // Output to public/apps/vibesynq
 
@@ -27,7 +25,10 @@ const buildConfig = (mode: string) => ({
 	define: {
 		"import.meta.env.MODE": JSON.stringify(mode)
 	},
+
 	server: {
+		port: 5173,
+		host: true,
 		hmr: true,
 		strictPort: false,
 		fs: { deny: ["sw.*"] },
@@ -38,7 +39,9 @@ const buildConfig = (mode: string) => ({
 			}
 		}
 	},
-	publicDir: resolve(appRoot, "public"), // Look for public dir in app root
+
+	publicDir: resolve(appRoot, "public"),
+
 	build: {
 		outDir,
 		emptyOutDir: true,
@@ -57,22 +60,23 @@ const buildConfig = (mode: string) => ({
 				entryFileNames: "assets/[name]-[hash].js",
 				assetFileNames: "assets/[name]-[hash][extname]"
 			}
-		}
-	}
-});
+		},
+		// Optimize for production
+		...(mode === Env.Production && {
+			cssCodeSplit: true,
+			reportCompressedSize: false
+		})
+	},
 
-export default defineConfig(({ mode }) => ({
-	...buildConfig(mode),
 	plugins: [
-		react(),
-		// svgr({
-		// 	svgrOptions: { exportType: "default", ref: true },
-		// 	include: "**/*.svg"
-		// }),
+		react({
+			// Enable React Fast Refresh
+			// fastRefresh: mode !== Env.Production
+		}),
 		tsconfigPaths(),
 		{
 			name: "html-transform",
-			transformIndexHtml(html) {
+			transformIndexHtml(html: string) {
 				return html
 					.replace(/{{name}}/g, AppInfo.name)
 					.replace(/{{url}}/g, AppInfo.url)
@@ -82,11 +86,20 @@ export default defineConfig(({ mode }) => ({
 			}
 		}
 	],
+
 	resolve: {
 		alias: {
-			"@": resolve(__dirname, "src"),
-			"@assets": resolve(__dirname, "src/assets"),
+			"@": resolve(appRoot, "src"),
+			"@assets": resolve(appRoot, "src/assets"),
 			"@shared": resolve(__dirname, "../../src/shared")
 		}
+	},
+
+	// Optimize dependencies
+	optimizeDeps: {
+		include: ["react", "react-dom"],
+		exclude: ["@shared/constants"] // Exclude internal modules
 	}
-}));
+});
+
+export default defineConfig(({ mode }) => buildConfig(mode));

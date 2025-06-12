@@ -159,7 +159,7 @@ describe("Build Process & File Output", () => {
 			const requiredEnvVars = ["NODE_ENV"];
 			// Note: In production, you'd also check for API keys, database URLs, etc.
 
-			console.log(`✓ Environment check - NODE_ENV: ${process.env.NODE_ENV || "development"}`);
+			console.log(`✓ Environment check - NODE_ENV: ${Bun.env.NODE_ENV || "development"}`);
 			console.log(`✓ Config values - PORT: ${Config.PORT}, HOST: ${Config.HOST}`);
 			console.log(`✓ Default app: ${Config.DEFAULT_APP}`);
 		});

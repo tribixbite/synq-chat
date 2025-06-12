@@ -2,7 +2,6 @@ import "./styles.css";
 import { Component, StrictMode, type ErrorInfo, type ReactNode } from "react";
 import { createRoot } from "react-dom/client";
 import { ToastContainer } from "react-toastify";
-
 import { assertGetElementById } from "@shared/helpers/browser"; // Import the helper
 import App from "./components/App.tsx";
 
