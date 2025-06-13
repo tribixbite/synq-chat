@@ -374,6 +374,8 @@ appRouterPlugin.get("/apps/:appName/assets/:assetFile", async ({ params }) => {
 				mimeType = "audio/mpeg";
 			} else if (assetFile.endsWith(".mp4")) {
 				mimeType = "video/mp4";
+			} else if (assetFile.endsWith(".eot")) {
+				mimeType = "application/vnd.ms-fontobject";
 			}
 
 			console.log(`[APP_ROUTER] Serving ${assetPath} with MIME type: ${mimeType}`);
@@ -392,6 +394,68 @@ appRouterPlugin.get("/apps/:appName/assets/:assetFile", async ({ params }) => {
 	}
 
 	return new Response("Asset not found", { status: 404 });
+});
+
+// Special asset route for beach app (uses /beach/assets/ instead of /apps/beach/assets/)
+appRouterPlugin.get("/beach/assets/:assetFile", async ({ params }) => {
+	const { assetFile } = params;
+	const assetPath = `public/apps/beach/assets/${assetFile}`;
+
+	console.log(`[APP_ROUTER] Beach asset route hit - File: ${assetFile}, Path: ${assetPath}`);
+
+	try {
+		const file = Bun.file(assetPath);
+		if (await file.exists()) {
+			const content = await file.arrayBuffer();
+
+			// Determine MIME type based on file extension
+			let mimeType = file.type || "application/octet-stream";
+
+			// Explicit MIME type mapping for common web assets
+			if (assetFile.endsWith(".css")) {
+				mimeType = "text/css";
+			} else if (assetFile.endsWith(".js") || assetFile.endsWith(".mjs")) {
+				mimeType = "application/javascript";
+			} else if (assetFile.endsWith(".json")) {
+				mimeType = "application/json";
+			} else if (assetFile.endsWith(".svg")) {
+				mimeType = "image/svg+xml";
+			} else if (assetFile.endsWith(".png")) {
+				mimeType = "image/png";
+			} else if (assetFile.endsWith(".jpg") || assetFile.endsWith(".jpeg")) {
+				mimeType = "image/jpeg";
+			} else if (assetFile.endsWith(".webp")) {
+				mimeType = "image/webp";
+			} else if (assetFile.endsWith(".woff") || assetFile.endsWith(".woff2")) {
+				mimeType = "font/woff2";
+			} else if (assetFile.endsWith(".ttf")) {
+				mimeType = "font/ttf";
+			} else if (assetFile.endsWith(".mp3")) {
+				mimeType = "audio/mpeg";
+			} else if (assetFile.endsWith(".mp4")) {
+				mimeType = "video/mp4";
+			} else if (assetFile.endsWith(".eot")) {
+				mimeType = "application/vnd.ms-fontobject";
+			}
+
+			console.log(
+				`[APP_ROUTER] Serving beach asset ${assetPath} with MIME type: ${mimeType}`
+			);
+
+			return new Response(content, {
+				headers: {
+					"Content-Type": mimeType,
+					"Cache-Control": "no-cache"
+				}
+			});
+		}
+
+		console.log(`[APP_ROUTER] Beach asset file not found: ${assetPath}`);
+	} catch (error) {
+		console.error(`[APP_ROUTER] Error serving beach asset ${assetPath}:`, error);
+	}
+
+	return new Response("Beach asset not found", { status: 404 });
 });
 
 // Static plugins for serving assets
