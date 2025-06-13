@@ -1,18 +1,14 @@
-import { useState } from 'react';
-
-interface Todo {
-  id: number;
-  text: string;
-  completed: boolean;
-}
+/** @jsx React.createElement */
+/** @jsxImportSource react */
+import React, { useState } from 'react';
 
 export default function TodoApp() {
-  const [todos, setTodos] = useState<Todo[]>([
+  const [todos, setTodos] = useState([
     { id: 1, text: 'Try this TSX todo app', completed: false },
     { id: 2, text: 'Built with React hooks', completed: false }
   ]);
   const [inputValue, setInputValue] = useState('');
-  const [filter, setFilter] = useState<'all' | 'active' | 'completed'>('all');
+  const [filter, setFilter] = useState('all');
 
   const addTodo = () => {
     if (inputValue.trim()) {
@@ -82,19 +78,33 @@ export default function TodoApp() {
         {/* Filter Buttons */}
         <div className="p-4 border-b border-gray-200">
           <div className="flex gap-2">
-            {(['all', 'active', 'completed'] as const).map(filterType => (
-              <button
-                key={filterType}
-                onClick={() => setFilter(filterType)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize ${
-                  filter === filterType
-                    ? 'bg-purple-100 text-purple-700'
-                    : 'text-gray-600 hover:bg-gray-100'
-                }`}
-              >
-                {filterType}
-              </button>
-            ))}
+            <button
+              onClick={() => setFilter('all')}
+              className={filter === 'all' 
+                ? 'px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize bg-purple-100 text-purple-700'
+                : 'px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize text-gray-600 hover:bg-gray-100'
+              }
+            >
+              all
+            </button>
+            <button
+              onClick={() => setFilter('active')}
+              className={filter === 'active' 
+                ? 'px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize bg-purple-100 text-purple-700'
+                : 'px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize text-gray-600 hover:bg-gray-100'
+              }
+            >
+              active
+            </button>
+            <button
+              onClick={() => setFilter('completed')}
+              className={filter === 'completed' 
+                ? 'px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize bg-purple-100 text-purple-700'
+                : 'px-4 py-2 rounded-lg text-sm font-medium transition-colors capitalize text-gray-600 hover:bg-gray-100'
+              }
+            >
+              completed
+            </button>
           </div>
         </div>
 
@@ -103,7 +113,7 @@ export default function TodoApp() {
           {filteredTodos.length === 0 ? (
             <div className="p-8 text-center text-gray-500">
               <div className="text-4xl mb-2">📝</div>
-              <p>No todos {filter === 'all' ? 'yet' : `in ${filter}`}</p>
+              <p>No todos {filter === 'all' ? 'yet' : 'in ' + filter}</p>
             </div>
           ) : (
             <ul className="divide-y divide-gray-200">
@@ -112,11 +122,10 @@ export default function TodoApp() {
                   <div className="flex items-center gap-3">
                     <button
                       onClick={() => toggleTodo(todo.id)}
-                      className={`flex-shrink-0 w-6 h-6 rounded-full border-2 transition-all ${
-                        todo.completed
-                          ? 'bg-green-500 border-green-500 text-white'
-                          : 'border-gray-300 hover:border-green-400'
-                      }`}
+                      className={todo.completed
+                        ? 'flex-shrink-0 w-6 h-6 rounded-full border-2 transition-all bg-green-500 border-green-500 text-white'
+                        : 'flex-shrink-0 w-6 h-6 rounded-full border-2 transition-all border-gray-300 hover:border-green-400'
+                      }
                     >
                       {todo.completed && (
                         <svg className="w-4 h-4 m-0.5" fill="currentColor" viewBox="0 0 20 20">
@@ -125,11 +134,10 @@ export default function TodoApp() {
                       )}
                     </button>
                     <span
-                      className={`flex-1 transition-all ${
-                        todo.completed
-                          ? 'text-gray-500 line-through'
-                          : 'text-gray-800'
-                      }`}
+                      className={todo.completed
+                        ? 'flex-1 transition-all text-gray-500 line-through'
+                        : 'flex-1 transition-all text-gray-800'
+                      }
                     >
                       {todo.text}
                     </span>

@@ -10,6 +10,6 @@
       "@shared/*": ["../../src/shared/*"]
     }
   },
-  "include": ["src/**/*", "index.html", "vite.config.ts"],
+  "include": ["./src/**/*", "index.html", "vite.config.ts"],
   "exclude": ["node_modules", "dist", "../../public/apps/vibesynq"]
 }

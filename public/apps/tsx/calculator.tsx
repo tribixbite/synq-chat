@@ -1,6 +1,5 @@
-import { useState } from 'react';
-import { Html } from '@elysiajs/html'
-import React from 'react';
+import React, { useState } from 'react';
+
 export default function SimpleCalculator() {
   const [display, setDisplay] = useState('0');
   const [previousValue, setPreviousValue] = useState<number | null>(null);
@@ -80,8 +79,7 @@ export default function SimpleCalculator() {
             Built with React TSX & compiled by Bun
           </p>
         </div>
-
-        {/* Display */}
+        
         <div className="mb-4">
           <input
             type="text"
@@ -90,10 +88,8 @@ export default function SimpleCalculator() {
             className="w-full text-right text-3xl font-mono p-4 bg-gray-50 border-2 border-gray-200 rounded-lg focus:outline-none"
           />
         </div>
-
-        {/* Buttons */}
+        
         <div className="grid grid-cols-4 gap-3">
-          {/* Row 1 */}
           <button
             onClick={clear}
             className="col-span-2 bg-red-500 hover:bg-red-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors"
@@ -112,8 +108,7 @@ export default function SimpleCalculator() {
           >
             ×
           </button>
-
-          {/* Row 2 */}
+          
           <button
             onClick={() => inputNumber('7')}
             className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
@@ -138,8 +133,7 @@ export default function SimpleCalculator() {
           >
             -
           </button>
-
-          {/* Row 3 */}
+          
           <button
             onClick={() => inputNumber('4')}
             className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
@@ -164,8 +158,7 @@ export default function SimpleCalculator() {
           >
             +
           </button>
-
-          {/* Row 4 */}
+          
           <button
             onClick={() => inputNumber('1')}
             className="bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
@@ -190,8 +183,7 @@ export default function SimpleCalculator() {
           >
             =
           </button>
-
-          {/* Row 5 */}
+          
           <button
             onClick={() => inputNumber('0')}
             className="col-span-2 bg-gray-100 hover:bg-gray-200 text-gray-800 font-semibold py-3 px-4 rounded-lg transition-colors"
@@ -209,7 +201,7 @@ export default function SimpleCalculator() {
             .
           </button>
         </div>
-
+        
         <div className="mt-6 text-center">
           <p className="text-xs text-gray-500">
             This TSX file was compiled by Bun and served dynamically

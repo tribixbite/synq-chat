@@ -21,6 +21,8 @@ export const app = new Elysia({ name: "synq-chat-server" })
 	// .use(ipBlockingMiddleware)
 	// Advanced logixlysia configuration with production-ready features
 	// .use(logger)
+	// Dynamic app routing - FIRST to handle app routes before other middleware
+	.use(appRouterPlugin)
 	// MultiSynq manual routes (optimized with Bun.file)
 	.get("/multisynq-react.txt", () => publicFile("multisynq-react.txt"))
 	.get("/multisynq-threejs.txt", () => publicFile("multisynq-js.txt"))
@@ -58,24 +60,10 @@ export const app = new Elysia({ name: "synq-chat-server" })
 		message: "Test route works!",
 		timestamp: new Date().toISOString(),
 		success: true
-	}));
-// Dynamic app routing - automatically discovers and serves apps
-// app.use(html())
-app.get(
-	"/apps3",
-	() => `
-            <html lang='en'>
-                <head>
-                    <title>Hello World</title>
-                </head>
-                <body>
-                    <h1>Hello World</h1>
-                </body>
-            </html>`
-)
+	}))
+	// Enhanced request/response handling
 	.onBeforeHandle(onBeforeHandle)
 	.onAfterHandle(onAfterHandle)
-	.use(appRouterPlugin)
 	// .use(
 	// 	staticPlugin({
 	// 		assets: "public",

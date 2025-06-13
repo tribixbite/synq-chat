@@ -6,9 +6,7 @@ import { join } from "node:path";
 import type { Children } from "@kitajs/html";
 import { getIP } from "../helpers/elysia";
 import staticPlugin from "@elysiajs/static";
-import { mkdtemp } from "node:fs/promises";
-import { writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
 
 export const appRouterPlugin = new Elysia({
 	name: "appRouter"
@@ -53,19 +51,27 @@ async function discoverApps() {
 			}
 		}
 
-		// App folders in /apps
+		// App folders in /apps - BUT NORMALIZE TO public/apps path structure
 		for await (const indexPath of folderGlob.scan(appsDir)) {
 			const pathParts = indexPath.split(/[/\\\\]/);
 			const folderName = pathParts[0];
 			if (!folderApps.has(folderName)) {
-				// Don't override public/apps
-				folderApps.set(folderName, join(appsDir, indexPath));
+				// Store the original path but log it for debugging
+				const originalPath = join(appsDir, indexPath);
+				console.log(`[APP_ROUTER] Found app in /apps: ${folderName} -> ${originalPath}`);
+				folderApps.set(folderName, originalPath);
 			}
 		}
 
 		console.log(
 			`[APP_ROUTER] Discovered: ${htmlApps.size} HTML, ${tsxApps.size} TSX, ${folderApps.size} folder apps`
 		);
+
+		// Debug: Log all folder app paths
+		// console.log('[APP_ROUTER] Folder app paths:');
+		for (const [name, path] of folderApps.entries()) {
+			// console.log(`  ${name}: ${path}`);
+		}
 	} catch (error) {
 		console.error("[APP_ROUTER] Discovery error:", error);
 	}
@@ -76,20 +82,63 @@ async function discoverApps() {
 // Enhanced TSX compilation with proper React setup
 async function compileTsx(tsxPath: string, appName: string) {
 	try {
+		// Read the original TSX file
+		const originalContent = await Bun.file(tsxPath).text();
+
+		// Add React JSX pragma to force React JSX transform
+		const modifiedContent = `/** @jsx React.createElement */
+/** @jsxImportSource react */
+${originalContent}`;
+
+		// Create a temporary file with the modified content
+		const tempDir = join(process.cwd(), ".bun-tmp");
+		await mkdir(tempDir, { recursive: true });
+		const tempTsxPath = join(tempDir, `${appName}-temp.tsx`);
+		await writeFile(tempTsxPath, modifiedContent);
+
 		const result = await Bun.build({
-			entrypoints: [tsxPath],
-			target: "bun",
+			entrypoints: [tempTsxPath],
+			target: "browser",
 			format: "esm",
-			external: ["react", "react-dom"]
+			minify: false,
+			define: {
+				"process.env.NODE_ENV": '"production"'
+			},
+			external: ["react", "react-dom"],
+			naming: "[name].[ext]"
 		});
 
 		if (!result.success) {
 			console.error("[TSX_COMPILE] Build failed:", result.logs);
 			throw new Error("TSX compilation failed");
 		}
-		console.log(await result.outputs[0].text());
-		const js = await result.outputs[0].text();
-		const tmp = await mkdtemp(join(tmpdir(), `${appName}-`));
+
+		let js = await result.outputs[0].text();
+
+		// Remove problematic 'this' references from JSX - more comprehensive patterns
+		js = js.replace(
+			/,\s*undefined,\s*false,\s*undefined,\s*this\)/g,
+			", undefined, false, undefined, undefined)"
+		);
+		js = js.replace(
+			/,\s*undefined,\s*true,\s*undefined,\s*this\)/g,
+			", undefined, true, undefined, undefined)"
+		);
+		js = js.replace(/,\s*this\)/g, ", undefined)");
+		js = js.replace(/\(\s*this\)/g, "(undefined)");
+		js = js.replace(/\bthis\b(?=\s*[,\)])/g, "undefined");
+
+		// Also replace any remaining 'this' in JSX context
+		js = js.replace(/\$jsxDEV\([^,]+,[^,]+,[^,]+,[^,]+,[^,]+,\s*this\)/g, match => {
+			return match.replace(", this)", ", undefined)");
+		});
+
+		console.log("[TSX_COMPILE] Compilation successful, JS length:", js.length);
+
+		// Ensure .bun-tmp directory exists
+		const bunTmpDir = join(process.cwd(), ".bun-tmp");
+		await mkdir(bunTmpDir, { recursive: true });
+		const tmp = await mkdtemp(join(bunTmpDir, `${appName}-`));
 		const filePath = join(tmp, "component.mjs");
 
 		await writeFile(filePath, js);
@@ -193,21 +242,61 @@ async function compileTsx(tsxPath: string, appName: string) {
 						</main>
 					</div>
 					<script type="module">
-						{`${js}
-
-// Auto-mount React component
-						const root = document.getElementById('root');
-						if (typeof default1 !== 'undefined') {
-							ReactDOM.render(React.createElement(default1), root);
+						{`
+// Wait for React to be available
+if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
+	console.error('React or ReactDOM not loaded');
 } else {
-const components = Object.keys(window).filter(key =>
-						typeof window[key] === 'function' &&
-						key.charAt(0) === key.charAt(0).toUpperCase()
-						);
-if (components.length > 0) {
-							ReactDOM.render(React.createElement(window[components[0]]), root);
+	console.log('React and ReactDOM are available');
+	
+	// Create import maps for React
+	const importMap = document.createElement('script');
+	importMap.type = 'importmap';
+	importMap.textContent = JSON.stringify({
+		imports: {
+			'react': 'data:text/javascript,export default window.React; export const useState = window.React.useState; export const useEffect = window.React.useEffect; export const useContext = window.React.useContext; export const useReducer = window.React.useReducer; export const useCallback = window.React.useCallback; export const useMemo = window.React.useMemo; export const useRef = window.React.useRef; export const createElement = window.React.createElement;',
+			'react-dom': 'data:text/javascript,export default window.ReactDOM; export const render = window.ReactDOM.render; export const createRoot = window.ReactDOM.createRoot;',
+			'react/jsx-runtime': 'data:text/javascript,export const jsx = (type, props) => window.React.createElement(type, props, props?.children); export const jsxs = (type, props) => window.React.createElement(type, props, props?.children); export const Fragment = window.React.Fragment;'
+		}
+	});
+	document.head.appendChild(importMap);
+	
+	// Create a blob URL from the bundled JS and import it
+	const jsCode = \`${js}\`;
+	const blob = new Blob([jsCode], { type: 'application/javascript' });
+	const moduleUrl = URL.createObjectURL(blob);
+
+	// Dynamically import the component
+	import(moduleUrl).then((module) => {
+		const Component = module.default;
+		
+		// Mount the component
+		const rootElement = document.getElementById('root');
+		if (rootElement && Component) {
+			console.log('Component loaded successfully');
+			
+			try {
+				if (ReactDOM.createRoot) {
+					const root = ReactDOM.createRoot(rootElement);
+					root.render(React.createElement(Component));
+				} else {
+					ReactDOM.render(React.createElement(Component), rootElement);
+				}
+				console.log('Component mounted successfully');
+			} catch (error) {
+				console.error('Error mounting component:', error);
+			}
+		} else {
+			console.error('Component not found or root element missing');
+		}
+		
+		// Clean up the blob URL
+		URL.revokeObjectURL(moduleUrl);
+	}).catch((error) => {
+		console.error('Failed to import component:', error);
+	});
 }
-}`}
+						`}
 					</script>
 				</body>
 			</html>
@@ -239,6 +328,83 @@ if (components.length > 0) {
 // Enable HTML plugin for JSX support
 appRouterPlugin.use(html());
 
+// Test route for debugging
+appRouterPlugin.get("/test-asset", async () => {
+	console.log("[APP_ROUTER] Test route hit!");
+	return new Response("Test route working", { status: 200 });
+});
+
+// Explicit asset route handling - FIRST to handle assets before app routes
+appRouterPlugin.get("/apps/:appName/assets/:assetFile", async ({ params }) => {
+	const { appName, assetFile } = params;
+	const assetPath = `public/apps/${appName}/assets/${assetFile}`;
+
+	console.log(
+		`[APP_ROUTER] Asset route hit - App: ${appName}, File: ${assetFile}, Path: ${assetPath}`
+	);
+
+	try {
+		const file = Bun.file(assetPath);
+		if (await file.exists()) {
+			const content = await file.arrayBuffer();
+
+			// Determine MIME type based on file extension
+			let mimeType = file.type || "application/octet-stream";
+
+			// Explicit MIME type mapping for common web assets
+			if (assetFile.endsWith(".css")) {
+				mimeType = "text/css";
+			} else if (assetFile.endsWith(".js") || assetFile.endsWith(".mjs")) {
+				mimeType = "application/javascript";
+			} else if (assetFile.endsWith(".json")) {
+				mimeType = "application/json";
+			} else if (assetFile.endsWith(".svg")) {
+				mimeType = "image/svg+xml";
+			} else if (assetFile.endsWith(".png")) {
+				mimeType = "image/png";
+			} else if (assetFile.endsWith(".jpg") || assetFile.endsWith(".jpeg")) {
+				mimeType = "image/jpeg";
+			} else if (assetFile.endsWith(".webp")) {
+				mimeType = "image/webp";
+			} else if (assetFile.endsWith(".woff") || assetFile.endsWith(".woff2")) {
+				mimeType = "font/woff2";
+			} else if (assetFile.endsWith(".ttf")) {
+				mimeType = "font/ttf";
+			} else if (assetFile.endsWith(".mp3")) {
+				mimeType = "audio/mpeg";
+			} else if (assetFile.endsWith(".mp4")) {
+				mimeType = "video/mp4";
+			}
+
+			console.log(`[APP_ROUTER] Serving ${assetPath} with MIME type: ${mimeType}`);
+
+			return new Response(content, {
+				headers: {
+					"Content-Type": mimeType,
+					"Cache-Control": "no-cache"
+				}
+			});
+		}
+
+		console.log(`[APP_ROUTER] Asset file not found: ${assetPath}`);
+	} catch (error) {
+		console.error(`[APP_ROUTER] Error serving asset ${assetPath}:`, error);
+	}
+
+	return new Response("Asset not found", { status: 404 });
+});
+
+// Static plugins for serving assets
+// appRouterPlugin.use(
+// 	staticPlugin({
+// 		assets: "public/apps",
+// 		prefix: "/apps",
+// 		noCache: true,
+// 		directive: "no-cache",
+// 		maxAge: 0
+// 	})
+// );
+
 // Beautiful Gallery route with server-side rendered JSX
 appRouterPlugin.get("/apps", async ({ request }) => {
 	try {
@@ -266,6 +432,8 @@ appRouterPlugin.get("/apps", async ({ request }) => {
 						href="/icons/favicon-96x96.png"
 						sizes="96x96"
 					/>
+					<script src="https://unpkg.com/react@18/umd/react.production.min.js" />
+					<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" />
 					<script src="https://cdn.tailwindcss.com" />
 					<style>{`
    					@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
@@ -827,63 +995,48 @@ const publicApp = async (filename: string) => {
 	}
 };
 
-// Static plugins for serving assets
-appRouterPlugin.use(
-	staticPlugin({
-		assets: "public/apps",
-		prefix: "/apps",
-		noCache: true,
-		directive: "no-cache",
-		maxAge: 0
-	})
-);
-
-// Explicit asset route handling (fallback if static plugin doesn't work)
-appRouterPlugin.get("/apps/:name/assets/*", async ({ params, request }) => {
-	const url = new URL(request.url);
-	const assetPath = url.pathname.replace("/apps/", "public/apps/");
-
-	console.log(`[APP_ROUTER] Serving asset: ${assetPath}`);
-
-	try {
-		const file = Bun.file(assetPath);
-		if (await file.exists()) {
-			const content = await file.arrayBuffer();
-			return new Response(content, {
-				headers: {
-					"Content-Type": file.type || "application/octet-stream",
-					"Cache-Control": "no-cache"
-				}
-			});
-		}
-	} catch (error) {
-		console.error(`[APP_ROUTER] Error serving asset ${assetPath}:`, error);
-	}
-
-	return new Response("Asset not found", { status: 404 });
-});
-
 // Individual app routing with priority: folder apps > HTML files > TSX files
-appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
-	const { name } = params;
+appRouterPlugin.get("/apps/:appName", async ({ params, request, server }) => {
+	const { appName } = params;
 
 	// Skip if this is an asset request or contains a file extension
-	if (name.includes(".") || name.includes("/")) {
+	if (appName.includes(".") || appName.includes("/")) {
 		// Let static plugin handle assets and other file requests
 		return;
 	}
 
 	const { htmlApps, folderApps, tsxApps } = await discoverApps();
 
-	console.log(`[APP_ROUTER] Routing request for app: ${name}`);
+	console.log(`[APP_ROUTER] Routing request for app: ${appName}`);
 
 	// Priority 1: Folder apps (full applications)
-	if (folderApps.has(name)) {
-		const folderPath = folderApps.get(name);
+	if (folderApps.has(appName)) {
+		const folderPath = folderApps.get(appName);
 		console.log(`[APP_ROUTER] Serving folder app: ${folderPath}`);
 
+		// Check if this app is in the /apps directory (needs special handling)
+		if (folderPath?.startsWith("apps/")) {
+			console.log(
+				`[APP_ROUTER] App ${appName} is in /apps directory, checking for built version in public/apps`
+			);
+
+			// Try to serve from public/apps first (built version)
+			const publicPath = join("public", "apps", appName, "index.html");
+			const publicFile = Bun.file(publicPath);
+			if (await publicFile.exists()) {
+				console.log(
+					`[APP_ROUTER] Serving ${appName} from built public version: ${publicPath}`
+				);
+				return await publicApp(publicPath);
+			}
+			console.log(
+				`[APP_ROUTER] No built version found for ${appName}, serving from original: ${folderPath}`
+			);
+			return await publicApp(folderPath as string);
+		}
+
 		// Special handling for vibesynq to serve from built public version
-		if (name === "vibesynq") {
+		if (appName === "vibesynq") {
 			const publicPath = join("public", "apps", "vibesynq", "index.html");
 			const publicFile = Bun.file(publicPath);
 			if (await publicFile.exists()) {
@@ -897,17 +1050,17 @@ appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
 	}
 
 	// Priority 2: HTML files (standalone experiences)
-	if (htmlApps.has(name)) {
-		const htmlPath = htmlApps.get(name);
+	if (htmlApps.has(appName)) {
+		const htmlPath = htmlApps.get(appName);
 		console.log(`[APP_ROUTER] Serving HTML file: ${htmlPath}`);
 		return await publicApp(htmlPath as string);
 	}
 
 	// Priority 3: TSX apps (compiled React components)
-	if (tsxApps.has(name)) {
-		const tsxPath = tsxApps.get(name);
+	if (tsxApps.has(appName)) {
+		const tsxPath = tsxApps.get(appName);
 		console.log(`[APP_ROUTER] Compiling TSX app: ${tsxPath}`);
-		return await compileTsx(tsxPath as string, name);
+		return await compileTsx(tsxPath as string, appName);
 		// const app = (await Bun.file(tsxPath as string).text()) as JSX.Element;
 		// return (<Base title={name} version="1.0.0" ip={getIP(request, server) || 'localhost'}>
 		// 	{app}
@@ -916,7 +1069,7 @@ appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
 	}
 
 	// Not found-redirect to gallery
-	console.log(`[APP_ROUTER] App not found: ${name}, redirecting to gallery`);
+	console.log(`[APP_ROUTER] App not found: ${appName}, redirecting to gallery`);
 	return Response.redirect("/apps", 302);
 });
 

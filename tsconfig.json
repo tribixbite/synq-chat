@@ -22,7 +22,8 @@
     "apps/vibesynq/**/*",
     "apps/admin/**/*",
     "apps/bunApp/**/*",
-    "apps/gallery/**/*"
+    "apps/gallery/**/*",
+    "public/apps/tsx/**/*"
   ],
   "include": ["src/**/*.ts", "src/**/*.tsx"]
 }
