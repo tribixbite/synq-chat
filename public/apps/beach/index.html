@@ -1,31 +1,60 @@
 <!DOCTYPE html>
 <html lang="en">
   <head>
-    <meta charset="utf-8" />
-    <link rel="icon" type="image/svg+xml" href="/logo.svg" />
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/png" href="/apps/beach/logo.png" />
+    <link rel="stylesheet" crossorigin href="/apps/beach/assets/index-DdEzufip.css">
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Vibesynq | Build with AI ✨</title>
-    <meta
-      name="description"
-      content="Vibesynq is a web development tool that
-    helps you build websites with AI, no code required. Let's deploy your
-    website with AI and enjoy the magic of AI."
-    />
-    <link rel="preconnect" href="https://fonts.googleapis.com" />
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&display=swap"
-      rel="stylesheet"
-    />
-    <link
-      href="https://fonts.googleapis.com/css2?family=Noto+Sans:ital,wght@0,100..900;1,100..900&family=Source+Code+Pro:ital,wght@0,200..900;1,200..900&display=swap"
-      rel="stylesheet"
-    />
-    <script type="module" crossorigin src="/beach/assets/index-BKcgYjwy.js"></script>
-    <link rel="stylesheet" crossorigin href="/beach/assets/index-BUTlD2DX.css">
+    <title>Vibe Beach 🏖️☀️</title>
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        overflow: hidden;
+      }
+      
+      /* Beach App Color Overrides - Force bright beach colors */
+      #root {
+        background: linear-gradient(135deg, #87CEEB 0%, #98D8E8 50%, #F0E68C 100%) !important;
+        min-height: 100vh !important;
+      }
+      
+      /* Override dark backgrounds */
+      .bg-black, .bg-black\/20, .bg-black\/30, .bg-black\/50, .bg-black\/70 {
+        background: rgba(135, 206, 235, 0.1) !important; /* Light sky blue */
+      }
+      
+      /* Override dark text colors */
+      .text-white, .text-gray-300, .text-gray-500 {
+        color: #2c3e50 !important; /* Dark blue-gray for readability */
+      }
+      
+      /* Override dark gradients */
+      .from-black\/70, .from-black\/80 {
+        --tw-gradient-from: rgba(135, 206, 235, 0.7) !important;
+      }
+      
+      .to-black\/50, .to-black\/60 {
+        --tw-gradient-to: rgba(240, 230, 140, 0.5) !important;
+      }
+      
+      /* Ensure good contrast for UI elements */
+      button, .btn-primary, .btn-secondary {
+        background: linear-gradient(135deg, #4FC3F7, #29B6F6) !important;
+        color: white !important;
+        border: none !important;
+      }
+      
+      /* Override any remaining dark elements */
+      .glass, .glass-surface {
+        background: rgba(255, 255, 255, 0.2) !important;
+        backdrop-filter: blur(10px) !important;
+        border: 1px solid rgba(255, 255, 255, 0.3) !important;
+      }
+    </style>
+    <script type="module" crossorigin src="/apps/beach/assets/index-Cyg8xW3p.js"></script>
   </head>
   <body>
     <div id="root"></div>
-
   </body>
 </html>

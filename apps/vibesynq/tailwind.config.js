@@ -33,6 +33,16 @@ export default {
 					"Liberation Mono",
 					"Courier New",
 					"monospace"
+				],
+				code: [
+					"ui-monospace",
+					"SFMono-Regular",
+					"Menlo",
+					"Monaco",
+					"Consolas",
+					"Liberation Mono",
+					"Courier New",
+					"monospace"
 				]
 			},
 			colors: {

@@ -256,7 +256,7 @@ function AskAI({
 						onChange={setProvider}
 						open={openProvider}
 						error={providerError}
-						onClose={() => setOpenProvider(false)}
+						onClose={setOpenProvider}
 						setLocalSettings={setLocalSettings}
 						localSettings={localSettings}
 					/>

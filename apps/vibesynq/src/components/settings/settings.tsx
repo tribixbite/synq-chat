@@ -24,7 +24,7 @@ function Settings({
 	open: boolean;
 	provider: string;
 	error?: string;
-	onClose: React.Dispatch<React.SetStateAction<boolean>>;
+	onClose: (value: boolean | ((prev: boolean) => boolean)) => void;
 	onChange: (provider: string) => void;
 	localSettings: LocalSettings;
 	setLocalSettings: React.Dispatch<React.SetStateAction<LocalSettings>>;
