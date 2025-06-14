@@ -51,14 +51,16 @@ async function discoverApps() {
 			}
 		}
 
-		// App folders in /apps - BUT NORMALIZE TO public/apps path structure
+		// App folders in /apps - normalize to track source vs built paths consistently
 		for await (const indexPath of folderGlob.scan(appsDir)) {
 			const pathParts = indexPath.split(/[/\\\\]/);
 			const folderName = pathParts[0];
 			if (!folderApps.has(folderName)) {
-				// Store the original path but log it for debugging
+				// Store original source path for proper routing logic
 				const originalPath = join(appsDir, indexPath);
-				console.log(`[APP_ROUTER] Found app in /apps: ${folderName} -> ${originalPath}`);
+				console.log(
+					`[APP_ROUTER] Found source app in /apps: ${folderName} -> ${originalPath}`
+				);
 				folderApps.set(folderName, originalPath);
 			}
 		}
@@ -67,10 +69,10 @@ async function discoverApps() {
 			`[APP_ROUTER] Discovered: ${htmlApps.size} HTML, ${tsxApps.size} TSX, ${folderApps.size} folder apps`
 		);
 
-		// Debug: Log all folder app paths
-		// console.log('[APP_ROUTER] Folder app paths:');
+		// Debug: Log all folder app paths for troubleshooting
+		console.log("[APP_ROUTER] Discovered folder app paths:");
 		for (const [name, path] of folderApps.entries()) {
-			// console.log(`  ${name}: ${path}`);
+			console.log(`  ${name}: ${path}`);
 		}
 	} catch (error) {
 		console.error("[APP_ROUTER] Discovery error:", error);
@@ -335,8 +337,8 @@ appRouterPlugin.get("/test-asset", async () => {
 });
 
 // Explicit asset route handling - FIRST to handle assets before app routes
-appRouterPlugin.get("/apps/:appName/assets/:assetFile", async ({ params }) => {
-	const { appName, assetFile } = params;
+appRouterPlugin.get("/apps/:name/assets/:assetFile", async ({ params }) => {
+	const { name: appName, assetFile } = params;
 	const assetPath = `public/apps/${appName}/assets/${assetFile}`;
 
 	console.log(
@@ -459,15 +461,15 @@ appRouterPlugin.get("/beach/assets/:assetFile", async ({ params }) => {
 });
 
 // Static plugins for serving assets
-// appRouterPlugin.use(
-// 	staticPlugin({
-// 		assets: "public/apps",
-// 		prefix: "/apps",
-// 		noCache: true,
-// 		directive: "no-cache",
-// 		maxAge: 0
-// 	})
-// );
+appRouterPlugin.use(
+	staticPlugin({
+		assets: "public",
+		prefix: "/",
+		noCache: true,
+		directive: "no-cache",
+		maxAge: 0
+	})
+);
 
 // Beautiful Gallery route with server-side rendered JSX
 appRouterPlugin.get("/apps", async ({ request }) => {
@@ -1060,8 +1062,8 @@ const publicApp = async (filename: string) => {
 };
 
 // Individual app routing with priority: folder apps > HTML files > TSX files
-appRouterPlugin.get("/apps/:appName", async ({ params, request, server }) => {
-	const { appName } = params;
+appRouterPlugin.get("/apps/:name", async ({ params, request, server }) => {
+	const { name: appName } = params;
 
 	// Skip if this is an asset request or contains a file extension
 	if (appName.includes(".") || appName.includes("/")) {
@@ -1072,44 +1074,35 @@ appRouterPlugin.get("/apps/:appName", async ({ params, request, server }) => {
 	const { htmlApps, folderApps, tsxApps } = await discoverApps();
 
 	console.log(`[APP_ROUTER] Routing request for app: ${appName}`);
+	console.log(`[APP_ROUTER] Available folder apps: ${Array.from(folderApps.keys()).join(", ")}`);
+	console.log(`[APP_ROUTER] Available HTML apps: ${Array.from(htmlApps.keys()).join(", ")}`);
+	console.log(`[APP_ROUTER] Available TSX apps: ${Array.from(tsxApps.keys()).join(", ")}`);
 
 	// Priority 1: Folder apps (full applications)
 	if (folderApps.has(appName)) {
 		const folderPath = folderApps.get(appName);
 		console.log(`[APP_ROUTER] Serving folder app: ${folderPath}`);
 
-		// Check if this app is in the /apps directory (needs special handling)
+		// Enhanced path resolution - always try built version first, then fallback
+		const publicPath = join("public", "apps", appName, "index.html");
+		const publicFile = Bun.file(publicPath);
+
+		if (await publicFile.exists()) {
+			console.log(`[APP_ROUTER] Serving ${appName} from built public version: ${publicPath}`);
+			return await publicApp(publicPath);
+		}
+
+		// If this app is in the /apps directory (source), check if built version exists
 		if (folderPath?.startsWith("apps/")) {
 			console.log(
-				`[APP_ROUTER] App ${appName} is in /apps directory, checking for built version in public/apps`
+				`[APP_ROUTER] App ${appName} is in source /apps directory, no built version found`
 			);
-
-			// Try to serve from public/apps first (built version)
-			const publicPath = join("public", "apps", appName, "index.html");
-			const publicFile = Bun.file(publicPath);
-			if (await publicFile.exists()) {
-				console.log(
-					`[APP_ROUTER] Serving ${appName} from built public version: ${publicPath}`
-				);
-				return await publicApp(publicPath);
-			}
-			console.log(
-				`[APP_ROUTER] No built version found for ${appName}, serving from original: ${folderPath}`
-			);
+			console.log(`[APP_ROUTER] Serving from source: ${folderPath}`);
 			return await publicApp(folderPath as string);
 		}
 
-		// Special handling for vibesynq to serve from built public version
-		if (appName === "vibesynq") {
-			const publicPath = join("public", "apps", "vibesynq", "index.html");
-			const publicFile = Bun.file(publicPath);
-			if (await publicFile.exists()) {
-				console.log(`[APP_ROUTER] Serving vibesynq from public: ${publicPath}`);
-				return await publicApp(publicPath);
-			}
-		}
-
-		// return Response.redirect(`${folderPath?.split('public')[1].slice(1)}`);
+		// For apps already in public/apps, serve directly
+		console.log(`[APP_ROUTER] Serving ${appName} from: ${folderPath}`);
 		return await publicApp(folderPath as string);
 	}
 
