@@ -336,49 +336,92 @@ appRouterPlugin.get("/test-asset", async () => {
 	return new Response("Test route working", { status: 200 });
 });
 
-// Explicit asset route handling - FIRST to handle assets before app routes
-appRouterPlugin.get("/apps/:name/assets/:assetFile", async ({ params }) => {
-	const { name: appName, assetFile } = params;
-	const assetPath = `public/apps/${appName}/assets/${assetFile}`;
+// Helper function to determine MIME type from file extension
+function getMimeType(fileName: string): string {
+	if (fileName.endsWith(".css")) return "text/css";
+	if (fileName.endsWith(".js") || fileName.endsWith(".mjs")) return "application/javascript";
+	if (fileName.endsWith(".json")) return "application/json";
+	if (fileName.endsWith(".svg")) return "image/svg+xml";
+	if (fileName.endsWith(".png")) return "image/png";
+	if (fileName.endsWith(".jpg") || fileName.endsWith(".jpeg")) return "image/jpeg";
+	if (fileName.endsWith(".webp")) return "image/webp";
+	if (fileName.endsWith(".woff") || fileName.endsWith(".woff2")) return "font/woff2";
+	if (fileName.endsWith(".ttf")) return "font/ttf";
+	if (fileName.endsWith(".mp3")) return "audio/mpeg";
+	if (fileName.endsWith(".mp4")) return "video/mp4";
+	if (fileName.endsWith(".eot")) return "application/vnd.ms-fontobject";
+	if (fileName.endsWith(".ico")) return "image/x-icon";
+	if (fileName.endsWith(".gif")) return "image/gif";
+	if (fileName.endsWith(".html")) return "text/html";
+	if (fileName.endsWith(".txt")) return "text/plain";
+	return "application/octet-stream";
+}
+
+// General asset route handling - catches all subdirectories within apps
+appRouterPlugin.get("/apps/:name/*", async ({ params, request }) => {
+	const { name: appName } = params;
+	const url = new URL(request.url);
+	const pathSegments = url.pathname.split("/");
+
+	// Extract the path after /apps/:name/ (e.g., "providers/local.svg" or "assets/main.js")
+	const appIndex = pathSegments.indexOf(appName);
+	if (appIndex === -1 || appIndex >= pathSegments.length - 1) {
+		return; // Let other routes handle this
+	}
+
+	const subPath = pathSegments.slice(appIndex + 1).join("/");
+	const fileName = pathSegments[pathSegments.length - 1];
+
+	// Only handle requests that look like asset files (have an extension)
+	if (!fileName.includes(".")) {
+		return; // Let app route handler take this
+	}
+
+	const assetPath = `public/apps/${appName}/${subPath}`;
 
 	console.log(
-		`[APP_ROUTER] Asset route hit - App: ${appName}, File: ${assetFile}, Path: ${assetPath}`
+		`[APP_ROUTER] General asset route hit - App: ${appName}, SubPath: ${subPath}, Path: ${assetPath}`
 	);
 
 	try {
 		const file = Bun.file(assetPath);
 		if (await file.exists()) {
 			const content = await file.arrayBuffer();
+			const mimeType = getMimeType(fileName);
 
-			// Determine MIME type based on file extension
-			let mimeType = file.type || "application/octet-stream";
+			console.log(`[APP_ROUTER] Serving ${assetPath} with MIME type: ${mimeType}`);
 
-			// Explicit MIME type mapping for common web assets
-			if (assetFile.endsWith(".css")) {
-				mimeType = "text/css";
-			} else if (assetFile.endsWith(".js") || assetFile.endsWith(".mjs")) {
-				mimeType = "application/javascript";
-			} else if (assetFile.endsWith(".json")) {
-				mimeType = "application/json";
-			} else if (assetFile.endsWith(".svg")) {
-				mimeType = "image/svg+xml";
-			} else if (assetFile.endsWith(".png")) {
-				mimeType = "image/png";
-			} else if (assetFile.endsWith(".jpg") || assetFile.endsWith(".jpeg")) {
-				mimeType = "image/jpeg";
-			} else if (assetFile.endsWith(".webp")) {
-				mimeType = "image/webp";
-			} else if (assetFile.endsWith(".woff") || assetFile.endsWith(".woff2")) {
-				mimeType = "font/woff2";
-			} else if (assetFile.endsWith(".ttf")) {
-				mimeType = "font/ttf";
-			} else if (assetFile.endsWith(".mp3")) {
-				mimeType = "audio/mpeg";
-			} else if (assetFile.endsWith(".mp4")) {
-				mimeType = "video/mp4";
-			} else if (assetFile.endsWith(".eot")) {
-				mimeType = "application/vnd.ms-fontobject";
-			}
+			return new Response(content, {
+				headers: {
+					"Content-Type": mimeType,
+					"Cache-Control": "no-cache"
+				}
+			});
+		}
+
+		console.log(`[APP_ROUTER] Asset file not found: ${assetPath}`);
+	} catch (error) {
+		console.error(`[APP_ROUTER] Error serving asset ${assetPath}:`, error);
+	}
+
+	// Don't return 404 here, let other routes try to handle it
+	return;
+});
+
+// Explicit asset route handling for /assets/ subdirectory (kept for backward compatibility)
+appRouterPlugin.get("/apps/:name/assets/:assetFile", async ({ params }) => {
+	const { name: appName, assetFile } = params;
+	const assetPath = `public/apps/${appName}/assets/${assetFile}`;
+
+	console.log(
+		`[APP_ROUTER] Legacy asset route hit - App: ${appName}, File: ${assetFile}, Path: ${assetPath}`
+	);
+
+	try {
+		const file = Bun.file(assetPath);
+		if (await file.exists()) {
+			const content = await file.arrayBuffer();
+			const mimeType = getMimeType(assetFile);
 
 			console.log(`[APP_ROUTER] Serving ${assetPath} with MIME type: ${mimeType}`);
 
@@ -409,36 +452,7 @@ appRouterPlugin.get("/beach/assets/:assetFile", async ({ params }) => {
 		const file = Bun.file(assetPath);
 		if (await file.exists()) {
 			const content = await file.arrayBuffer();
-
-			// Determine MIME type based on file extension
-			let mimeType = file.type || "application/octet-stream";
-
-			// Explicit MIME type mapping for common web assets
-			if (assetFile.endsWith(".css")) {
-				mimeType = "text/css";
-			} else if (assetFile.endsWith(".js") || assetFile.endsWith(".mjs")) {
-				mimeType = "application/javascript";
-			} else if (assetFile.endsWith(".json")) {
-				mimeType = "application/json";
-			} else if (assetFile.endsWith(".svg")) {
-				mimeType = "image/svg+xml";
-			} else if (assetFile.endsWith(".png")) {
-				mimeType = "image/png";
-			} else if (assetFile.endsWith(".jpg") || assetFile.endsWith(".jpeg")) {
-				mimeType = "image/jpeg";
-			} else if (assetFile.endsWith(".webp")) {
-				mimeType = "image/webp";
-			} else if (assetFile.endsWith(".woff") || assetFile.endsWith(".woff2")) {
-				mimeType = "font/woff2";
-			} else if (assetFile.endsWith(".ttf")) {
-				mimeType = "font/ttf";
-			} else if (assetFile.endsWith(".mp3")) {
-				mimeType = "audio/mpeg";
-			} else if (assetFile.endsWith(".mp4")) {
-				mimeType = "video/mp4";
-			} else if (assetFile.endsWith(".eot")) {
-				mimeType = "application/vnd.ms-fontobject";
-			}
+			const mimeType = getMimeType(assetFile);
 
 			console.log(
 				`[APP_ROUTER] Serving beach asset ${assetPath} with MIME type: ${mimeType}`

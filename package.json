@@ -23,7 +23,7 @@
     "compile": "bun build --compile --minify --target bun --outfile main src/server/index.ts",
     "verify": "node scripts/verify-build.js || echo 'Verification failed but continuing with deployment'",
     "setup:llm": "mkdir -p public/llm",
-    "dev": "concurrently --prefix \"[{name}]\" --names \"SERVER,VIBESYNQ,ADMIN\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold\" \"bun run --hot src/server/index.ts\" \"bun run dev:vibesynq\" \"bun run dev:admin\"",
+    "dev": "concurrently --prefix \"[{name}]\" --names \"SERVER,VIBESYNQ,ADMIN,BEACH\" -c \"bgBlue.bold,bgGreen.bold,bgMagenta.bold,bgYellow.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/vibesynq && bunx --bun vite --port 3001\" \"cd apps/admin && bunx --bun vite --port 3002\" \"cd apps/beach && bunx --bun vite --port 3003\" \"cd apps/beach && bunx --bun vite --port 3004\"",
     "dev:vibesynq": "concurrently --prefix \"[{name}]\" --names \"SERVER,VIBESYNQ\" -c \"bgBlue.bold,bgGreen.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/vibesynq && bunx --bun vite\"",
     "dev:beach": "concurrently --prefix \"[{name}]\" --names \"SERVER,BEACH\" -c \"bgBlue.bold,bgYellow.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/beach && bunx --bun vite\"",
     "dev:admin": "concurrently --prefix \"[{name}]\" --names \"SERVER,ADMIN\" -c \"bgBlue.bold,bgMagenta.bold\" \"bun run --hot src/server/index.ts\" \"cd apps/admin && bunx --bun vite\"",

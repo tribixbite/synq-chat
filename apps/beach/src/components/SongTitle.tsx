@@ -4,9 +4,10 @@ import { useEffect, useState } from "react";
 interface SongTitleProps {
 	title: string;
 	isVisible: boolean;
+	isMuted: boolean;
 }
 
-const SongTitle: React.FC<SongTitleProps> = ({ title, isVisible }) => {
+const SongTitle: React.FC<SongTitleProps> = ({ title, isVisible, isMuted }) => {
 	const [opacity, setOpacity] = useState(0);
 	const [scale, setScale] = useState(0.9);
 
@@ -48,7 +49,7 @@ const SongTitle: React.FC<SongTitleProps> = ({ title, isVisible }) => {
 					<div className="text-sm text-gray-300/80 flex items-center justify-center gap-3">
 						<span className="flex items-center">
 							<span className="w-2 h-2 bg-blue-400 rounded-full mr-2" />
-							Press P to mute/unmute
+							{isMuted ? "Press P to unmute" : "Press P to mute"}
 						</span>
 						<span className="text-gray-500">•</span>
 						<span className="flex items-center">

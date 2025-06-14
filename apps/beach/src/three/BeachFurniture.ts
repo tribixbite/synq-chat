@@ -14,6 +14,35 @@ export class BeachFurniture {
 		this.furnitureGroup = new THREE.Group();
 		this.scene.add(this.furnitureGroup);
 		this.rng = seedrandom("beach-furniture-42");
+
+		// Create initial beach furniture
+		this.createInitialFurniture();
+	}
+
+	private createInitialFurniture(): void {
+		// Create several beach chairs and umbrellas
+		const furniturePositions = [
+			{ pos: new THREE.Vector3(5, 0, 8), type: "chair", rotation: Math.PI / 4 },
+			{ pos: new THREE.Vector3(3, 0, 10), type: "umbrella", rotation: 0 },
+			{ pos: new THREE.Vector3(-8, 0, 12), type: "chair", rotation: -Math.PI / 3 },
+			{ pos: new THREE.Vector3(-6, 0, 14), type: "chair", rotation: Math.PI / 6 },
+			{ pos: new THREE.Vector3(-10, 0, 16), type: "umbrella", rotation: Math.PI / 2 },
+			{ pos: new THREE.Vector3(12, 0, 6), type: "chair", rotation: Math.PI },
+			{ pos: new THREE.Vector3(14, 0, 8), type: "umbrella", rotation: -Math.PI / 4 },
+			{ pos: new THREE.Vector3(-2, 0, 18), type: "chair", rotation: Math.PI / 2 }
+		];
+
+		for (const item of furniturePositions) {
+			// Adjust Y position based on terrain height
+			const terrainHeight = this.terrain.getHeightAt(item.pos.x, item.pos.z);
+			item.pos.y = terrainHeight;
+
+			if (item.type === "chair") {
+				this.createBeachChair(item.pos, item.rotation);
+			} else if (item.type === "umbrella") {
+				this.createUmbrella(item.pos, item.rotation);
+			}
+		}
 	}
 
 	public createBeachChair(position: THREE.Vector3, rotation = 0): void {

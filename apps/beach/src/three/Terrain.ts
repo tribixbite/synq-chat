@@ -318,7 +318,7 @@ export class Terrain {
 
 		// Load sand texture
 		const textureLoader = new THREE.TextureLoader();
-		this.sandTexture = textureLoader.load("/vibe-beach/textures/sand.jpg");
+		this.sandTexture = textureLoader.load("/apps/beach/textures/sand.jpg");
 		this.sandTexture.wrapS = THREE.RepeatWrapping;
 		this.sandTexture.wrapT = THREE.RepeatWrapping;
 		this.sandTexture.repeat.set(20, 20);

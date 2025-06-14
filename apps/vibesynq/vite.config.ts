@@ -97,7 +97,7 @@ const buildConfig = (mode: string) => ({
 
 	// Optimize dependencies
 	optimizeDeps: {
-		include: ["react", "react-dom"],
+		// include: ["react", "react-dom"],
 		exclude: ["@shared/constants"] // Exclude internal modules
 	}
 });
