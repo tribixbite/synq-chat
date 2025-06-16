@@ -14,7 +14,7 @@
     "tsc": "tsc -p tsconfig.json --noEmit",
     "build": "bun run build:apps && bun run compile && bun run verify",
     "build:apps": "bun run build:vibesynq && bun run build:admin && bun run build:beach && bun run build:public",
-    "build:all": "bun run build:vibesynq && bun run build:admin && bun run build:beach",
+    "build:all": "bun run build:vibesynq && bun run build:admin && bun run build:beach && bun run compile",
     "build:vibesynq": "cd apps/vibesynq && bunx --bun vite build",
     "build:admin": "cd apps/admin && bunx --bun vite build",
     "build:beach": "cd apps/beach && bunx --bun vite build",
