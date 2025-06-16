@@ -69,17 +69,6 @@ const getAppFromSubdomainOrPath = (subdomain: string | null, pathname: string): 
 };
 
 export const subdomainPlugin = new Elysia({ name: "subdomain" })
-	// Root redirect to default app (put this first to ensure highest priority)
-	.get("/", () => {
-		const defaultApp = Config.DEFAULT_APP;
-		const redirectUrl = `/apps/${defaultApp}/`;
-		return new Response(null, {
-			status: 302,
-			headers: {
-				Location: redirectUrl
-			}
-		});
-	})
 	// Add subdomain information to context
 	.derive({ as: "global" }, ({ request }) => {
 		const hostHeader = request.headers.get("host") || "";
@@ -93,6 +82,30 @@ export const subdomainPlugin = new Elysia({ name: "subdomain" })
 			targetApp,
 			hostHeader
 		};
+	})
+
+	// Subdomain redirect handler - redirect any subdomain (except www/link) to /apps/NAME
+	.get("/*", ({ subdomain, redirect }) => {
+		// Skip redirection for www and link subdomains
+		if (!subdomain || subdomain === "www" || subdomain === "link") {
+			return; // Let other routes handle this
+		}
+
+		// Redirect to /apps/subdomain-name/
+		const redirectUrl = `/apps/${subdomain}/`;
+		return redirect(redirectUrl, 302);
+	})
+
+	// Root redirect to default app (put this after subdomain redirect)
+	.get("/", () => {
+		const defaultApp = Config.DEFAULT_APP;
+		const redirectUrl = `/apps/${defaultApp}/`;
+		return new Response(null, {
+			status: 302,
+			headers: {
+				Location: redirectUrl
+			}
+		});
 	})
 
 	// Health endpoint
