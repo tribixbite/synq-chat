@@ -91,6 +91,8 @@ function AskAI({
 	const [openProvider, setOpenProvider] = useState(false);
 	const [providerError, setProviderError] = useState("");
 	const [openProModal, setOpenProModal] = useState(false);
+	const [streamingProgress, setStreamingProgress] = useState("");
+	const [isStreaming, setIsStreaming] = useState(false);
 	const [localSettings, setLocalSettings] = useState<LocalSettings>(() => {
 		const saved = localStorage.getItem("localSettings");
 		// Ensure what's parsed is compatible with LocalSettings or use initial
@@ -130,6 +132,8 @@ function AskAI({
 	const callAi = async () => {
 		if (isAiWorking || !prompt.trim()) return;
 		setisAiWorking(true);
+		setIsStreaming(false);
+		setStreamingProgress("");
 		setProviderError("");
 
 		let contentResponse = "";
@@ -169,15 +173,21 @@ function AskAI({
 					} else {
 						toast.error(res.message);
 					}
+					setIsStreaming(false);
+					setStreamingProgress("");
 					setisAiWorking(false);
 					return;
 				}
 				const reader = request.body.getReader();
 				const decoder = new TextDecoder("utf-8");
+				setIsStreaming(true);
+				setStreamingProgress("Connecting to AI...");
 
 				const read = async () => {
 					const { done, value } = await reader.read();
 					if (done) {
+						setIsStreaming(false);
+						setStreamingProgress("");
 						toast.success("AI responded successfully");
 						setPrompt("");
 						setPreviousPrompt(prompt);
@@ -204,6 +214,19 @@ function AskAI({
 
 					const chunk = decoder.decode(value, { stream: true });
 					contentResponse += chunk;
+
+					// Update streaming progress with character count and estimated progress
+					const charCount = contentResponse.length;
+					const estimatedProgress = Math.min(100, Math.floor(charCount / 20)); // Rough progress estimate
+
+					if (charCount < 100) {
+						setStreamingProgress("AI is thinking...");
+					} else if (charCount < 500) {
+						setStreamingProgress(`Generating response... (${estimatedProgress}%)`);
+					} else {
+						setStreamingProgress(`Streaming content... (${charCount} characters)`);
+					}
+
 					const newHtml = contentResponse.match(/<!DOCTYPE html>[\s\S]*/)?.[0];
 					if (newHtml) {
 						// Force-close the HTML tag so the iframe doesn't render half-finished markup
@@ -214,7 +237,8 @@ function AskAI({
 
 						// Throttle the re-renders to avoid flashing/flicker
 						const now = Date.now();
-						if (now - lastRenderTime > 300) {
+						if (now - lastRenderTime > 200) {
+							// Reduced throttle for better streaming experience
 							setHtml(partialDoc);
 							lastRenderTime = now;
 						}
@@ -231,6 +255,8 @@ function AskAI({
 
 			// eslint-disable-next-line @typescript-eslint/no-explicit-any
 		} catch (error: unknown) {
+			setIsStreaming(false);
+			setStreamingProgress("");
 			setisAiWorking(false);
 			toast.error((error as Error).message);
 			if ((error as { openLogin?: boolean }).openLogin) {
@@ -254,6 +280,26 @@ function AskAI({
 					<MdPreview className="text-sm" />
 					View Preview
 				</button>
+			)}
+			{isStreaming && streamingProgress && (
+				<div className="bg-gradient-to-r from-blue-500/20 to-purple-500/20 border border-blue-500/30 rounded-lg px-3 py-2 mb-2 text-xs text-blue-200 flex items-center gap-2">
+					<div className="w-2 h-2 bg-blue-400 rounded-full animate-pulse" />
+					<span className="font-medium">{streamingProgress}</span>
+					<div className="ml-auto flex gap-1">
+						<div
+							className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"
+							style={{ animationDelay: "0ms" }}
+						/>
+						<div
+							className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"
+							style={{ animationDelay: "150ms" }}
+						/>
+						<div
+							className="w-1 h-1 bg-blue-400 rounded-full animate-bounce"
+							style={{ animationDelay: "300ms" }}
+						/>
+					</div>
+				</div>
 			)}
 			<div className="w-full relative flex items-center justify-between">
 				<RiSparkling2Fill className="text-lg lg:text-xl text-gray-500 group-focus-within:text-pink-500" />

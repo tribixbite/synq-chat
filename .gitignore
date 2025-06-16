@@ -16,3 +16,4 @@ gitignored/
 # apps/*/public/
 # apps/public/*/
 apps/bunApp/
+llm-responses/
