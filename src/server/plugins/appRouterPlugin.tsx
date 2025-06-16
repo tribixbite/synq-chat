@@ -360,17 +360,11 @@ function getMimeType(fileName: string): string {
 // General asset route handling - catches all subdirectories within apps
 appRouterPlugin.get("/apps/:name/*", async ({ params, request }) => {
 	const { name: appName } = params;
-	const url = new URL(request.url);
-	const pathSegments = url.pathname.split("/");
+	const wildcardPath = params["*"] || "";
 
-	// Extract the path after /apps/:name/ (e.g., "providers/local.svg" or "assets/main.js")
-	const appIndex = pathSegments.indexOf(appName);
-	if (appIndex === -1 || appIndex >= pathSegments.length - 1) {
-		return; // Let other routes handle this
-	}
-
-	const subPath = pathSegments.slice(appIndex + 1).join("/");
-	const fileName = pathSegments[pathSegments.length - 1];
+	// Use the wildcard path directly instead of parsing URL, and decode any URL encoding
+	const subPath = decodeURIComponent(wildcardPath);
+	const fileName = subPath.split("/").pop() || "";
 
 	// Only handle requests that look like asset files (have an extension)
 	if (!fileName.includes(".")) {
@@ -442,7 +436,7 @@ appRouterPlugin.get("/apps/:name/assets/:assetFile", async ({ params }) => {
 });
 
 // Special asset route for beach app (uses /beach/assets/ instead of /apps/beach/assets/)
-appRouterPlugin.get("/beach/assets/:assetFile", async ({ params }) => {
+appRouterPlugin.get("/beach2/assets/:assetFile", async ({ params }) => {
 	const { assetFile } = params;
 	const assetPath = `public/apps/beach/assets/${assetFile}`;
 

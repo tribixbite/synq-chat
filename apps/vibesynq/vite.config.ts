@@ -23,7 +23,13 @@ const buildConfig = (mode: string) => ({
 	root: appRoot, // Use app root, not src
 	base: "/apps/vibesynq", // Always use the same base path to match our routing
 	define: {
-		"import.meta.env.MODE": JSON.stringify(mode)
+		"import.meta.env.MODE": JSON.stringify(mode),
+		// Define process global for browser compatibility
+		global: "globalThis",
+		"process.env": {
+			NODE_ENV: JSON.stringify(mode),
+			MODE: JSON.stringify(mode)
+		}
 	},
 
 	server: {

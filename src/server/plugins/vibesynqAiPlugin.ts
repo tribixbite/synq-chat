@@ -112,47 +112,54 @@ function getApiConfig(
 		return null;
 	}
 
-	// Get API key from local settings
+	// Helper function to get API key from local settings or environment
+	const getApiKey = (localKey?: string, envKey?: string): string => {
+		if (localKey) return localKey;
+		if (envKey && process.env[envKey]) return process.env[envKey] || "";
+		return "";
+	};
+
+	// Get API key from local settings or environment variables
 	let apiKey = "";
 	let model = "";
 	let apiUrl = provider.apiUrl;
 
 	switch (providerId) {
 		case "openrouter":
-			apiKey = localSettings.openRouterApiKey || "";
+			apiKey = getApiKey(localSettings.openRouterApiKey, "OPENROUTER_API_KEY");
 			model = localSettings.openRouterModel || provider.models[0]?.id || "";
 			apiUrl = localSettings.openRouterApiUrl || provider.apiUrl;
 			break;
 		case "anthropic":
-			apiKey = localSettings.anthropicApiKey || "";
+			apiKey = getApiKey(localSettings.anthropicApiKey, "ANTHROPIC_API_KEY");
 			model = localSettings.anthropicModel || provider.models[0]?.id || "";
 			break;
 		case "openai":
-			apiKey = localSettings.openaiApiKey || "";
+			apiKey = getApiKey(localSettings.openaiApiKey, "OPENAI_API_KEY");
 			model = localSettings.openaiModel || provider.models[0]?.id || "";
 			break;
 		case "google":
-			apiKey = localSettings.googleApiKey || "";
+			apiKey = getApiKey(localSettings.googleApiKey, "GOOGLE_API_KEY");
 			model = localSettings.googleModel || provider.models[0]?.id || "";
 			break;
 		case "xai":
-			apiKey = localSettings.xaiApiKey || "";
+			apiKey = getApiKey(localSettings.xaiApiKey, "XAI_API_KEY");
 			model = localSettings.xaiModel || provider.models[0]?.id || "";
 			break;
 		case "chutes":
-			apiKey = localSettings.chutesApiKey || "";
+			apiKey = getApiKey(localSettings.chutesApiKey, "CHUTES_API_KEY");
 			model = localSettings.chutesModel || provider.models[0]?.id || "";
 			break;
 		case "groq":
-			apiKey = localSettings.groqApiKey || "";
+			apiKey = getApiKey(localSettings.groqApiKey, "GROQ_API_KEY");
 			model = localSettings.groqModel || provider.models[0]?.id || "";
 			break;
 		case "together":
-			apiKey = localSettings.togetherApiKey || "";
+			apiKey = getApiKey(localSettings.togetherApiKey, "TOGETHER_API_KEY");
 			model = localSettings.togetherModel || provider.models[0]?.id || "";
 			break;
 		case "local":
-			apiKey = localSettings.apiKey || "";
+			apiKey = getApiKey(localSettings.apiKey, "LOCAL_API_KEY");
 			model = localSettings.model || provider.models[0]?.id || "";
 			apiUrl = localSettings.apiUrl || provider.apiUrl;
 			break;
@@ -376,6 +383,10 @@ async function tryApiCallWithFallback(
 		if (!result.error?.shouldFallback) {
 			return result;
 		}
+	} else {
+		console.info(
+			`[AI_REQUEST] Primary provider ${providerId} not configured, trying fallback providers`
+		);
 	}
 
 	// Try fallback providers

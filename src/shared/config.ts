@@ -12,16 +12,34 @@ declare module "bun" {
 	}
 }
 
-// Use process.env instead of process.env for better security and Bun compatibility
-const PORT = process.env.PORT ? Number.parseInt(process.env.PORT) : DefaultConfig.PORT;
+// Environment detection and variable access
+const isServer = typeof process !== "undefined";
+const isBrowser = typeof window !== "undefined";
 
-const HOST = process.env.HOST ?? DefaultConfig.HOST;
+// Helper function to get environment variables
+function getEnvVar(key: string): string | undefined {
+	if (isServer) {
+		return process.env[key];
+	}
+	if (isBrowser && typeof import.meta !== "undefined" && import.meta.env) {
+		return import.meta.env[`VITE_${key}`] || import.meta.env[key];
+	}
+	return undefined;
+}
 
-const IS_PROD = process.env.NODE_ENV === Env.Production;
+// Use environment variables with fallbacks
+const portEnv = getEnvVar("PORT");
+const PORT = portEnv ? Number.parseInt(portEnv) : DefaultConfig.PORT;
+
+const HOST = getEnvVar("HOST") ?? DefaultConfig.HOST;
+
+const NODE_ENV = getEnvVar("NODE_ENV");
+const IS_PROD =
+	NODE_ENV === Env.Production || (isBrowser && import.meta.env?.MODE === Env.Production);
 
 // App routing configuration
-const DEFAULT_APP = process.env.DEFAULT_APP ?? "vibesynq";
-const APPS_DIR = process.env.APPS_DIR ?? "./public/apps";
+const DEFAULT_APP = getEnvVar("DEFAULT_APP") ?? "vibesynq";
+const APPS_DIR = getEnvVar("APPS_DIR") ?? "./public/apps";
 
 export const Config: TConfig = {
 	PORT,
