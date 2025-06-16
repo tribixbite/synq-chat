@@ -49,7 +49,7 @@ const initialLocalSettings: LocalSettings = {
 	apiKey: "",
 	apiUrl: "http://localhost:11434/v1",
 	model: "gemma3:1b",
-	openRouterApiKey: "<OPENROUTER_API_KEY>",
+	openRouterApiKey: "",
 	openRouterApiUrl: "https://openrouter.ai/api/v1",
 	openRouterModel: "deepseek/deepseek-chat-v3-0324:free"
 };

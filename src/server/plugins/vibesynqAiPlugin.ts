@@ -54,6 +54,14 @@ interface ResponseMetadata {
 	[key: string]: unknown;
 }
 
+interface RequestData {
+	prompt: string;
+	provider: string;
+	localSettings: LocalSettings;
+	html?: string;
+	previousPrompt?: string;
+}
+
 // LLM Response logging function
 async function saveLLMResponse(
 	requestId: string,
@@ -63,7 +71,8 @@ async function saveLLMResponse(
 	model: string,
 	success: boolean,
 	error?: ErrorInfo,
-	metadata?: ResponseMetadata
+	metadata?: ResponseMetadata,
+	requestData?: RequestData
 ) {
 	try {
 		const timestamp = new Date().toISOString();
@@ -73,6 +82,15 @@ async function saveLLMResponse(
 		const logData = {
 			timestamp,
 			requestId,
+			request: requestData
+				? {
+						originalPrompt: requestData.prompt,
+						provider: requestData.provider,
+						localSettings: requestData.localSettings,
+						hasHtml: !!requestData.html,
+						hasPreviousPrompt: !!requestData.previousPrompt
+					}
+				: undefined,
 			prompt,
 			response,
 			provider: {
@@ -114,7 +132,11 @@ function getApiConfig(
 
 	// Helper function to get API key from local settings or environment
 	const getApiKey = (localKey?: string, envKey?: string): string => {
-		if (localKey) return localKey;
+		// Check if localKey is a valid non-placeholder value
+		if (localKey && !localKey.startsWith("<") && !localKey.endsWith(">")) {
+			return localKey;
+		}
+		// Fall back to environment variable
 		if (envKey && process.env[envKey]) return process.env[envKey] || "";
 		return "";
 	};
@@ -163,6 +185,11 @@ function getApiConfig(
 			model = localSettings.model || provider.models[0]?.id || "";
 			apiUrl = localSettings.apiUrl || provider.apiUrl;
 			break;
+		case "test":
+			apiKey = "test-key"; // Test provider doesn't need a real API key
+			model = "test-model";
+			apiUrl = "http://localhost:3000/test";
+			break;
 		default:
 			console.error(`[API_CONFIG] Unsupported provider: ${providerId}`);
 			return null;
@@ -198,6 +225,44 @@ async function tryApiCall(
 	| { success: false; error: ErrorInfo }
 > {
 	const { provider, apiKey, model, apiUrl } = config;
+
+	// Handle test provider for testing purposes
+	if (provider.id === "test") {
+		console.info("[LLM_REQUEST] Using test provider", {
+			requestId: requestId || "unknown",
+			provider: provider.id,
+			model: model,
+			promptLength: prompt.length
+		});
+
+		const mockResponse = `<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Response</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-8">
+    <div class="max-w-md mx-auto bg-white rounded-xl shadow-md p-6">
+        <h1 class="text-2xl font-bold text-gray-900 mb-4">Hello!</h1>
+        <p class="text-gray-600">This is a test response for: "${prompt}"</p>
+        <div class="mt-4 p-4 bg-blue-50 rounded-lg">
+            <p class="text-blue-800">Test mode is active</p>
+        </div>
+    </div>
+</body>
+</html>`;
+
+		const testResponse = new Response(mockResponse, {
+			status: 200,
+			headers: {
+				"Content-Type": "text/plain"
+			}
+		});
+
+		return { success: true, response: testResponse, fullResponse: mockResponse };
+	}
 
 	try {
 		// Build request headers
@@ -365,7 +430,15 @@ async function tryApiCallWithFallback(
 				result.fullResponse,
 				providerId,
 				primaryConfig.model,
-				true
+				true,
+				undefined,
+				{
+					provider: providerId,
+					localSettings,
+					html,
+					previousPrompt,
+					originalPrompt: prompt
+				}
 			);
 			return { ...result, providerId };
 		}
@@ -376,7 +449,8 @@ async function tryApiCallWithFallback(
 			providerId,
 			primaryConfig.model,
 			false,
-			result.error
+			result.error,
+			{ provider: providerId, localSettings, html, previousPrompt, originalPrompt: prompt }
 		);
 
 		// Don't fallback if it's not a quota/rate limit error
@@ -445,6 +519,24 @@ export const vibesynqAiPlugin = new Elysia().post(
 	"/api/vibesynq-ai",
 	async ({ body, set }) => {
 		const { prompt, html, previousPrompt, provider, localSettings = {} } = body;
+
+		// Log incoming request details
+		console.log("[API_REQUEST] Incoming request:", {
+			prompt: prompt ? `"${prompt.substring(0, 50)}..."` : "MISSING",
+			provider,
+			localSettingsKeys: Object.keys(localSettings),
+			hasHtml: !!html,
+			hasPreviousPrompt: !!previousPrompt,
+			fullBody: {
+				...body,
+				localSettings: Object.fromEntries(
+					Object.entries(localSettings).map(([key, value]) => [
+						key,
+						value ? "[REDACTED]" : undefined
+					])
+				)
+			}
+		});
 
 		if (!prompt) {
 			set.status = 400;

@@ -41,6 +41,38 @@ export interface Providers {
 }
 
 export const PROVIDERS: Providers = {
+	// Test provider for testing purposes
+	test: {
+		id: "test",
+		name: "Test Provider",
+		description: "Mock provider for testing",
+		apiUrl: "http://localhost:3000/test",
+		requiresApiKey: false,
+		maxTokens: 4096,
+		supportsStreaming: true,
+		supportsVision: false,
+		supportsAudio: false,
+		models: [
+			{
+				id: "test-model",
+				name: "Test Model",
+				description: "Mock model for testing",
+				contextLength: 4096,
+				supportsStreaming: true,
+				pricing: { inputTokens: 0.0, outputTokens: 0.0 }
+			}
+		],
+		pricing: {
+			inputTokens: 0.0,
+			outputTokens: 0.0,
+			currency: "USD"
+		},
+		rateLimit: {
+			requestsPerMinute: 1000,
+			tokensPerMinute: 1000000
+		}
+	},
+
 	// OpenRouter - Aggregator with many models
 	openrouter: {
 		id: "openrouter",

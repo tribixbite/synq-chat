@@ -261,7 +261,11 @@ function Settings({
 							type="password"
 							value={getApiKey()}
 							onChange={e => updateApiKey(e.target.value)}
-							placeholder={`Enter your ${currentProvider.name} API key`}
+							placeholder={
+								getApiKey() === ""
+									? `Using environment variable or enter your ${currentProvider.name} API key`
+									: `Enter your ${currentProvider.name} API key`
+							}
 							className="w-full border border-gray-200 rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
 						/>
 					</label>
@@ -433,13 +437,13 @@ function Settings({
 									}}
 								>
 									<img
-										src={`/apps/vibesynq/providers/${providerData.id}.svg`}
+										src={`/apps/vibesynq/providers/${providerData.id ?? "default"}.svg`}
 										alt={providerData.name}
 										className="size-5"
 										onError={e => {
 											// Fallback to a generic icon if provider icon doesn't exist
-											(e.target as HTMLImageElement).src =
-												"/apps/vibesynq/providers/default.svg";
+											// (e.target as HTMLImageElement).src =
+											// 	"/apps/vibesynq/providers/default.svg";
 										}}
 									/>
 									<div className="flex-1">
