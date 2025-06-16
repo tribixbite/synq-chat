@@ -9,6 +9,7 @@ const { PORT, HOST } = Config;
 
 import { onAfterHandle, onBeforeHandle } from "./helpers/elysia";
 import { appRouterPlugin } from "./plugins/appRouterPlugin";
+import { vibesynqAiPlugin } from "./plugins/vibesynqAiPlugin";
 console.log(`📍 Environment: ${Config.IS_PROD ? "Production" : "Development"}`);
 console.log(`🌐 Host: ${HOST}:${PORT}`);
 
@@ -88,7 +89,7 @@ export const app = new Elysia({ name: "synq-chat-server" })
 	// .use(rateLimitStatus)
 
 	// VibeSynq AI endpoint (keep existing functionality)
-	// .use(vibesynqAiPlugin)
+	.use(vibesynqAiPlugin)
 
 	// Subdomain routing (for any remaining subdomain-specific logic)
 	// .use(subdomainPlugin)

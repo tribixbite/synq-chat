@@ -1,3 +1,7 @@
+// Re-export everything from the main providers file
+export * from "../../../../src/utils/providers";
+
+// Legacy interface for backward compatibility
 export interface Provider {
 	name: string;
 	max_tokens: number;
@@ -8,15 +12,17 @@ export interface Providers {
 	[key: string]: Provider;
 }
 
-export const PROVIDERS: Providers = {
-	local: {
-		name: "Local",
-		max_tokens: 131_000,
-		id: "local"
-	},
-	openrouter: {
-		name: "Open Router",
-		max_tokens: 999_999,
-		id: "openrouter"
-	}
-};
+// Import the new providers
+import { PROVIDERS as NEW_PROVIDERS } from "../../../../src/utils/providers";
+
+// Legacy format for backward compatibility
+export const PROVIDERS: Providers = Object.fromEntries(
+	Object.entries(NEW_PROVIDERS).map(([key, provider]) => [
+		key,
+		{
+			name: provider.name,
+			max_tokens: provider.maxTokens,
+			id: provider.id
+		}
+	])
+);

@@ -13,12 +13,36 @@ import Settings from "../settings/settings";
 import ProModal from "../pro-modal/pro-modal";
 
 interface LocalSettings {
+	// Generic settings
 	apiKey?: string;
 	apiUrl?: string;
 	model?: string;
+
+	// Provider-specific settings
 	openRouterApiKey?: string;
 	openRouterApiUrl?: string;
 	openRouterModel?: string;
+
+	anthropicApiKey?: string;
+	anthropicModel?: string;
+
+	openaiApiKey?: string;
+	openaiModel?: string;
+
+	googleApiKey?: string;
+	googleModel?: string;
+
+	xaiApiKey?: string;
+	xaiModel?: string;
+
+	chutesApiKey?: string;
+	chutesModel?: string;
+
+	groqApiKey?: string;
+	groqModel?: string;
+
+	togetherApiKey?: string;
+	togetherModel?: string;
 }
 
 const initialLocalSettings: LocalSettings = {
@@ -46,9 +70,7 @@ interface AskAiRequestBody {
 	provider: string | null | undefined; // from useLocalStorage
 	html?: string;
 	previousPrompt?: string;
-	ApiKey?: string;
-	ApiUrl?: string;
-	Model?: string;
+	localSettings?: LocalSettings;
 }
 
 function AskAI({
@@ -98,8 +120,12 @@ function AskAI({
 		loadLocalSettings();
 	}, [loadLocalSettings]);
 
-	const audio = new Audio(SuccessSound);
-	audio.volume = 0.5;
+	// Audio handling - create only once and handle properly
+	const [audio] = useState(() => {
+		const audioInstance = new Audio(SuccessSound);
+		audioInstance.volume = 0.5;
+		return audioInstance;
+	});
 
 	const callAi = async () => {
 		if (isAiWorking || !prompt.trim()) return;
@@ -112,7 +138,8 @@ function AskAI({
 			onNewPrompt(prompt);
 			const requestBody: AskAiRequestBody = {
 				prompt,
-				provider
+				provider,
+				localSettings
 			};
 
 			if (html !== defaultHTML) {
@@ -122,17 +149,7 @@ function AskAI({
 				requestBody.previousPrompt = previousPrompt;
 			}
 
-			if (provider === "local") {
-				requestBody.ApiKey = localSettings.apiKey;
-				requestBody.ApiUrl = localSettings.apiUrl;
-				requestBody.Model = localSettings.model;
-			} else if (provider === "openrouter") {
-				requestBody.ApiKey = localSettings.openRouterApiKey;
-				requestBody.ApiUrl = localSettings.openRouterApiUrl;
-				requestBody.Model = localSettings.openRouterModel;
-			}
-
-			const request = await fetch("/api/ask-ai", {
+			const request = await fetch("/api/vibesynq-ai", {
 				method: "POST",
 				body: JSON.stringify(requestBody),
 				headers: {
@@ -166,7 +183,12 @@ function AskAI({
 						setPreviousPrompt(prompt);
 						setisAiWorking(false);
 						setHasAsked(true);
-						// audio.play(); // Commented out since audio file doesn't exist
+						// Play success sound with error handling
+						try {
+							audio.play().catch(e => console.log("Audio play failed:", e));
+						} catch (e) {
+							console.log("Audio play error:", e);
+						}
 						setView("preview");
 
 						// Now we have the complete HTML including </html>, so set it to be sure
