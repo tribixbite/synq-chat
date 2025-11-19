@@ -262,7 +262,7 @@ function generateHtmlWrapper(appName: string, js: string) {
 				<meta charset="UTF-8" />
 				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
 				<title>
-					${appName.charAt(0).toUpperCase() + appName.slice(1).replace(/-/g, " ")} | Synq
+					{appName.charAt(0).toUpperCase() + appName.slice(1).replace(/-/g, " ")} | Synq
 					Apps
 				</title>
 				<link rel="icon" type="image/png" href="/icons/favicon-96x96.png" sizes="96x96" />
@@ -331,7 +331,7 @@ function generateHtmlWrapper(appName: string, js: string) {
 				<div class="synq-app-container">
 					<header class="synq-app-header">
 						<h1 class="synq-app-title">
-							⚡ $
+							⚡{" "}
 							{appName.charAt(0).toUpperCase() + appName.slice(1).replace(/-/g, " ")}
 							<span class="synq-app-badge">TSX</span>
 						</h1>
