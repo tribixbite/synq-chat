@@ -4,8 +4,16 @@ import { Glob } from "bun";
 import Elysia from "elysia";
 import { join } from "node:path";
 import staticPlugin from "@elysiajs/static";
-import { writeFile, mkdir, rm, unlink, readdir, stat } from "node:fs/promises";
+import { writeFile, mkdir, rm, unlink, readdir, stat, readFile } from "node:fs/promises";
 import { createHash } from "node:crypto";
+import { existsSync } from "node:fs";
+
+// App metadata interface
+interface AppMetadata {
+	description?: string;
+	author?: string;
+	name?: string;
+}
 
 export const appRouterPlugin = new Elysia({
 	name: "appRouter"
@@ -83,23 +91,40 @@ const tsxGlob = new Glob("*.tsx");
 const htmlGlob = new Glob("*.html");
 const folderGlob = new Glob("*/index.html");
 
+// Load metadata for an app
+async function loadAppMetadata(dir: string, appName: string): Promise<AppMetadata | undefined> {
+	const metaPath = join(dir, `${appName}.meta.json`);
+	if (existsSync(metaPath)) {
+		try {
+			const content = await readFile(metaPath, "utf-8");
+			return JSON.parse(content);
+		} catch {}
+	}
+	return undefined;
+}
+
 // Discover apps from both directories
 async function discoverApps() {
 	const htmlApps = new Map<string, string>();
 	const folderApps = new Map<string, string>();
 	const tsxApps = new Map<string, string>();
+	const appMetadata = new Map<string, AppMetadata>();
 
 	try {
 		// HTML files in public/apps/html
 		for await (const file of htmlGlob.scan(htmlDir)) {
 			const name = file.replace(".html", "");
 			htmlApps.set(name, join(htmlDir, file));
+			const meta = await loadAppMetadata(htmlDir, name);
+			if (meta) appMetadata.set(name, meta);
 		}
 
 		// TSX files in public/apps/tsx
 		for await (const file of tsxGlob.scan(tsxDir)) {
 			const name = file.replace(".tsx", "");
 			tsxApps.set(name, join(tsxDir, file));
+			const meta = await loadAppMetadata(tsxDir, name);
+			if (meta) appMetadata.set(name, meta);
 		}
 
 		// App folders in public/apps (excluding html and tsx subdirs)
@@ -138,7 +163,7 @@ async function discoverApps() {
 		console.error("[APP_ROUTER] Discovery error:", error);
 	}
 
-	return { htmlApps, folderApps, tsxApps };
+	return { htmlApps, folderApps, tsxApps, appMetadata };
 }
 
 // Enhanced TSX compilation with proper React setup and caching
@@ -559,13 +584,14 @@ appRouterPlugin.use(
 appRouterPlugin.get("/apps", async ({ request }) => {
 	try {
 		const context = (request as unknown as Record<string, unknown>).__context as RequestContext;
-		const { htmlApps, folderApps, tsxApps } = await discoverApps();
+		const { htmlApps, folderApps, tsxApps, appMetadata } = await discoverApps();
 
 		const appData = {
 			htmlAppsList: Array.from(htmlApps.keys()),
 			folderAppsList: Array.from(folderApps.keys()),
 			tsxAppsList: Array.from(tsxApps.keys()),
-			totalCount: htmlApps.size + folderApps.size + tsxApps.size
+			totalCount: htmlApps.size + folderApps.size + tsxApps.size,
+			metadata: appMetadata
 		};
 
 		const currentTime = new Date().toLocaleString();
@@ -913,8 +939,8 @@ appRouterPlugin.get("/apps", async ({ request }) => {
 												{appName.replace(/-/g, " ")}
 											</h3>
 											<p class="text-gray-400 mb-6 text-sm">
-												React TSX application with modern hooks and state
-												management, compiled instantly.
+												{appData.metadata.get(appName)?.description ||
+													"React TSX application with modern hooks and state management, compiled instantly."}
 											</p>
 
 											<div class="flex items-center justify-between">
@@ -970,9 +996,8 @@ appRouterPlugin.get("/apps", async ({ request }) => {
 												{appName.replace(/-/g, " ")}
 											</h3>
 											<p class="text-gray-400 mb-6 text-sm">
-												Complete interactive application with advanced
-												features, real-time capabilities, and modern
-												architecture.
+												{appData.metadata.get(appName)?.description ||
+													"Complete interactive application with advanced features, real-time capabilities, and modern architecture."}
 											</p>
 
 											<div class="flex items-center justify-between">
@@ -1031,7 +1056,8 @@ appRouterPlugin.get("/apps", async ({ request }) => {
 												{appName.replace(/-/g, " ")}
 											</h3>
 											<p class="text-gray-400 mb-4 text-xs">
-												Creative HTML experience with custom interactions
+												{appData.metadata.get(appName)?.description ||
+													"Creative HTML experience with custom interactions"}
 											</p>
 
 											<a
