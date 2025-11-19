@@ -1082,6 +1082,12 @@ appRouterPlugin.get("/apps", async ({ request }) => {
 									</div>
 								</div>
 								<div class="flex items-center space-x-8 text-sm text-gray-400">
+									<a
+										href="/apps/admin"
+										class="hover:text-white transition-colors"
+									>
+										Admin Panel
+									</a>
 									<a href="/test" class="hover:text-white transition-colors">
 										System Status
 									</a>
