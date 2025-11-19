@@ -1,12 +1,10 @@
 import type { RequestContext } from "@/shared/types";
-import { html, Html } from "@elysiajs/html";
+import { html } from "@elysiajs/html";
 import { Glob } from "bun";
-import Elysia, { t, file, error } from "elysia";
+import Elysia from "elysia";
 import { join } from "node:path";
-import type { Children } from "@kitajs/html";
-import { getIP } from "../helpers/elysia";
 import staticPlugin from "@elysiajs/static";
-import { mkdtemp, writeFile, mkdir, rm, unlink, readdir, stat } from "node:fs/promises";
+import { writeFile, mkdir, rm, unlink, readdir, stat } from "node:fs/promises";
 import { createHash } from "node:crypto";
 
 export const appRouterPlugin = new Elysia({
