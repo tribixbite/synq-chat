@@ -6,7 +6,8 @@ import { join } from "node:path";
 import type { Children } from "@kitajs/html";
 import { getIP } from "../helpers/elysia";
 import staticPlugin from "@elysiajs/static";
-import { mkdtemp, writeFile, mkdir } from "node:fs/promises";
+import { mkdtemp, writeFile, mkdir, rm, unlink, readdir, stat } from "node:fs/promises";
+import { createHash } from "node:crypto";
 
 export const appRouterPlugin = new Elysia({
 	name: "appRouter"
@@ -17,6 +18,67 @@ const publicAppsDir = "public/apps";
 const appsDir = "apps";
 const htmlDir = join(publicAppsDir, "html");
 const tsxDir = join(publicAppsDir, "tsx");
+
+// Compilation cache to avoid recompiling unchanged files
+interface CacheEntry {
+	hash: string;
+	compiledJs: string;
+	compiledAt: number;
+	tempPath?: string;
+}
+
+const compilationCache = new Map<string, CacheEntry>();
+
+// Helper to compute file hash
+function computeHash(content: string): string {
+	return createHash("md5").update(content).digest("hex");
+}
+
+// Clear cache for a specific app (useful after upload)
+export function clearAppCache(appName: string) {
+	const tsxPath = join(tsxDir, `${appName}.tsx`);
+	if (compilationCache.has(tsxPath)) {
+		const entry = compilationCache.get(tsxPath);
+		if (entry?.tempPath) {
+			// Clean up temp files
+			rm(entry.tempPath, { recursive: true, force: true }).catch(() => {});
+		}
+		compilationCache.delete(tsxPath);
+		console.log(`[TSX_COMPILE] Cleared cache for: ${appName}`);
+	}
+}
+
+// Clear all caches
+export function clearAllCaches() {
+	for (const [path, entry] of compilationCache.entries()) {
+		if (entry?.tempPath) {
+			rm(entry.tempPath, { recursive: true, force: true }).catch(() => {});
+		}
+	}
+	compilationCache.clear();
+	console.log("[TSX_COMPILE] Cleared all compilation caches");
+}
+
+// Clean up old temp directories
+async function cleanupOldTempDirs() {
+	const bunTmpDir = join(process.cwd(), ".bun-tmp");
+	try {
+		const entries = await readdir(bunTmpDir);
+		const now = Date.now();
+		const maxAge = 60 * 60 * 1000; // 1 hour
+
+		for (const entry of entries) {
+			const entryPath = join(bunTmpDir, entry);
+			try {
+				const stats = await stat(entryPath);
+				if (now - stats.mtimeMs > maxAge) {
+					await rm(entryPath, { recursive: true, force: true });
+					console.log(`[TSX_COMPILE] Cleaned up old temp: ${entry}`);
+				}
+			} catch {}
+		}
+	} catch {}
+}
 
 // Globs for discovery
 const tsxGlob = new Glob("*.tsx");
@@ -81,13 +143,29 @@ async function discoverApps() {
 	return { htmlApps, folderApps, tsxApps };
 }
 
-// Enhanced TSX compilation with proper React setup
+// Enhanced TSX compilation with proper React setup and caching
 async function compileTsx(tsxPath: string, appName: string) {
 	try {
 		// Read the original TSX file
 		const originalContent = await Bun.file(tsxPath).text();
+		const contentHash = computeHash(originalContent);
+
+		// Check cache first
+		const cached = compilationCache.get(tsxPath);
+		if (cached && cached.hash === contentHash) {
+			console.log(
+				`[TSX_COMPILE] Cache hit for ${appName} (hash: ${contentHash.substring(0, 8)})`
+			);
+			return generateHtmlWrapper(appName, cached.compiledJs);
+		}
+
+		console.log(`[TSX_COMPILE] Compiling ${appName} (hash: ${contentHash.substring(0, 8)})`);
+
+		// Clean up old temp directories periodically
+		cleanupOldTempDirs().catch(() => {});
 
 		// Add React JSX pragma to force React JSX transform
+		// Using jsxDEV for better error messages, but also supporting jsx/jsxs
 		const modifiedContent = `/** @jsx React.createElement */
 /** @jsxImportSource react */
 ${originalContent}`;
@@ -106,18 +184,20 @@ ${originalContent}`;
 			define: {
 				"process.env.NODE_ENV": '"production"'
 			},
-			external: ["react", "react-dom"],
+			external: ["react", "react-dom", "react/jsx-runtime", "react/jsx-dev-runtime"],
 			naming: "[name].[ext]"
 		});
 
 		if (!result.success) {
-			console.error("[TSX_COMPILE] Build failed:", result.logs);
-			throw new Error("TSX compilation failed");
+			const errorLogs = result.logs.map(log => String(log)).join("\n");
+			console.error("[TSX_COMPILE] Build failed:", errorLogs);
+			throw new Error(`TSX compilation failed:\n${errorLogs}`);
 		}
 
 		let js = await result.outputs[0].text();
 
-		// Remove problematic 'this' references from JSX - more comprehensive patterns
+		// Remove problematic 'this' references from JSX - comprehensive patterns
+		// This is needed because Bun's JSX transform can include 'this' references that don't work in module scope
 		js = js.replace(
 			/,\s*undefined,\s*false,\s*undefined,\s*this\)/g,
 			", undefined, false, undefined, undefined)"
@@ -135,40 +215,61 @@ ${originalContent}`;
 			return match.replace(", this)", ", undefined)");
 		});
 
-		console.log("[TSX_COMPILE] Compilation successful, JS length:", js.length);
+		// Clean up temp file
+		await unlink(tempTsxPath).catch(() => {});
 
-		// Ensure .bun-tmp directory exists
-		const bunTmpDir = join(process.cwd(), ".bun-tmp");
-		await mkdir(bunTmpDir, { recursive: true });
-		const tmp = await mkdtemp(join(bunTmpDir, `${appName}-`));
-		const filePath = join(tmp, "component.mjs");
+		// Store in cache
+		compilationCache.set(tsxPath, {
+			hash: contentHash,
+			compiledJs: js,
+			compiledAt: Date.now()
+		});
 
-		await writeFile(filePath, js);
+		console.log(`[TSX_COMPILE] Compilation successful, JS length: ${js.length}, cached`);
 
-		const mod = await import(`file://${filePath}`);
+		return generateHtmlWrapper(appName, js);
+	} catch (error) {
+		console.error("[TSX_COMPILE] Error:", error);
+		const errorMessage = error instanceof Error ? error.message : String(error);
+		return new Response(
+			`
+			<html>
+				<head><title>TSX Compilation Error</title></head>
+				<body style="font-family: monospace; padding: 2rem; background: #1a1a1a; color: #fff;">
+					<h1 style="color: #ff6b6b;">TSX Compilation Error</h1>
+					<p>Failed to compile <strong>${appName}</strong></p>
+					<pre style="background: #2a2a2a; padding: 1rem; border-radius: 8px; overflow: auto; white-space: pre-wrap;">${errorMessage}</pre>
+					<a href="/apps" style="color: #8b5cf6;">← Back to Gallery</a>
+				</body>
+			</html>
+		`,
+			{
+				status: 500,
+				headers: {
+					"Content-Type": "text/html; charset=utf-8"
+				}
+			}
+		);
+	}
+}
 
-		const default1 = mod.default;
-		// Create a modern, styled HTML wrapper
-
-		return (
-			<html lang="en">
-				<head>
-					<meta charset="UTF-8" />
-					<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-					<title>
-						${appName.charAt(0).toUpperCase() + appName.slice(1).replace(/-/g, " ")} |
-						Synq Apps
-					</title>
-					<link
-						rel="icon"
-						type="image/png"
-						href="/icons/favicon-96x96.png"
-						sizes="96x96"
-					/>
-					<script src="https://unpkg.com/react@18/umd/react.production.min.js" />
-					<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" />
-					<script src="https://cdn.tailwindcss.com" />
-					<style>{`
+// Generate HTML wrapper for compiled TSX
+function generateHtmlWrapper(appName: string, js: string) {
+	// Create a modern, styled HTML wrapper
+	return (
+		<html lang="en">
+			<head>
+				<meta charset="UTF-8" />
+				<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+				<title>
+					${appName.charAt(0).toUpperCase() + appName.slice(1).replace(/-/g, " ")} | Synq
+					Apps
+				</title>
+				<link rel="icon" type="image/png" href="/icons/favicon-96x96.png" sizes="96x96" />
+				<script src="https://unpkg.com/react@18/umd/react.production.min.js" />
+				<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js" />
+				<script src="https://cdn.tailwindcss.com" />
+				<style>{`
 						* {box-sizing: border-box; }
 						body {
 							margin: 0;
@@ -225,26 +326,25 @@ ${originalContent}`;
 						transform: translateY(-1px);
     }
 					`}</style>
-				</head>
-				<body>
-					<div class="synq-app-container">
-						<header class="synq-app-header">
-							<h1 class="synq-app-title">
-								⚡ $
-								{appName.charAt(0).toUpperCase() +
-									appName.slice(1).replace(/-/g, " ")}
-								<span class="synq-app-badge">TSX</span>
-							</h1>
-							<a href="/apps" class="synq-back-btn">
-								← Gallery
-							</a>
-						</header>
-						<main style="flex: 1;">
-							<div id="root" />
-						</main>
-					</div>
-					<script type="module">
-						{`
+			</head>
+			<body>
+				<div class="synq-app-container">
+					<header class="synq-app-header">
+						<h1 class="synq-app-title">
+							⚡ $
+							{appName.charAt(0).toUpperCase() + appName.slice(1).replace(/-/g, " ")}
+							<span class="synq-app-badge">TSX</span>
+						</h1>
+						<a href="/apps" class="synq-back-btn">
+							← Gallery
+						</a>
+					</header>
+					<main style="flex: 1;">
+						<div id="root" />
+					</main>
+				</div>
+				<script type="module">
+					{`
 // Wait for React to be available
 if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
 	console.error('React or ReactDOM not loaded');
@@ -299,32 +399,10 @@ if (typeof React === 'undefined' || typeof ReactDOM === 'undefined') {
 	});
 }
 						`}
-					</script>
-				</body>
-			</html>
-		);
-	} catch (error) {
-		console.error("[TSX_COMPILE] Error:", error);
-		return new Response(
-			`
-			<html>
-				<head><title>TSX Compilation Error</title></head>
-				<body style="font-family: monospace; padding: 2rem; background: #1a1a1a; color: #fff;">
-					<h1 style="color: #ff6b6b;">TSX Compilation Error</h1>
-					<p>Failed to compile <strong>${appName}</strong></p>
-					<pre style="background: #2a2a2a; padding: 1rem; border-radius: 8px; overflow: auto;">${error}</pre>
-					<a href="/apps" style="color: #8b5cf6;">← Back to Gallery</a>
-				</body>
-			</html>
-		`,
-			{
-				status: 500,
-				headers: {
-					"Content-Type": "text/html; charset=utf-8"
-				}
-			}
-		);
-	}
+				</script>
+			</body>
+		</html>
+	);
 }
 
 // Enable HTML plugin for JSX support
